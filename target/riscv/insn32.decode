@@ -42,7 +42,10 @@
 &j    imm rd
 &r    rd rs1 rs2
 &r2   rd rs1
+<<<<<<< HEAD
 &r2_s rs1 rs2
+=======
+>>>>>>> target/riscv: rvb: count leading/trailing zeros
 &s    imm rs1 rs2
 &u    imm rd
 &shift     shamt rs1 rd
