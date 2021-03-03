@@ -238,3 +238,146 @@ target_ulong HELPER(aes32dsi)(target_ulong rs1, target_ulong rs2, target_ulong b
 {
 	return aes32_operation(bs, rs1, rs2, false, false);	
 }
+
+static inline target_ulong aes64_operation(target_ulong rs1, target_ulong rs2, target_ulong rd, bool enc, bool mix, target_ulong bs)
+{
+	uint64_t RS1 = rs1;
+	uint64_t RS2 = rs2;
+	if(bs != 0b00){
+		return 0;
+	}
+	uint64_t result;
+	uint64_t temp;
+	uint32_t col_0;
+	uint32_t col_1;
+	if(enc) {	
+		temp = AES_SHIFROWS_LO(RS1,RS2);
+		temp = (
+			((uint64_t)AES_ENC_SBOX[(temp >>  0) & 0xFF] <<  0) |
+			((uint64_t)AES_ENC_SBOX[(temp >>  8) & 0xFF] <<  8) |
+			((uint64_t)AES_ENC_SBOX[(temp >> 16) & 0xFF] << 16) |
+			((uint64_t)AES_ENC_SBOX[(temp >> 24) & 0xFF] << 24) |
+			((uint64_t)AES_ENC_SBOX[(temp >> 32) & 0xFF] << 32) |
+			((uint64_t)AES_ENC_SBOX[(temp >> 40) & 0xFF] << 40) |
+			((uint64_t)AES_ENC_SBOX[(temp >> 48) & 0xFF] << 48) |
+			((uint64_t)AES_ENC_SBOX[(temp >> 56) & 0xFF] << 56) 
+		);
+		if(mix) {
+			col_0 = temp & 0xFFFFFFFF;
+			col_1 = temp >> 32       ;
+			
+			col_0 = AES_MIXCOLUMN(col_0);
+			col_1 = AES_MIXCOLUMN(col_1);
+			
+			result = ((uint64_t)col_1 << 32) | col_0;
+		} else {
+			result = temp;
+		}
+	} else {
+		temp = AES_INVSHIFROWS_LO(RS1,RS2);
+		temp = (
+			((uint64_t)AES_DEC_SBOX[(temp >>  0) & 0xFF] <<  0) |
+			((uint64_t)AES_DEC_SBOX[(temp >>  8) & 0xFF] <<  8) |
+			((uint64_t)AES_DEC_SBOX[(temp >> 16) & 0xFF] << 16) |
+			((uint64_t)AES_DEC_SBOX[(temp >> 24) & 0xFF] << 24) |
+			((uint64_t)AES_DEC_SBOX[(temp >> 32) & 0xFF] << 32) |
+			((uint64_t)AES_DEC_SBOX[(temp >> 40) & 0xFF] << 40) |
+			((uint64_t)AES_DEC_SBOX[(temp >> 48) & 0xFF] << 48) |
+			((uint64_t)AES_DEC_SBOX[(temp >> 56) & 0xFF] << 56) 
+		);
+		if(mix) {
+			col_0 = temp & 0xFFFFFFFF;
+			col_1 = temp >> 32       ;
+			
+			col_0 = AES_INVMIXCOLUMN(col_0);
+			col_1 = AES_INVMIXCOLUMN(col_1);
+			
+			result = ((uint64_t)col_1 << 32) | col_0;
+		} else {
+			result = temp;
+		}
+	}
+	return result;
+}
+
+target_ulong HELPER(aes64esm)(target_ulong rs1, target_ulong rs2, target_ulong rd, target_ulong bs)
+{
+	return aes64_operation(rs1, rs2, rd, true, true, bs);	
+}
+
+target_ulong HELPER(aes64es)(target_ulong rs1, target_ulong rs2, target_ulong rd, target_ulong bs)
+{
+	return aes64_operation(rs1, rs2, rd, true, false, bs);	
+}
+
+target_ulong HELPER(aes64ds)(target_ulong rs1, target_ulong rs2, target_ulong rd, target_ulong bs)
+{
+	return aes64_operation(rs1, rs2, rd, false, false, bs);
+}
+
+target_ulong HELPER(aes64dsm_ks2)(target_ulong rs1, target_ulong rs2, target_ulong rd, target_ulong bs)
+{
+	if(bs == 0b00) {
+		return aes64_operation(rs1, rs2, rd, false, true, bs);	
+	} else if(bs == 0b01) {
+		uint64_t RS1 = rs1;
+		uint64_t RS2 = rs2;
+		uint32_t rs1_hi =  RS1 >> 32;
+		uint32_t rs2_lo =  RS2      ;
+		uint32_t rs2_hi =  RS2 >> 32;
+	
+		uint32_t r_lo   = (rs1_hi ^ rs2_lo         ) ;
+		uint32_t r_hi   = (rs1_hi ^ rs2_lo ^ rs2_hi) ;
+		target_ulong result =  ((uint64_t)r_hi << 32) | r_lo ;
+		return result;
+	}
+	return 0;
+}
+
+target_ulong HELPER(aes64ks1i)(target_ulong rs1, target_ulong rd, target_ulong rcon)
+{
+	uint64_t RS1 = rs1;
+	uint8_t round_consts [10] = {
+	    0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
+	};
+
+	uint8_t enc_rcon = rcon;
+
+	if(enc_rcon > 0xA) {
+		// Invalid opcode.
+		return 0;
+	}
+
+	uint32_t temp = (RS1 >> 32) & 0xFFFFFFFF;
+	uint8_t rcon_ = 0;
+	target_ulong result;
+
+	if(enc_rcon != 0xA) {
+	    temp = (temp >> 8) | (temp << 24); // Rotate left by 8
+	    rcon_ = round_consts[enc_rcon];
+	}
+
+	temp =
+		((uint32_t)AES_ENC_SBOX[(temp >> 24) & 0xFF] << 24) |
+		((uint32_t)AES_ENC_SBOX[(temp >> 16) & 0xFF] << 16) |
+		((uint32_t)AES_ENC_SBOX[(temp >>  8) & 0xFF] <<  8) |
+		((uint32_t)AES_ENC_SBOX[(temp >>  0) & 0xFF] <<  0) ;
+
+	temp ^= rcon_;
+
+	result = ((uint64_t)temp << 32) | temp;
+	return result;
+}
+
+target_ulong HELPER(aes64im)(target_ulong rs1, target_ulong rd)
+{
+	uint64_t RS1 = rs1;
+	uint32_t col_0 = RS1 & 0xFFFFFFFF;
+	uint32_t col_1 = RS1 >> 32       ;
+
+	col_0 = AES_INVMIXCOLUMN(col_0);
+	col_1 = AES_INVMIXCOLUMN(col_1);
+
+	target_ulong result= ((uint64_t)col_1 << 32) | col_0;
+	return result;
+}

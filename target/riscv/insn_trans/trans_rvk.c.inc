@@ -19,42 +19,88 @@
  */
 
 
-static bool trans_aes32esmi(DisasContext *ctx, arg_aes32esmi *a)
+static bool trans_aesesm(DisasContext *ctx, arg_aesesm *a)
 {
 	REQUIRE_EXT(ctx, RVK);
 	TCGv bs;
 	bs = tcg_const_tl(a->bs);
+
+#ifdef TARGET_RISCV32
 	gen_helper_aes32esmi(cpu_gpr[a->rs1], cpu_gpr[a->rs1], cpu_gpr[a->rs2], bs);
+#endif
+
+#ifdef TARGET_RISCV64
+	gen_helper_aes64esm(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rs2], cpu_gpr[a->rd], bs);
+#endif
+
 	return true;
 }
 
-static bool trans_aes32esi(DisasContext *ctx, arg_aes32esi *a)
+static bool trans_aeses(DisasContext *ctx, arg_aeses *a)
 {
 	REQUIRE_EXT(ctx, RVK);
 	TCGv bs;
 	bs = tcg_const_tl(a->bs);
+
+#ifdef TARGET_RISCV32
 	gen_helper_aes32esi(cpu_gpr[a->rs1], cpu_gpr[a->rs1], cpu_gpr[a->rs2], bs);
+#endif
+
+#ifdef TARGET_RISCV64
+	gen_helper_aes64es(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rs2], cpu_gpr[a->rd], bs);
+#endif
+
 	return true;
 }
 
-static bool trans_aes32dsmi(DisasContext *ctx, arg_aes32dsmi *a)
+static bool trans_aesdsm_ks2(DisasContext *ctx, arg_aesdsm_ks2 *a)
 {
 	REQUIRE_EXT(ctx, RVK);
 	TCGv bs;
 	bs = tcg_const_tl(a->bs);
+
+#ifdef TARGET_RISCV32
 	gen_helper_aes32dsmi(cpu_gpr[a->rs1], cpu_gpr[a->rs1], cpu_gpr[a->rs2], bs);
+#endif
+
+#ifdef TARGET_RISCV64
+	gen_helper_aes64dsm_ks2(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rs2], cpu_gpr[a->rd], bs);
+#endif
+
 	return true;
 }
 
-static bool trans_aes32dsi(DisasContext *ctx, arg_aes32dsi *a)
+static bool trans_aesds(DisasContext *ctx, arg_aesds *a)
 {
 	REQUIRE_EXT(ctx, RVK);
 	TCGv bs;
 	bs = tcg_const_tl(a->bs);
+
+#ifdef TARGET_RISCV32
 	gen_helper_aes32dsi(cpu_gpr[a->rs1], cpu_gpr[a->rs1], cpu_gpr[a->rs2], bs);
+#endif
+
+#ifdef TARGET_RISCV64
+	gen_helper_aes64ds(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rs2], cpu_gpr[a->rd], bs);
+#endif
+
 	return true;
 }
 
 #ifdef TARGET_RISCV64
+static bool trans_aes64ks1i(DisasContext *ctx, arg_aes64ks1i *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	TCGv rcon;
+	rcon = tcg_const_tl(a->rcon);
+	gen_helper_aes64ks1i(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rd], rcon);
+	return true;
+}
 
+static bool trans_aes64im(DisasContext *ctx, arg_aes64im *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	gen_helper_aes64im(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rd]);
+	return true;
+}
 #endif
