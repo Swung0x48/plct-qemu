@@ -1159,3 +1159,23 @@ DEF_HELPER_4(aes64ds, tl, tl, tl, tl, tl)
 DEF_HELPER_4(aes64dsm_ks2, tl, tl, tl, tl, tl)
 DEF_HELPER_3(aes64ks1i, tl, tl, tl, tl)
 DEF_HELPER_2(aes64im, tl, tl, tl)
+
+/* Crypto Extension - sha256 */
+DEF_HELPER_2(sha256sig0, tl, tl, tl)
+DEF_HELPER_2(sha256sig1, tl, tl, tl)
+DEF_HELPER_2(sha256sum0, tl, tl, tl)
+DEF_HELPER_2(sha256sum1, tl, tl, tl)
+
+/* Crypto Extension - sha512 */
+DEF_HELPER_3(sha512sum0r, tl, tl, tl, tl)
+DEF_HELPER_3(sha512sum1r, tl, tl, tl, tl)
+DEF_HELPER_3(sha512sig0l, tl, tl, tl, tl)
+DEF_HELPER_3(sha512sig0h, tl, tl, tl, tl)
+DEF_HELPER_3(sha512sig1l, tl, tl, tl, tl)
+DEF_HELPER_3(sha512sig1h, tl, tl, tl, tl)
+
+/* Crypto Extension - sha512 */
+DEF_HELPER_2(sha512sig0, tl, tl, tl)
+DEF_HELPER_2(sha512sig1, tl, tl, tl)
+DEF_HELPER_2(sha512sum0, tl, tl, tl)
+DEF_HELPER_2(sha512sum1, tl, tl, tl)

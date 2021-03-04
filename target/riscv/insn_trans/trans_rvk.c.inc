@@ -104,3 +104,103 @@ static bool trans_aes64im(DisasContext *ctx, arg_aes64im *a)
 	return true;
 }
 #endif
+
+static bool trans_sha256sig0(DisasContext *ctx, arg_sha256sig0 *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	gen_helper_sha256sig0(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rd]);
+	return true;
+}
+
+static bool trans_sha256sig1(DisasContext *ctx, arg_sha256sig1 *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	gen_helper_sha256sig1(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rd]);
+	return true;
+}
+
+static bool trans_sha256sum0(DisasContext *ctx, arg_sha256sum0 *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	gen_helper_sha256sum0(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rd]);
+	return true;
+}
+
+static bool trans_sha256sum1(DisasContext *ctx, arg_sha256sum1 *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	gen_helper_sha256sum1(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rd]);
+	return true;
+}
+
+static bool trans_sha512sum0r(DisasContext *ctx, arg_sha512sum0r *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	gen_helper_sha512sum0r(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rs2],cpu_gpr[a->rd]);
+	return true;
+}
+
+static bool trans_sha512sum1r(DisasContext *ctx, arg_sha512sum1r *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	gen_helper_sha512sum1r(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rs2],cpu_gpr[a->rd]);
+	return true;
+}
+
+static bool trans_sha512sig0l(DisasContext *ctx, arg_sha512sig0l *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	gen_helper_sha512sig0l(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rs2],cpu_gpr[a->rd]);
+	return true;
+}
+
+static bool trans_sha512sig0h(DisasContext *ctx, arg_sha512sig0h *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	gen_helper_sha512sig0h(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rs2],cpu_gpr[a->rd]);
+	return true;
+}
+
+static bool trans_sha512sig1l(DisasContext *ctx, arg_sha512sig1l *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	gen_helper_sha512sig1l(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rs2],cpu_gpr[a->rd]);
+	return true;
+}
+
+static bool trans_sha512sig1h(DisasContext *ctx, arg_sha512sig1h *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	gen_helper_sha512sig1h(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rs2],cpu_gpr[a->rd]);
+	return true;
+}
+
+#ifdef TARGET_RISCV64
+static bool trans_sha512sig0(DisasContext *ctx, arg_sha512sig0 *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	gen_helper_sha512sig0(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rd]);
+	return true;
+}
+
+static bool trans_sha512sig1(DisasContext *ctx, arg_sha512sig1 *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	gen_helper_sha512sig1(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rd]);
+	return true;
+}
+
+static bool trans_sha512sum0(DisasContext *ctx, arg_sha512sum0 *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	gen_helper_sha512sum0(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rd]);
+	return true;
+}
+
+static bool trans_sha512sum1(DisasContext *ctx, arg_sha512sum1 *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	gen_helper_sha512sum1(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rd]);
+	return true;
+}
+#endif
