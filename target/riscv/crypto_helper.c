@@ -381,3 +381,97 @@ target_ulong HELPER(aes64im)(target_ulong rs1, target_ulong rd)
 	target_ulong result= ((uint64_t)col_1 << 32) | col_0;
 	return result;
 }
+
+#define ROR32(a,amt) ((a << (-amt & (32-1))) | (a >> (amt & (32-1))))
+target_ulong HELPER(sha256sig0)(target_ulong rs1, target_ulong rd)
+{
+	uint32_t a = rs1;
+	return ROR32(a, 7) ^ ROR32(a, 18) ^ (a >> 3);
+}
+
+target_ulong HELPER(sha256sig1)(target_ulong rs1, target_ulong rd)
+{
+	uint32_t a = rs1;
+	return ROR32(a, 17) ^ ROR32(a,19) ^ (a >> 10);
+}
+
+target_ulong HELPER(sha256sum0)(target_ulong rs1, target_ulong rd)
+{
+	uint32_t a = rs1;
+	return ROR32(a, 2) ^ ROR32(a,13) ^ ROR32(a, 22);
+}
+
+target_ulong HELPER(sha256sum1)(target_ulong rs1, target_ulong rd)
+{
+	uint32_t a = rs1;
+	return ROR32(a, 6) ^ ROR32(a,11) ^ ROR32(a, 25);
+}
+#undef ROR32
+
+target_ulong HELPER(sha512sum0r)(target_ulong RS2, target_ulong RS1, target_ulong RD)
+{
+	return
+	    ((uint32_t)RS1 << 25) ^ ((uint32_t)RS1 << 30) ^ ((uint32_t)RS1 >> 28) ^
+	    ((uint32_t)RS2 >>  7) ^ ((uint32_t)RS2 >>  2) ^ ((uint32_t)RS2 <<  4);
+}
+
+target_ulong HELPER(sha512sum1r)(target_ulong RS2, target_ulong RS1, target_ulong RD)
+{
+	return
+	    ((uint32_t)RS1 << 23) ^ ((uint32_t)RS1 >> 14) ^ ((uint32_t)RS1 >> 18) ^
+	    ((uint32_t)RS2 >>  9) ^ ((uint32_t)RS2 << 18) ^ ((uint32_t)RS2 << 14);
+}
+
+target_ulong HELPER(sha512sig0l)(target_ulong RS2, target_ulong RS1, target_ulong RD)
+{
+	return
+	    ((uint32_t)RS1 >>  1) ^ ((uint32_t)RS1 >>  7) ^ ((uint32_t)RS1 >>  8) ^
+	    ((uint32_t)RS2 << 31) ^ ((uint32_t)RS2 << 25) ^ ((uint32_t)RS2 << 24);
+}
+
+target_ulong HELPER(sha512sig0h)(target_ulong RS2, target_ulong RS1, target_ulong RD)
+{
+	return
+	    ((uint32_t)RS1 >>  1) ^ ((uint32_t)RS1 >>  7) ^ ((uint32_t)RS1 >>  8) ^
+	    ((uint32_t)RS2 << 31) ^                         ((uint32_t)RS2 << 24);
+}
+
+target_ulong HELPER(sha512sig1l)(target_ulong RS2, target_ulong RS1, target_ulong RD)
+{
+	return
+	    ((uint32_t)RS1 <<  3) ^ ((uint32_t)RS1 >>  6) ^ ((uint32_t)RS1 >> 19) ^
+	    ((uint32_t)RS2 >> 29) ^ ((uint32_t)RS2 << 26) ^ ((uint32_t)RS2 << 13);
+}
+
+target_ulong HELPER(sha512sig1h)(target_ulong RS2, target_ulong RS1, target_ulong RD)
+{
+	return
+	    ((uint32_t)RS1 <<  3) ^ ((uint32_t)RS1 >>  6) ^ ((uint32_t)RS1 >> 19) ^
+	    ((uint32_t)RS2 >> 29) ^                         ((uint32_t)RS2 << 13);
+}
+
+#define ROR64(a,amt) ((a << (-amt & (64-1))) | (a >> (amt & (64-1))))
+target_ulong HELPER(sha512sig0)(target_ulong rs1, target_ulong rd)
+{
+	uint64_t a = rs1;
+	return ROR64(a,  1) ^ ROR64(a, 8) ^ (a >>  7);
+}
+
+target_ulong HELPER(sha512sig1)(target_ulong rs1, target_ulong rd)
+{
+	uint64_t a = rs1;
+	return ROR64(a, 19) ^ ROR64(a,61) ^ (a >>  6);
+}
+
+target_ulong HELPER(sha512sum0)(target_ulong rs1, target_ulong rd)
+{
+	uint64_t a = rs1;
+	return ROR64(a, 28) ^ ROR64(a,34) ^ ROR64(a,39);
+}
+
+target_ulong HELPER(sha512sum1)(target_ulong rs1, target_ulong rd)
+{
+	uint64_t a = rs1;
+	return ROR64(a, 14) ^ ROR64(a, 18) ^ ROR64(a, 41);
+}
+#undef ROR64
