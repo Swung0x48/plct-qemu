@@ -33,6 +33,7 @@ static bool trans_aesesm(DisasContext *ctx, arg_aesesm *a)
 	gen_helper_aes64esm(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rs2], cpu_gpr[a->rd], bs);
 #endif
 
+	tcg_temp_free(bs);
 	return true;
 }
 
@@ -50,6 +51,7 @@ static bool trans_aeses(DisasContext *ctx, arg_aeses *a)
 	gen_helper_aes64es(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rs2], cpu_gpr[a->rd], bs);
 #endif
 
+	tcg_temp_free(bs);
 	return true;
 }
 
@@ -67,6 +69,7 @@ static bool trans_aesdsm_ks2(DisasContext *ctx, arg_aesdsm_ks2 *a)
 	gen_helper_aes64dsm_ks2(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rs2], cpu_gpr[a->rd], bs);
 #endif
 
+	tcg_temp_free(bs);
 	return true;
 }
 
@@ -84,6 +87,7 @@ static bool trans_aesds(DisasContext *ctx, arg_aesds *a)
 	gen_helper_aes64ds(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rs2], cpu_gpr[a->rd], bs);
 #endif
 
+	tcg_temp_free(bs);
 	return true;
 }
 
@@ -94,6 +98,7 @@ static bool trans_aes64ks1i(DisasContext *ctx, arg_aes64ks1i *a)
 	TCGv rcon;
 	rcon = tcg_const_tl(a->rcon);
 	gen_helper_aes64ks1i(cpu_gpr[a->rd], cpu_gpr[a->rs1], cpu_gpr[a->rd], rcon);
+	tcg_temp_free(rcon);
 	return true;
 }
 
