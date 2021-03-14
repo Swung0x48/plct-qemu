@@ -141,6 +141,10 @@ struct CPURISCVState {
 
     uint32_t features;
 
+    /* Crypto Extension CSR */
+    target_ulong mentropy;
+    target_ulong mnoise;
+
 #ifdef CONFIG_USER_ONLY
     uint32_t elf_flags;
 #endif
