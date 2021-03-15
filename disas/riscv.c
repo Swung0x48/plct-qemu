@@ -105,6 +105,7 @@ typedef enum {
     rvc_csr_eq_0xc80,
     rvc_csr_eq_0xc81,
     rvc_csr_eq_0xc82,
+    rvc_rcon_lt_0x00a,
 } rvc_constraint;
 
 typedef enum {
@@ -156,6 +157,8 @@ typedef enum {
     rv_codec_css_swsp,
     rv_codec_css_sdsp,
     rv_codec_css_sqsp,
+    rv_codec_k_bs,
+    rv_codec_k_rcon,
 } rv_codec;
 
 typedef enum {
@@ -478,6 +481,35 @@ typedef enum {
     rv_op_fsflags = 316,
     rv_op_fsrmi = 317,
     rv_op_fsflagsi = 318,
+    rv_op_aes32esmi = 319,
+    rv_op_aes32esi = 320,
+    rv_op_aes32dsmi = 321,
+    rv_op_aes32dsi = 322,
+    rv_op_aes64ks1i = 323,
+    rv_op_aes64ks2 = 324,
+    rv_op_aes64im = 325,
+    rv_op_aes64esm = 326,
+    rv_op_aes64es = 327,
+    rv_op_aes64dsm = 328,
+    rv_op_aes64ds = 329,
+    rv_op_sha256sig0 = 330,
+    rv_op_sha256sig1 = 331,
+    rv_op_sha256sum0 = 332,
+    rv_op_sha256sum1 = 333,
+    rv_op_sha512sig0 = 334,
+    rv_op_sha512sig1 = 335,
+    rv_op_sha512sum0 = 336,
+    rv_op_sha512sum1 = 337,
+    rv_op_sha512sum0r = 338,
+    rv_op_sha512sum1r = 339,
+    rv_op_sha512sig0l = 340,
+    rv_op_sha512sig0h = 341,
+    rv_op_sha512sig1l = 342,
+    rv_op_sha512sig1h = 343,
+    rv_op_sm3p0 = 344,
+    rv_op_sm3p1 = 345,
+    rv_op_sm4ed = 346,
+    rv_op_sm4ks = 347,
 } rv_op;
 
 /* structures */
@@ -497,6 +529,8 @@ typedef struct {
     uint8_t   succ;
     uint8_t   aq;
     uint8_t   rl;
+    uint8_t   bs;
+    uint8_t   rcon;
 } rv_decode;
 
 typedef struct {
@@ -572,6 +606,8 @@ static const char rv_freg_name_sym[32][5] = {
 #define rv_fmt_rd_rs2                 "O\t0,2"
 #define rv_fmt_rs1_offset             "O\t1,o"
 #define rv_fmt_rs2_offset             "O\t2,o"
+#define rv_fmt_bs_rs2_rs1             "O\tb,2,1"
+#define rv_fmt_rcon_rs1_rd            "O\tn,1,0"
 
 /* pseudo-instruction constraints */
 
@@ -1117,6 +1153,35 @@ const rv_opcode_data opcode_data[] = {
     { "fsflags", rv_codec_i_csr, rv_fmt_rd_rs1, NULL, 0, 0, 0 },
     { "fsrmi", rv_codec_i_csr, rv_fmt_rd_zimm, NULL, 0, 0, 0 },
     { "fsflagsi", rv_codec_i_csr, rv_fmt_rd_zimm, NULL, 0, 0, 0 },
+    { "aes32esmi", rv_codec_k_bs, rv_fmt_bs_rs2_rs1, NULL, 0, 0, 0 },
+    { "aes32esi", rv_codec_k_bs, rv_fmt_bs_rs2_rs1, NULL, 0, 0, 0 },
+    { "aes32dsmi", rv_codec_k_bs, rv_fmt_bs_rs2_rs1, NULL, 0, 0, 0 },
+    { "aes32dsi", rv_codec_k_bs, rv_fmt_bs_rs2_rs1, NULL, 0, 0, 0 },
+    { "aes64ks1i", rv_codec_k_rcon, rv_fmt_rcon_rs1_rd, NULL, 0, 0, 0 },
+    { "aes64ks2", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
+    { "aes64im", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
+    { "aes64esm", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
+    { "aes64es", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
+    { "aes64dsm", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
+    { "aes64ds", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
+    { "sha256sig0", rv_codec_r, rv_fmt_rd_rs1, NULL, 0, 0 },
+    { "sha256sig1", rv_codec_r, rv_fmt_rd_rs1, NULL, 0, 0 },
+    { "sha256sum0", rv_codec_r, rv_fmt_rd_rs1, NULL, 0, 0 },
+    { "sha256sum1", rv_codec_r, rv_fmt_rd_rs1, NULL, 0, 0 },
+    { "sha512sig0", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
+    { "sha512sig1", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
+    { "sha512sum0", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
+    { "sha512sum1", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
+    { "sha512sum0r", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
+    { "sha512sum1r", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
+    { "sha512sig0l", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
+    { "sha512sig0h", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
+    { "sha512sig1l", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
+    { "sha512sig1h", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
+    { "sm3p0", rv_codec_r, rv_fmt_rd_rs1, NULL, 0, 0 },
+    { "sm3p1", rv_codec_r, rv_fmt_rd_rs1, NULL, 0, 0 },
+    { "sm4ed", rv_codec_k_bs, rv_fmt_bs_rs2_rs1, NULL, 0, 0, 0 },
+    { "sm4ks", rv_codec_k_bs, rv_fmt_bs_rs2_rs1, NULL, 0, 0, 0 },
 };
 
 /* CSR names */
@@ -2223,6 +2288,16 @@ static uint32_t operand_cimmq(rv_inst inst)
         ((inst << 57) >> 62) << 6;
 }
 
+static uint32_t operand_bs(rv_inst inst)
+{
+    return (inst << 32) >> 62;
+}
+
+static uint32_t operand_rcon(rv_inst inst)
+{
+    return (inst << 40) >> 60;
+}
+
 /* decode operands */
 
 static void decode_inst_operands(rv_decode *dec)
@@ -2502,6 +2577,16 @@ static void decode_inst_operands(rv_decode *dec)
         dec->rs2 = operand_crs2(inst);
         dec->imm = operand_cimmsqsp(inst);
         break;
+    case rv_codec_k_bs:
+        dec->rs1 = rv_ireg_sp;
+        dec->rs2 = operand_crs2(inst);
+        dec->bs = operand_bs(inst);
+        break;
+    case rv_codec_k_rcon:
+        dec->rd = rv_ireg_zero;
+        dec->rs1 = rv_ireg_sp;
+        dec->rcon = operand_rcon(inst);
+        break;
     };
 }
 
@@ -2511,6 +2596,7 @@ static bool check_constraints(rv_decode *dec, const rvc_constraint *c)
 {
     int32_t imm = dec->imm;
     uint8_t rd = dec->rd, rs1 = dec->rs1, rs2 = dec->rs2;
+    uint8_t rcon = dec->rcon;
     while (*c != rvc_end) {
         switch (*c) {
         case rvc_rd_eq_ra:
@@ -2603,6 +2689,11 @@ static bool check_constraints(rv_decode *dec, const rvc_constraint *c)
                 return false;
             }
             break;
+        case rvc_rcon_lt_0x00a:
+            if (!(rcon <= 0x00a)) {
+                return false;
+            }
+            break;
         default: break;
         }
         c++;
@@ -2660,6 +2751,14 @@ static void format_inst(char *buf, size_t buflen, size_t tab, rv_decode *dec)
             break;
         case ')':
             append(buf, ")", buflen);
+            break;
+        case 'b':
+            snprintf(tmp, sizeof(tmp), "%d", dec->bs);
+            append(buf, tmp, buflen);
+            break;
+        case 'n':
+            snprintf(tmp, sizeof(tmp), "%d", dec->rcon);
+            append(buf, tmp, buflen);
             break;
         case '0':
             append(buf, rv_ireg_name_sym[dec->rd], buflen);
