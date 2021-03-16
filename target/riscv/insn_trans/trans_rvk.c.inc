@@ -204,3 +204,40 @@ static bool trans_sha512sum1(DisasContext *ctx, arg_sha512sum1 *a)
 	return true;
 }
 #endif
+
+/* SM3 */
+static bool trans_sm3p0(DisasContext *ctx, arg_sm3p0 *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	gen_helper_sm3p0(cpu_gpr[a->rd], cpu_gpr[a->rs1]);
+	return true;
+}
+static bool trans_sm3p1(DisasContext *ctx, arg_sm3p1 *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	gen_helper_sm3p1(cpu_gpr[a->rd], cpu_gpr[a->rs1]);
+	return true;
+}
+
+/* SM4 */
+static bool trans_sm4ed(DisasContext *ctx, arg_sm4ed *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	TCGv bs = tcg_const_tl(a->bs);
+
+	gen_helper_sm4ed(cpu_gpr[a->rs1], cpu_gpr[a->rs2], cpu_gpr[a->rs1], bs);
+
+	tcg_temp_free(bs);
+	return true;
+}
+
+static bool trans_sm4ks(DisasContext *ctx, arg_sm4ks *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	TCGv bs = tcg_const_tl(a->bs);
+
+	gen_helper_sm4ks(cpu_gpr[a->rs1], cpu_gpr[a->rs2], cpu_gpr[a->rs1], bs);
+
+	tcg_temp_free(bs);
+	return true;
+}

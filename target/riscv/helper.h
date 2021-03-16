@@ -1188,3 +1188,11 @@ DEF_HELPER_2(sha512sig0, tl, tl, tl)
 DEF_HELPER_2(sha512sig1, tl, tl, tl)
 DEF_HELPER_2(sha512sum0, tl, tl, tl)
 DEF_HELPER_2(sha512sum1, tl, tl, tl)
+
+/* Crypto Extension - sm3 */
+DEF_HELPER_1(sm3p0, tl, tl)
+DEF_HELPER_1(sm3p1, tl, tl)
+
+/* Crypto Extension - sm4 */
+DEF_HELPER_3(sm4ed, tl, tl, tl, tl)
+DEF_HELPER_3(sm4ks, tl, tl, tl, tl)
