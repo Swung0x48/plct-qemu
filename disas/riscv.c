@@ -1571,8 +1571,35 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
             switch (((inst >> 12) & 0b111)) {
             case 0: op = rv_op_addi; break;
             case 1:
-                switch (((inst >> 27) & 0b11111)) {
-                case 0: op = rv_op_slli; break;
+                switch (((inst >> 25))) {
+                case 8:
+                    switch (((inst >> 20) & 0b0011111)) {
+                    case 2: op = rv_op_sha256sig0; break;
+                    case 3: op = rv_op_sha256sig1; break;
+                    case 0: op = rv_op_sha256sum0; break;
+                    case 1: op = rv_op_sha256sum1; break;
+                    case 6: if(isa == rv64) op = rv_op_sha512sig0; break;
+                    case 7: if(isa == rv64) op = rv_op_sha512sig1; break;
+                    case 4: if(isa == rv64) op = rv_op_sha512sum0; break;
+                    case 5: if(isa == rv64) op = rv_op_sha512sum1; break;
+                    case 8: op = rv_op_sm3p0; break;
+                    case 9: op = rv_op_sm3p1; break;
+                    }
+                    break;
+                 case 24:
+                     switch (((inst >> 20) & 0b0011111)) {
+                     case 0:if(isa == rv64) op =rv_op_aes64im; break;
+                     default:
+                         if((inst >> 24 & 0b01) == 1){
+                             uint8_t tmp = ((inst >> 20) & 0b01111);
+                             if(tmp <= 10) op = rv_op_aes64ks1i;
+                         }
+                         break;
+                     }
+                     break;
+                }
+                if(((inst >> 27) & 0b11111)==0) {
+                    op = rv_op_slli;
                 }
                 break;
             case 2: op = rv_op_slti; break;
@@ -1688,8 +1715,81 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
             case 13: op = rv_op_divu; break;
             case 14: op = rv_op_rem; break;
             case 15: op = rv_op_remu; break;
+            case 61: op = rv_op_aes64ks2; break;
             case 256: op = rv_op_sub; break;
             case 261: op = rv_op_sra; break;
+            default:
+                switch ((inst >> 25) & 0b0011111) {
+                case 8:
+                    switch ((inst >> 30) & 0b11) {
+                    case 1: op = rv_op_sha512sum0r; break;
+                    }
+                    break;
+                case 9:
+                   switch ((inst >> 30) & 0b11) {
+                   case 1: op = rv_op_sha512sum1r; break;
+                   }
+                   break;
+                case 10:
+                   switch ((inst >> 30) & 0b11) {
+                   case 1: op = rv_op_sha512sig0l; break;
+                   }
+                   break;
+                case 11:
+                   switch ((inst >> 30) & 0b11) {
+                   case 1: op = rv_op_sha512sig1l; break;
+                   }
+                   break;
+                case 14:
+                    switch ((inst >> 30) & 0b11) {
+                    case 1: op = rv_op_sha512sig0h; break;
+                    }
+                    break;
+                case 15:
+                    switch ((inst >> 30) & 0b11) {
+                    case 1: op = rv_op_sha512sig1h; break;
+                    }
+                    break;
+                case 24: op = rv_op_sm4ed; break;
+                case 25:
+                    if(isa == rv32){
+                        op = rv_op_aes32esi;
+                    } else if(isa == rv64) {
+                        switch ((inst >> 30) & 0b11) {
+                        case 0: op = rv_op_aes64es; break;
+                        }
+                    }
+                    break;
+                case 26: op = rv_op_sm4ks; break;
+                case 27:
+                    if(isa == rv32){
+                        op = rv_op_aes32esmi;
+                    } else if(isa == rv64) {
+                        switch ((inst >> 30) & 0b11) {
+                            case 0: op = rv_op_aes64esm; break;
+                        }
+                    }
+                    break;
+                case 29:
+                    if(isa == rv32){
+                        op = rv_op_aes32dsi; break;
+                    } else if(isa == rv64) {
+                        switch ((inst >> 30) & 0b11) {
+                        case 0: op = rv_op_aes64ds; break;
+                        }
+                    }
+                    break;
+                case 31:
+                    if(isa == rv32){
+                        op = rv_op_aes32dsmi;
+                    } else if(isa == rv64) {
+                        switch ((inst >> 30) & 0b11) {
+                        case 0: op = rv_op_aes64dsm; break;
+                        case 1: op = rv_op_aes64ks2; break;
+                        }
+                    }
+                    break;
+                }
             }
             break;
         case 13: op = rv_op_lui; break;
