@@ -606,8 +606,8 @@ static const char rv_freg_name_sym[32][5] = {
 #define rv_fmt_rd_rs2                 "O\t0,2"
 #define rv_fmt_rs1_offset             "O\t1,o"
 #define rv_fmt_rs2_offset             "O\t2,o"
-#define rv_fmt_bs_rs2_rs1             "O\tb,2,1"
-#define rv_fmt_rcon_rs1_rd            "O\tn,1,0"
+#define rv_fmt_rs1_rs2_bs             "O\t1,2,b"
+#define rv_fmt_rd_rs1_rcon            "O\t0,1,n"
 
 /* pseudo-instruction constraints */
 
@@ -1153,13 +1153,13 @@ const rv_opcode_data opcode_data[] = {
     { "fsflags", rv_codec_i_csr, rv_fmt_rd_rs1, NULL, 0, 0, 0 },
     { "fsrmi", rv_codec_i_csr, rv_fmt_rd_zimm, NULL, 0, 0, 0 },
     { "fsflagsi", rv_codec_i_csr, rv_fmt_rd_zimm, NULL, 0, 0, 0 },
-    { "aes32esmi", rv_codec_k_bs, rv_fmt_bs_rs2_rs1, NULL, 0, 0, 0 },
-    { "aes32esi", rv_codec_k_bs, rv_fmt_bs_rs2_rs1, NULL, 0, 0, 0 },
-    { "aes32dsmi", rv_codec_k_bs, rv_fmt_bs_rs2_rs1, NULL, 0, 0, 0 },
-    { "aes32dsi", rv_codec_k_bs, rv_fmt_bs_rs2_rs1, NULL, 0, 0, 0 },
-    { "aes64ks1i", rv_codec_k_rcon, rv_fmt_rcon_rs1_rd, NULL, 0, 0, 0 },
+    { "aes32esmi", rv_codec_k_bs, rv_fmt_rs1_rs2_bs, NULL, 0, 0, 0 },
+    { "aes32esi", rv_codec_k_bs, rv_fmt_rs1_rs2_bs, NULL, 0, 0, 0 },
+    { "aes32dsmi", rv_codec_k_bs, rv_fmt_rs1_rs2_bs, NULL, 0, 0, 0 },
+    { "aes32dsi", rv_codec_k_bs, rv_fmt_rs1_rs2_bs, NULL, 0, 0, 0 },
+    { "aes64ks1i", rv_codec_k_rcon,  rv_fmt_rd_rs1_rcon, NULL, 0, 0, 0 },
     { "aes64ks2", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
-    { "aes64im", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
+    { "aes64im", rv_codec_r, rv_fmt_rd_rs1, NULL, 0, 0 },
     { "aes64esm", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
     { "aes64es", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
     { "aes64dsm", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
@@ -1180,8 +1180,8 @@ const rv_opcode_data opcode_data[] = {
     { "sha512sig1h", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
     { "sm3p0", rv_codec_r, rv_fmt_rd_rs1, NULL, 0, 0 },
     { "sm3p1", rv_codec_r, rv_fmt_rd_rs1, NULL, 0, 0 },
-    { "sm4ed", rv_codec_k_bs, rv_fmt_bs_rs2_rs1, NULL, 0, 0, 0 },
-    { "sm4ks", rv_codec_k_bs, rv_fmt_bs_rs2_rs1, NULL, 0, 0, 0 },
+    { "sm4ed", rv_codec_k_bs, rv_fmt_rs1_rs2_bs, NULL, 0, 0, 0 },
+    { "sm4ks", rv_codec_k_bs, rv_fmt_rs1_rs2_bs, NULL, 0, 0, 0 },
 };
 
 /* CSR names */
@@ -2578,13 +2578,13 @@ static void decode_inst_operands(rv_decode *dec)
         dec->imm = operand_cimmsqsp(inst);
         break;
     case rv_codec_k_bs:
-        dec->rs1 = rv_ireg_sp;
-        dec->rs2 = operand_crs2(inst);
+        dec->rs1 = operand_rs1(inst);
+        dec->rs2 = operand_rs2(inst);
         dec->bs = operand_bs(inst);
         break;
     case rv_codec_k_rcon:
-        dec->rd = rv_ireg_zero;
-        dec->rs1 = rv_ireg_sp;
+        dec->rd = operand_rd(inst);
+        dec->rs1 = operand_rs1(inst);
         dec->rcon = operand_rcon(inst);
         break;
     };
