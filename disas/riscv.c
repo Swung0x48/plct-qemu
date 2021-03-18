@@ -510,6 +510,8 @@ typedef enum {
     rv_op_sm3p1 = 345,
     rv_op_sm4ed = 346,
     rv_op_sm4ks = 347,
+    rv_op_pollentropy = 348,
+    rv_op_getnoise = 349,
 } rv_op;
 
 /* structures */
@@ -1182,6 +1184,8 @@ const rv_opcode_data opcode_data[] = {
     { "sm3p1", rv_codec_r, rv_fmt_rd_rs1, NULL, 0, 0 },
     { "sm4ed", rv_codec_k_bs, rv_fmt_rs1_rs2_bs, NULL, 0, 0, 0 },
     { "sm4ks", rv_codec_k_bs, rv_fmt_rs1_rs2_bs, NULL, 0, 0, 0 },
+    { "pollentropy", rv_codec_i_csr, rv_fmt_rd, NULL, 0, 0 },
+    { "getnoise", rv_codec_i_csr, rv_fmt_rd, NULL, 0, 0 },
 };
 
 /* CSR names */
@@ -2100,7 +2104,17 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
                 }
                 break;
             case 1: op = rv_op_csrrw; break;
-            case 2: op = rv_op_csrrs; break;
+            case 2:
+                op = rv_op_csrrs;
+                switch((inst >> 15) & 0b011111) {
+                case 0:
+                    switch((inst >> 20) & 0b111111111111) {
+                    case 3861: op = rv_op_pollentropy; break;
+                    case 1961: op = rv_op_getnoise; break;
+                    }
+                    break;
+                }
+                break;
             case 3: op = rv_op_csrrc; break;
             case 5: op = rv_op_csrrwi; break;
             case 6: op = rv_op_csrrsi; break;
