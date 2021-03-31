@@ -136,28 +136,28 @@ static void htif_handle_tohost_write(HTIFState *htifstate, uint64_t val_written)
         /* frontend syscall handler, shutdown and exit code support */
         if (cmd == 0x0) {
             if (payload & 0x1) {
-        		int exit_code = payload >> 1;
-            	if (signature_file) {
-            		char* sig_data = (char *)malloc(sig_len);
-            		dma_memory_read(&address_space_memory, sig_addr, sig_data, sig_len);
-            		FILE * sig_file = fopen(signature_file, "w");
+                int exit_code = payload >> 1;
+                if (signature_file) {
+                    char* sig_data = (char *)malloc(sig_len);
+                    dma_memory_read(&address_space_memory, sig_addr, sig_data, sig_len);
+                    FILE * sig_file = fopen(signature_file, "w");
                     if (sig_file == NULL) {
                         error_report("open %s: %s", signature_file, strerror(errno));
                         exit(1);
                     }
-            	    for (int i = 0; i < sig_len; i += 4)
-            	    {
-            	      for (int j = 4; j > 0; j--)
-            	          if (i+j <= sig_len)
-            	        	  fprintf(sig_file,"%02x", sig_data[i+j-1] & 0xff);
-            	          else
-            	            fprintf(sig_file,"%02x", 0);
-            	      fprintf(sig_file,"\n");
+                    for (int i = 0; i < sig_len; i += 4)
+                    {
+                      for (int j = 4; j > 0; j--)
+                          if (i+j <= sig_len)
+                              fprintf(sig_file,"%02x", sig_data[i+j-1] & 0xff);
+                          else
+                            fprintf(sig_file,"%02x", 0);
+                      fprintf(sig_file,"\n");
 
-            	    }
-            	    fclose(sig_file);
-            		free(sig_data);
-            	}
+                    }
+                    fclose(sig_file);
+                    free(sig_data);
+                }
                 /* exit code */
                 exit(exit_code);
             } else {

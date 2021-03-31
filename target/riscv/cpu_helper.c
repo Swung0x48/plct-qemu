@@ -877,6 +877,10 @@ void riscv_cpu_do_interrupt(CPUState *cs)
             write_tval  = true;
             tval = env->badaddr;
             break;
+        case RISCV_EXCP_BREAKPOINT:
+            write_tval  = true;
+            tval = env->pc;
+            break;
         default:
             break;
         }
@@ -1004,6 +1008,7 @@ void riscv_cpu_do_interrupt(CPUState *cs)
         env->mcause = cause | ~(((target_ulong)-1) >> async);
         env->mepc = env->pc;
         env->mbadaddr = tval;
+        env->mtval = tval;
         env->mtval2 = mtval2;
         env->pc = (env->mtvec >> 2 << 2) +
             ((async && (env->mtvec & 3) == 1) ? cause * 4 : 0);
