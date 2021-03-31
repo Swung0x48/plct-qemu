@@ -4400,6 +4400,16 @@ SRST
     file in file
 ERST
 
+DEF("dump-signature-data", HAS_ARG, QEMU_OPTION_dump_signature_data,
+    "-dump-signature-data <file>\n"
+    "                Output torture test signature to file.\n"
+    "                Only support on RISC-V marchine with htif device.\n",
+    QEMU_ARCH_ALL)
+SRST
+``-dump-signature-data``
+    Dump torture test signature to file in file
+ERST
+
 DEF("enable-sync-profile", 0, QEMU_OPTION_enable_sync_profile,
     "-enable-sync-profile\n"
     "                enable synchronization profiling\n",
