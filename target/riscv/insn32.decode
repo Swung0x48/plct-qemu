@@ -695,7 +695,6 @@ xnor       0100000 .......... 100 ..... 0110011 @r
 # The encoding for zext.h differs between RV32 and RV64.
 # zext_h_32 denotes the RV32 variant.
 zext_h_32  0000100 00000 ..... 100 ..... 0110011 @r2
-
 # *** RV64 Zbb Standard Extension (in addition to RV32 Zbb) ***
 clzw       0110000 00000 ..... 001 ..... 0011011 @r2
 ctzw       0110000 00001 ..... 001 ..... 0011011 @r2
