@@ -676,6 +676,16 @@ static void riscv_cpu_realize(DeviceState *dev, Error **errp)
             cpu->cfg.ext_zksh = true;
         }
 
+        if (cpu->cfg.ext_zcea) {
+            cpu->cfg.ext_zcee = true;
+        }
+
+        if (cpu->cfg.ext_d && cpu->cfg.ext_zceb) {
+            error_setg(errp,
+                       "D and Zceb extensions are incompatible");
+            return;
+        }
+
         if (cpu->cfg.ext_i) {
             ext |= RVI;
         }

@@ -147,6 +147,11 @@ static RISCVException ctr32(CPURISCVState *env, int csrno)
     return ctr(env, csrno);
 }
 
+static RISCVException zcemode(CPURISCVState *env, int csrno)
+{
+    return -!env_archcpu(env)->cfg.ext_zcea;
+}
+
 #if !defined(CONFIG_USER_ONLY)
 static RISCVException any(CPURISCVState *env, int csrno)
 {
@@ -3325,6 +3330,18 @@ RISCVException riscv_csrrw_debug(CPURISCVState *env, int csrno,
     return ret;
 }
 
+static RISCVException read_zce_tblj_csr(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->tbljalvec;
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException write_zce_tblj_csr(CPURISCVState *env, int csrno, target_ulong val)
+{
+    env->tbljalvec = val;
+    return RISCV_EXCP_NONE;
+}
+
 /* Control and Status Register function table */
 riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     /* User Floating-Point CSRs */
@@ -3361,6 +3378,9 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
 
     /* Crypto Extension */
     [CSR_SEED] = { "seed", seed, NULL, NULL, rmw_seed },
+
+    /* Zce Extension */
+    [CSR_TBLJALVEC] = {"tbljalvec", zcemode, read_zce_tblj_csr, write_zce_tblj_csr},
 
 #if !defined(CONFIG_USER_ONLY)
     /* Machine Timers and Counters */
@@ -3748,5 +3768,6 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_MHPMCOUNTER29H] = { "mhpmcounter29h", any32,  read_zero },
     [CSR_MHPMCOUNTER30H] = { "mhpmcounter30h", any32,  read_zero },
     [CSR_MHPMCOUNTER31H] = { "mhpmcounter31h", any32,  read_zero },
+
 #endif /* !CONFIG_USER_ONLY */
 };

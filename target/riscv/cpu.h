@@ -160,6 +160,9 @@ struct CPUArchState {
 
     uint32_t features;
 
+    /* Zce Extension */
+    target_ulong tbljalvec;
+
 #ifdef CONFIG_USER_ONLY
     uint32_t elf_flags;
 #endif
@@ -397,6 +400,9 @@ struct RISCVCPUConfig {
     bool ext_svinval;
     bool ext_svnapot;
     bool ext_svpbmt;
+    bool ext_zcea;
+    bool ext_zceb;
+    bool ext_zcee;
     bool ext_zdinx;
     bool ext_zfh;
     bool ext_zfhmin;

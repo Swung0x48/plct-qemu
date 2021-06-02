@@ -802,6 +802,11 @@ typedef enum RISCVException {
 #define HVICTL_IPRIO                       0x000000ff
 #define HVICTL_VALID_MASK                  \
     (HVICTL_VTI | HVICTL_IID | HVICTL_IPRIOM | HVICTL_IPRIO)
+/* Zce Extension */
+#define CSR_TBLJALVEC                     0x800
+#define TBLJALVEC_CONFIG                  0x3f
+#define TBLJALVEC_BASE                    (~0x3F)
+
 
 /* seed CSR bits */
 #define SEED_OPST                        (0b11 << 30)
