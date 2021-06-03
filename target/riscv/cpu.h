@@ -296,6 +296,8 @@ struct RISCVCPU {
         bool ext_counters;
         bool ext_ifencei;
         bool ext_icsr;
+        bool ext_zfinx;
+        bool ext_zdinx;
 
         char *priv_spec;
         char *user_spec;
