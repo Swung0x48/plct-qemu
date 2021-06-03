@@ -399,7 +399,15 @@ static void mark_fs_dirty(DisasContext *ctx)
     tcg_temp_free(tmp);
 }
 #else
-static inline void mark_fs_dirty(DisasContext *ctx) { }
+static inline void mark_fs_dirty(DisasContext *ctx) {
+    if(ctx->ext_zfinx) {
+        int i;
+        for (i = 1; i < 32; i++) {
+            tcg_gen_sync_tl(cpu_gpr[i]);
+            tcg_gen_discard_tl(cpu_gpr[i]);
+        }
+    }
+}
 #endif
 
 static void gen_set_rm(DisasContext *ctx, int rm)
@@ -441,6 +449,27 @@ EX_SH(12)
     if (is_32bit(ctx)) {        \
         return false;           \
     }                           \
+} while (0)
+
+#define REQUIRE_SYNC_1(ctx, reg_num) do {  \
+    if (ctx->ext_zfinx) {                  \
+        tcg_gen_sync_tl(cpu_gpr[reg_num]); \
+    }                                      \
+} while (0)
+
+#define REQUIRE_SYNC_2(ctx, reg_num_1, reg_num_2) do { \
+    if (ctx->ext_zfinx) {                              \
+        tcg_gen_sync_tl(cpu_gpr[reg_num_1]);           \
+        tcg_gen_sync_tl(cpu_gpr[reg_num_2]);           \
+    }                                                  \
+} while (0)
+
+#define REQUIRE_SYNC_3(ctx, reg_num_1, reg_num_2, reg_num_3) do { \
+    if (ctx->ext_zfinx) {                                         \
+        tcg_gen_sync_tl(cpu_gpr[reg_num_1]);                      \
+        tcg_gen_sync_tl(cpu_gpr[reg_num_2]);                      \
+        tcg_gen_sync_tl(cpu_gpr[reg_num_3]);                      \
+    }                                                             \
 } while (0)
 
 static int ex_rvc_register(DisasContext *ctx, int reg)
