@@ -1067,6 +1067,10 @@ void gen_intermediate_code(CPUState *cs, TranslationBlock *tb, int max_insns)
 void riscv_translate_init(void)
 {
     int i;
+    RISCVCPU *cpu = RISCV_CPU(qemu_get_cpu(0));
+
+    cpu->cfg.ext_zfinx |= cpu->cfg.ext_zdinx;
+    bool ext_zfinx = cpu->cfg.ext_zfinx;
 
     /* cpu_gpr[0] is a placeholder for the zero register. Do not use it. */
     /* Use the gen_set_gpr and gen_get_gpr helper functions when accessing */
@@ -1078,9 +1082,22 @@ void riscv_translate_init(void)
             offsetof(CPURISCVState, gpr[i]), riscv_int_regnames[i]);
     }
 
-    for (i = 0; i < 32; i++) {
-        cpu_fpr[i] = tcg_global_mem_new_i64(cpu_env,
-            offsetof(CPURISCVState, fpr[i]), riscv_fpr_regnames[i]);
+    if(!ext_zfinx) {
+        for (i = 0; i < 32; i++) {
+            cpu_fpr[i] = tcg_global_mem_new_i64(cpu_env,
+                offsetof(CPURISCVState, fpr[i]), riscv_fpr_regnames[i]);
+        }
+    } else {
+#ifdef TARGET_RISCV64
+        for (i = 0; i < 32; i++) {
+            cpu_fpr[i] = cpu_gpr[i];
+        }
+#else
+        for (i = 0; i < 32; i++) {
+            cpu_fpr[i] = tcg_global_mem_new_i64(cpu_env,
+                offsetof(CPURISCVState, gpr[i]), riscv_int_regnames[i]);
+        }
+#endif
     }
 
     cpu_pc = tcg_global_mem_new(cpu_env, offsetof(CPURISCVState, pc), "pc");
