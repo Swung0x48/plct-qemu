@@ -163,13 +163,22 @@ static bool trans_fsgnj_s(DisasContext *ctx, arg_fsgnj_s *a)
     REQUIRE_EXT(ctx, RVF);
 
     if (a->rs1 == a->rs2) { /* FMOV */
-        gen_check_nanbox_s(cpu_fpr[a->rd], cpu_fpr[a->rs1]);
+        if (ctx->ext_zfinx) {
+            gen_nanbox_s(cpu_fpr[a->rd], cpu_fpr[a->rs1]);
+        } else {
+            gen_check_nanbox_s(cpu_fpr[a->rd], cpu_fpr[a->rs1]);
+        }
     } else { /* FSGNJ */
         TCGv_i64 rs1 = tcg_temp_new_i64();
         TCGv_i64 rs2 = tcg_temp_new_i64();
 
-        gen_check_nanbox_s(rs1, cpu_fpr[a->rs1]);
-        gen_check_nanbox_s(rs2, cpu_fpr[a->rs2]);
+        if (ctx->ext_zfinx) {
+            gen_nanbox_s(rs1, cpu_fpr[a->rs1]);
+            gen_nanbox_s(rs2, cpu_fpr[a->rs2]);
+        } else {
+            gen_check_nanbox_s(rs1, cpu_fpr[a->rs1]);
+            gen_check_nanbox_s(rs2, cpu_fpr[a->rs2]);
+        }
 
         /* This formulation retains the nanboxing of rs2. */
         tcg_gen_deposit_i64(cpu_fpr[a->rd], rs2, rs1, 0, 31);
@@ -188,13 +197,20 @@ static bool trans_fsgnjn_s(DisasContext *ctx, arg_fsgnjn_s *a)
     REQUIRE_EXT(ctx, RVF);
 
     rs1 = tcg_temp_new_i64();
-    gen_check_nanbox_s(rs1, cpu_fpr[a->rs1]);
-
+    if (ctx->ext_zfinx) {
+        gen_nanbox_s(rs1, cpu_fpr[a->rs1]);
+    } else {
+        gen_check_nanbox_s(rs1, cpu_fpr[a->rs1]);
+    }
     if (a->rs1 == a->rs2) { /* FNEG */
         tcg_gen_xori_i64(cpu_fpr[a->rd], rs1, MAKE_64BIT_MASK(31, 1));
     } else {
         rs2 = tcg_temp_new_i64();
-        gen_check_nanbox_s(rs2, cpu_fpr[a->rs2]);
+        if (ctx->ext_zfinx) {
+            gen_nanbox_s(rs2, cpu_fpr[a->rs2]);
+        } else {
+            gen_check_nanbox_s(rs2, cpu_fpr[a->rs2]);
+        }
 
         /*
          * Replace bit 31 in rs1 with inverse in rs2.
@@ -222,13 +238,21 @@ static bool trans_fsgnjx_s(DisasContext *ctx, arg_fsgnjx_s *a)
     REQUIRE_EXT(ctx, RVF);
 
     rs1 = tcg_temp_new_i64();
-    gen_check_nanbox_s(rs1, cpu_fpr[a->rs1]);
+    if (ctx->ext_zfinx) {
+        gen_nanbox_s(rs1, cpu_fpr[a->rs1]);
+    } else {
+        gen_check_nanbox_s(rs1, cpu_fpr[a->rs1]);
+    }
 
     if (a->rs1 == a->rs2) { /* FABS */
         tcg_gen_andi_i64(cpu_fpr[a->rd], rs1, ~MAKE_64BIT_MASK(31, 1));
     } else {
         rs2 = tcg_temp_new_i64();
-        gen_check_nanbox_s(rs2, cpu_fpr[a->rs2]);
+        if (ctx->ext_zfinx) {
+            gen_nanbox_s(rs2, cpu_fpr[a->rs2]);
+        } else {
+            gen_check_nanbox_s(rs2, cpu_fpr[a->rs2]);
+        }
 
         /*
          * Xor bit 31 in rs1 with that in rs2.
