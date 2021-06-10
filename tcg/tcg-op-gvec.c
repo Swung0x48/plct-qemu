@@ -1736,9 +1736,8 @@ void tcg_gen_vec_add8_i64(TCGv_i64 d, TCGv_i64 a, TCGv_i64 b)
     gen_addv_mask(d, a, b, m);
 }
 
-void tcg_gen_vec_add8_i32(TCGv_i32 d, TCGv_i32 a, TCGv_i32 b)
+static void gen_addv_mask_i32(TCGv_i32 d, TCGv_i32 a, TCGv_i32 b, TCGv_i32 m)
 {
-    TCGv_i32 m = tcg_constant_i32((int32_t)dup_const(MO_8, 0x80));
     TCGv_i32 t1 = tcg_temp_new_i32();
     TCGv_i32 t2 = tcg_temp_new_i32();
     TCGv_i32 t3 = tcg_temp_new_i32();
@@ -1753,6 +1752,12 @@ void tcg_gen_vec_add8_i32(TCGv_i32 d, TCGv_i32 a, TCGv_i32 b)
     tcg_temp_free_i32(t1);
     tcg_temp_free_i32(t2);
     tcg_temp_free_i32(t3);
+}
+
+void tcg_gen_vec_add8_i32(TCGv_i32 d, TCGv_i32 a, TCGv_i32 b)
+{
+    TCGv_i32 m = tcg_constant_i32((int32_t)dup_const(MO_8, 0x80));
+    gen_addv_mask_i32(d, a, b, m);
 }
 
 void tcg_gen_vec_add16_i64(TCGv_i64 d, TCGv_i64 a, TCGv_i64 b)
@@ -1919,9 +1924,8 @@ void tcg_gen_vec_sub8_i64(TCGv_i64 d, TCGv_i64 a, TCGv_i64 b)
     gen_subv_mask(d, a, b, m);
 }
 
-void tcg_gen_vec_sub8_i32(TCGv_i32 d, TCGv_i32 a, TCGv_i32 b)
+static void gen_subv_mask_i32(TCGv_i32 d, TCGv_i32 a, TCGv_i32 b, TCGv_i32 m)
 {
-    TCGv_i32 m = tcg_constant_i32((int32_t)dup_const(MO_8, 0x80));
     TCGv_i32 t1 = tcg_temp_new_i32();
     TCGv_i32 t2 = tcg_temp_new_i32();
     TCGv_i32 t3 = tcg_temp_new_i32();
@@ -1938,6 +1942,11 @@ void tcg_gen_vec_sub8_i32(TCGv_i32 d, TCGv_i32 a, TCGv_i32 b)
     tcg_temp_free_i32(t3);
 }
 
+void tcg_gen_vec_sub8_i32(TCGv_i32 d, TCGv_i32 a, TCGv_i32 b)
+{
+    TCGv_i32 m = tcg_constant_i32((int32_t)dup_const(MO_8, 0x80));
+    gen_subv_mask_i32(d, a, b, m);
+}
 void tcg_gen_vec_sub16_i64(TCGv_i64 d, TCGv_i64 a, TCGv_i64 b)
 {
     TCGv_i64 m = tcg_constant_i64(dup_const(MO_16, 0x8000));
