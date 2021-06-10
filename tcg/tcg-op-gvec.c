@@ -2754,14 +2754,11 @@ void tcg_gen_vec_shr16i_i64(TCGv_i64 d, TCGv_i64 a, int64_t c)
 
 void tcg_gen_vec_shr8i_i32(TCGv_i32 d, TCGv_i32 a, int32_t c)
 {
-    uint32_t mask = dup_const(MO_8, 0xff >> c);
     tcg_gen_shri_i32(d, a, c);
     tcg_gen_andi_i32(d, d, mask);
 }
 
 void tcg_gen_vec_shr16i_i32(TCGv_i32 d, TCGv_i32 a, int32_t c)
-{
-    uint32_t mask = dup_const(MO_16, 0xffff >> c);
     tcg_gen_shri_i32(d, a, c);
     tcg_gen_andi_i32(d, d, mask);
 }
