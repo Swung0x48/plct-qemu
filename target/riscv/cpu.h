@@ -61,6 +61,7 @@
 #define RVF RV('F')
 #define RVD RV('D')
 #define RVV RV('V')
+#define RVP RV('P')
 #define RVC RV('C')
 #define RVS RV('S')
 #define RVU RV('U')
@@ -82,6 +83,7 @@ enum {
 #define PRIV_VERSION_1_11_0 0x00011100
 
 #define VEXT_VERSION_0_07_1 0x00000701
+#define PEXT_VERSION_0_09_4 0x00000904
 
 enum {
     TRANSLATE_SUCCESS,
@@ -132,6 +134,7 @@ struct CPURISCVState {
     target_ulong priv_ver;
     target_ulong bext_ver;
     target_ulong vext_ver;
+    target_ulong pext_ver;
 
     /* RISCVMXL, but uint32_t for vmstate migration */
     uint32_t misa_mxl;      /* current mxl */
@@ -309,14 +312,17 @@ struct RISCVCPU {
         bool ext_zbb;
         bool ext_zbc;
         bool ext_zbs;
+        bool ext_p;
         bool ext_counters;
         bool ext_ifencei;
         bool ext_icsr;
+        bool ext_psfoperand;
 
         char *priv_spec;
         char *user_spec;
         char *bext_spec;
         char *vext_spec;
+        char *pext_spec;
         uint16_t vlen;
         uint16_t elen;
         bool mmu;
