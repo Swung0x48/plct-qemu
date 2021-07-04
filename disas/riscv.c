@@ -156,6 +156,7 @@ typedef enum {
     rv_codec_css_swsp,
     rv_codec_css_sdsp,
     rv_codec_css_sqsp,
+    rv_codec_zcea_b,
 } rv_codec;
 
 typedef enum {
@@ -521,6 +522,8 @@ typedef enum {
     rv_op_bclr = 359,
     rv_op_binv = 360,
     rv_op_bext = 361,
+    rv_op_beqi = 362,
+    rv_op_bnei = 363,
 } rv_op;
 
 /* structures */
@@ -540,6 +543,8 @@ typedef struct {
     uint8_t   succ;
     uint8_t   aq;
     uint8_t   rl;
+    uint8_t   uimm;
+    int16_t   offset;
 } rv_decode;
 
 typedef struct {
@@ -615,6 +620,7 @@ static const char rv_freg_name_sym[32][5] = {
 #define rv_fmt_rd_rs2                 "O\t0,2"
 #define rv_fmt_rs1_offset             "O\t1,o"
 #define rv_fmt_rs2_offset             "O\t2,o"
+#define rv_fmt_rs1_uimm_offset        "O\t1,u,f"
 
 /* pseudo-instruction constraints */
 
@@ -1203,6 +1209,8 @@ const rv_opcode_data opcode_data[] = {
     { "bclr", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
     { "binv", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
     { "bext", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
+    { "beqi", rv_codec_zcea_b, rv_fmt_rs1_uimm_offset, NULL, 0, 0, 0 },
+    { "bnei", rv_codec_zcea_b, rv_fmt_rs1_uimm_offset, NULL, 0, 0, 0 },
 };
 
 /* CSR names */
@@ -2374,6 +2382,16 @@ static uint32_t operand_cimmq(rv_inst inst)
         ((inst << 57) >> 62) << 6;
 }
 
+static uint32_t operand_uimm(rv_inst inst)
+{
+    return;
+}
+
+static uint32_t operand_offset(rv_inst inst)
+{
+    return;
+}
+
 /* decode operands */
 
 static void decode_inst_operands(rv_decode *dec)
@@ -2653,6 +2671,11 @@ static void decode_inst_operands(rv_decode *dec)
         dec->rs2 = operand_crs2(inst);
         dec->imm = operand_cimmsqsp(inst);
         break;
+    case rv_codec_zcea_b:
+        dec->rs1 = operand_rs1(inst);
+        dec->uimm = operand_uimm(inst);
+        dec->offset = operand_offset(inst);
+        break;
     };
 }
 
@@ -2929,6 +2952,14 @@ static void format_inst(char *buf, size_t buflen, size_t tab, rv_decode *dec)
                 append(buf, ".rl", buflen);
             }
             break;
+        case 'u':
+            snprintf(tmp, sizeof(tmp), "%d", dec->uimm);
+            append(buf, tmp, buflen);
+            break;
+        case 'f':
+            snprintf(tmp, sizeof(tmp), "%d", dec->offset);
+            append(buf, tmp, buflen);
+            break;            
         default:
             break;
         }
