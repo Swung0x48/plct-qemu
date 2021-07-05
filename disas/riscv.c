@@ -156,6 +156,7 @@ typedef enum {
     rv_codec_css_swsp,
     rv_codec_css_sdsp,
     rv_codec_css_sqsp,
+    rv_codec_zceb,
     rv_codec_zcea_b,
 } rv_codec;
 
@@ -621,6 +622,7 @@ static const char rv_freg_name_sym[32][5] = {
 #define rv_fmt_rs1_offset             "O\t1,o"
 #define rv_fmt_rs2_offset             "O\t2,o"
 #define rv_fmt_rs1_uimm_offset        "O\t1,u,f"
+#define rv_fmt_rs1_rs2_uimm           "O\t1,u,f"
 
 /* pseudo-instruction constraints */
 
@@ -1211,6 +1213,33 @@ const rv_opcode_data opcode_data[] = {
     { "bext", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
     { "beqi", rv_codec_zcea_b, rv_fmt_rs1_uimm_offset, NULL, 0, 0, 0 },
     { "bnei", rv_codec_zcea_b, rv_fmt_rs1_uimm_offset, NULL, 0, 0, 0 },
+    // decbnez
+    // lwgp
+    // ldgp
+    // swgp
+    // sdgp
+    { "c.lbu", rv_codec_zceb, rv_fmt_rs1_rs2_uimm, NULL, 0, 0, 0 },
+    { "c.lhu", rv_codec_zceb, rv_fmt_rs1_rs2_uimm, NULL, 0, 0, 0 },
+    { "c.lb", rv_codec_zceb, rv_fmt_rs1_rs2_uimm, NULL, 0, 0, 0 },
+    { "c.lh", rv_codec_zceb, rv_fmt_rs1_rs2_uimm, NULL, 0, 0, 0 },
+    { "c.sb", rv_codec_zceb, rv_fmt_rs1_rs2_uimm, NULL, 0, 0, 0 },
+    { "c.sh", rv_codec_zceb, rv_fmt_rs1_rs2_uimm, NULL, 0, 0, 0 },
+    // c_decbnez
+    // c_zext_b         
+    // c_sext_b         
+    // c_zext_h         
+    // c_sext_h         
+    // c_zext_w         
+    // c_neg            
+    // c_not            
+    // c_mul            
+    // c_tblj_all    
+    // c_pop       
+    // c_pop_e     
+    // c_popret    
+    // c_popret_e  
+    // c_push      
+    // c_push_e    
 };
 
 /* CSR names */
@@ -2121,6 +2150,7 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
         break;
     }
     dec->op = op;
+    // TODO
 }
 
 /* operand extractors */
@@ -2384,12 +2414,12 @@ static uint32_t operand_cimmq(rv_inst inst)
 
 static uint32_t operand_uimm(rv_inst inst)
 {
-    return ((inst << 39) << 20);
+    return ((inst << 39) >> 20);
 }
 
 static uint32_t operand_offset(rv_inst inst)
 {
-    return ((inst << 32) >> 31) | ((inst << 56) >> 7) | ((inst << 33) >> 25) | ((inst << 52) >> 8);
+    return ((inst << 32) >> 31) | ((inst << 56) >> 7) | ((inst << 33) >> 25) | ((inst << 52) >> 8) | 0;
 }
 
 /* decode operands */
