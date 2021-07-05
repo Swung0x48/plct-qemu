@@ -2384,12 +2384,12 @@ static uint32_t operand_cimmq(rv_inst inst)
 
 static uint32_t operand_uimm(rv_inst inst)
 {
-    return;
+    return ((inst << 39) << 20);
 }
 
 static uint32_t operand_offset(rv_inst inst)
 {
-    return;
+    return ((inst << 32) >> 31) | ((inst << 56) >> 7) | ((inst << 33) >> 25) | ((inst << 52) >> 8);
 }
 
 /* decode operands */
