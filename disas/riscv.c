@@ -1291,6 +1291,7 @@ const rv_opcode_data opcode_data[] = {
     { "c.tblj", rv_codec_zceb_tbl, rv_fmt_index, NULL, 0 },
     { "c.tbljal", rv_codec_zceb_tbl, rv_fmt_index, NULL, 0 },
     { "c.tbljalm", rv_codec_zceb_tbl, rv_fmt_index, NULL, 0 },
+    //
     { "c.popret", rv_codec_zceb_popret, rv_fmt_imm_ret_rlist, NULL, 0, 0, 0 },
     { "c.pop", rv_codec_zceb_pop, rv_fmt_imm_rlist, NULL, 0, 0 },
     { "c.pop_e", rv_codec_zceb_pop_e, rv_fmt_imm_rlist, NULL, 0, 0 },
@@ -1517,6 +1518,10 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
         switch (((inst >> 13) & 0b111)) {
         case 0: op = rv_op_c_addi4spn; break;
         case 1:
+            switch((inst >> 12) & 0b1) {
+                case 0: op = rv_op_c_lbu; break;
+                case 1: op = rv_op_c_lhu; break;                
+            }
             if (isa == rv128) {
                 op = rv_op_c_lq;
             } else {
@@ -1531,7 +1536,58 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
                 op = rv_op_c_ld;
             }
             break;
+        case 4:
+            switch((inst >> 10) & 0b111) {
+                case 0:
+                    switch((inst >> 2) & 0b11111) {
+                        case 0: op = rv_op_c_zext_b; break;
+                        case 1: op = rv_op_c_sext_b; break;
+                        case 2: op = rv_op_c_zext_h; break;
+                        case 3: op = rv_op_c_sext_h; break;
+                        case 4: op = rv_op_c_zext_w; break;
+                        case 6: op = rv_op_c_neg; break;
+                        case 7: op = rv_op_c_not; break;
+                    }
+                    break;
+                case 2:
+                    if(((inst >> 2) & 0b11111111) < 8) {
+                        op = rv_op_c_tbljalm;
+                    } else if(((inst >> 2) & 0b11111111) >= 64) {
+                        op = rv_op_c_tbljal;
+                    } else {
+                        op = rv_op_c_tblj;
+                    }
+                    break;
+                case 3:
+                    switch((inst >> 6) & 0b1) {
+                        case 0:
+                            switch((inst >> 8) & 0b11) {
+                                case 3:
+                                    switch((inst >> 5) & 0b1) {
+                                        case 0: op = rv_op_c_pop; break;
+                                        case 1: op = rv_op_c_pop_e; break;
+                                    }
+                                    break;
+                                default: op = rv_op_c_popret; break;
+                            }
+                        break;
+                        case 1:
+                            switch((inst >> 8) & 0b11) {
+                                case 3: op = rv_op_c_push_e; break;
+                                default:
+                                    switch((inst >> 5) & 0b1) {
+                                        case 0: op = rv_op_c_push; break;
+                                        case 1: op = rv_op_c_popret_e; break;                                
+                                    }
+                            }
+                        break;
+                    }
+            }
         case 5:
+            switch((inst >> 12) & 0b1) {
+                case 0: op = rv_op_c_sb; break;
+                case 1: op = rv_op_c_sh; break;                
+            }
             if (isa == rv128) {
                 op = rv_op_c_sq;
             } else {
@@ -1587,6 +1643,7 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
                 case 3: op = rv_op_c_and; break;
                 case 4: op = rv_op_c_subw; break;
                 case 5: op = rv_op_c_addw; break;
+                case 6: op = rv_op_c_mul; break;
                 }
                 break;
             }
@@ -1602,6 +1659,10 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
             op = rv_op_c_slli;
             break;
         case 1:
+            switch((inst >> 12) & 0b1) {
+            case 0: op = rv_op_c_lb; break;
+            case 1: op = rv_op_c_lh; break;                
+            }
             if (isa == rv128) {
                 op = rv_op_c_lqsp;
             } else {
@@ -1638,6 +1699,7 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
             }
             break;
         case 5:
+            op = rv_op_c_decbnez;
             if (isa == rv128) {
                 op = rv_op_c_sqsp;
             } else {
@@ -1671,7 +1733,14 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
         case 1:
             switch (((inst >> 12) & 0b111)) {
             case 2: op = rv_op_flw; break;
-            case 3: op = rv_op_fld; break;
+            case 3: 
+                switch((inst >> 29) & 0b111) {
+                case 0: op = rv_op_lwgp; break;
+                case 2: op = rv_op_ldgp; break;
+                case 4: op = rv_op_decbnez; break;
+                default: op = rv_op_fld; break;
+                }
+            break;
             case 4: op = rv_op_flq; break;
             }
             break;
@@ -1762,7 +1831,12 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
         case 9:
             switch (((inst >> 12) & 0b111)) {
             case 2: op = rv_op_fsw; break;
-            case 3: op = rv_op_fsd; break;
+            case 3: 
+            switch((inst >> 29) & 0b111) {
+            case 0: op = rv_op_swgp; break;
+            case 2: op = rv_op_sdgp; break;
+            default: op = rv_op_fsd; break;
+            }
             case 4: op = rv_op_fsq; break;
             }
             break;
@@ -2125,6 +2199,8 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
             switch (((inst >> 12) & 0b111)) {
             case 0: op = rv_op_beq; break;
             case 1: op = rv_op_bne; break;
+            case 2: op = rv_op_beqi; break;
+            case 3: op = rv_op_bnei; break;
             case 4: op = rv_op_blt; break;
             case 5: op = rv_op_bge; break;
             case 6: op = rv_op_bltu; break;
@@ -2207,7 +2283,6 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
         break;
     }
     dec->op = op;
-    // TODO
 }
 
 /* operand extractors */
@@ -2486,7 +2561,7 @@ static uint32_t operand_uimm_c_lh(rv_inst inst)
 
 static uint32_t operand_offset(rv_inst inst)
 {
-    return ((inst << 32) >> 31) | ((inst << 56) >> 7) | ((inst << 33) >> 25) | ((inst << 52) >> 8) | 0;
+    return ((inst << 32) >> 31) | ((inst << 56) >> 7) | ((inst << 33) >> 25) | ((inst << 52) >> 8) | (0b0);
 }
 
 static uint32_t operand_scale(rv_inst inst)
@@ -2496,27 +2571,27 @@ static uint32_t operand_scale(rv_inst inst)
 
 static uint32_t operand_zce_dec_imm(rv_inst inst)
 {
-    return ((inst << 47) >> 15) | ((inst << 42) >> 20) | ((inst << 35) >> 22) | ((inst << 46) >> 17) | 0;
+    return ((inst << 47) >> 15) | ((inst << 42) >> 20) | ((inst << 35) >> 22) | ((inst << 46) >> 17) | (0b0);
 }
 
 static uint32_t operand_zce_lwgp_imm(rv_inst inst)
 {
-    return ((inst << 44) >> 15) | ((inst << 42) >> 20) | ((inst << 35) >> 22) | 0 | 0;
+    return ((inst << 44) >> 15) | ((inst << 42) >> 20) | ((inst << 35) >> 22) | (0b0) | (0b0);
 }
 
 static uint32_t operand_zce_ldgp_imm(rv_inst inst)
 {
-    return ((inst << 41) >> 22)  | ((inst << 44) >> 15) | ((inst << 42) >> 20) | ((inst << 35) >> 23) | 0 | 0 | 0;
+    return ((inst << 41) >> 22)  | ((inst << 44) >> 15) | ((inst << 42) >> 20) | ((inst << 35) >> 23) | (0b0) | (0b0) | (0b0);
 }
 
 static uint32_t operand_zce_swgp_imm(rv_inst inst)
 {
-    return ((inst << 44) >> 15) | ((inst << 55) >> 7) | ((inst << 35) >> 25)  |  ((inst << 52) >> 9) | 0 | 0;
+    return ((inst << 44) >> 15) | ((inst << 55) >> 7) | ((inst << 35) >> 25)  |  ((inst << 52) >> 9) | (0b0) | (0b0);
 }
 
 static uint32_t operand_zce_sdgp_imm(rv_inst inst)
 {
-    return ((inst << 53) >> 9) | ((inst << 44) >> 15) | ((inst << 55) >> 7) | ((inst << 35) >> 25)  |  ((inst << 52) >> 10) | 0 | 0 | 0;
+    return ((inst << 53) >> 9) | ((inst << 44) >> 15) | ((inst << 55) >> 7) | ((inst << 35) >> 25)  |  ((inst << 52) >> 10) | (0b0) | (0b0) | (0b0);
 }
 
 static uint32_t operand_c_decbnez_scale(rv_inst inst)
@@ -2526,7 +2601,7 @@ static uint32_t operand_c_decbnez_scale(rv_inst inst)
 
 static uint32_t operand_c_decbenz_uimm(rv_inst inst)
 {
-    return ((inst << 48) >> 13) | ((inst << 57) >> 4) | 0;
+    return ((inst << 48) >> 13) | ((inst << 57) >> 4) | (0b0);
 }
 
 static uint32_t operand_tbl_index(rv_inst inst)
@@ -2536,17 +2611,17 @@ static uint32_t operand_tbl_index(rv_inst inst)
 
 static uint32_t operand_zce_spimm_1(rv_inst inst)
 {
-    return ((inst << 54) >> 7) | 0 | 0 | 0 | 0;
+    return ((inst << 54) >> 7) | (0b0) | (0b0) | (0b0) | (0b0);
 }
 
 static uint32_t operand_zce_spimm_2(rv_inst inst)
 {
-    return ((inst << 56) >> 7) | 0 | 0 | 0 | 0;
+    return ((inst << 56) >> 7) | (0b0) | (0b0) | (0b0) | (0b0);
 }
 
 static uint32_t operand_zce_spimm_3(rv_inst inst)
 {
-    return  ((inst << 58) >> 4)| ((inst << 56) >> 7) | 0 | 0 | 0 | 0;
+    return  ((inst << 58) >> 4)| ((inst << 56) >> 7) | (0b0) | (0b0) | (0b0) | (0b0);
 }
 
 static uint32_t operand_zce_ret_1(rv_inst inst)
