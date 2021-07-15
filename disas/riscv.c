@@ -588,12 +588,10 @@ typedef struct {
     uint8_t   succ;
     uint8_t   aq;
     uint8_t   rl;
-    uint8_t   uimm;
+    uint8_t   zceimm;
     int16_t   offset;
     uint8_t   scale;
-    uint8_t   index;
     uint8_t   ret;
-    uint8_t   rlist;
 } rv_decode;
 
 typedef struct {
@@ -669,15 +667,15 @@ static const char rv_freg_name_sym[32][5] = {
 #define rv_fmt_rd_rs2                 "O\t0,2"
 #define rv_fmt_rs1_offset             "O\t1,o"
 #define rv_fmt_rs2_offset             "O\t2,o"
-#define rv_fmt_rs1_uimm_offset        "O\t1,u,f"
-#define rv_fmt_rs1_rs2_uimm           "O\t1,2,u"
+#define rv_fmt_rs1_zceimm_offset      "O\t1,z,f"
+#define rv_fmt_rs1_rs2_zceimm         "O\t1,2,z"
 #define rv_fmt_imm_scale_rd           "O\ti,S,0"
 #define rv_fmt_imm_rd                 "O\ti,0" 
 #define rv_fmt_imm_rs2                "O\ti,2" 
-#define rv_fmt_uimm_rd_scale          "O\tu,0,S" 
-#define rv_fmt_index                  "O\tI" 
-#define rv_fmt_imm_ret_rlist          "O\ti,e,l" 
-#define rv_fmt_imm_rlist              "O\ti,l" 
+#define rv_fmt_zceimm_rd_scale        "O\tz,0,S" 
+#define rv_fmt_zceimm                 "O\tz" 
+#define rv_fmt_imm_ret_zceimm         "O\ti,e,z" 
+#define rv_fmt_imm_zceimm             "O\ti,z" 
 
 /* pseudo-instruction constraints */
 
@@ -1266,20 +1264,20 @@ const rv_opcode_data opcode_data[] = {
     { "bclr", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
     { "binv", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
     { "bext", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
-    { "beqi", rv_codec_zcea_b, rv_fmt_rs1_uimm_offset, NULL, 0, 0, 0 },
-    { "bnei", rv_codec_zcea_b, rv_fmt_rs1_uimm_offset, NULL, 0, 0, 0 },
+    { "beqi", rv_codec_zcea_b, rv_fmt_rs1_zceimm_offset, NULL, 0, 0, 0 },
+    { "bnei", rv_codec_zcea_b, rv_fmt_rs1_zceimm_offset, NULL, 0, 0, 0 },
     { "decbnez", rv_codec_zcea_d, rv_fmt_imm_scale_rd, NULL, 0, 0, 0 },
     { "lwgp", rv_codec_zcea_lw, rv_fmt_imm_rd, NULL, 0, 0 },
     { "ldgp", rv_codec_zcea_ld, rv_fmt_imm_rd, NULL, 0, 0 },
     { "swgp", rv_codec_zcea_sw, rv_fmt_imm_rs2, NULL, 0, 0 },
     { "sdgp", rv_codec_zcea_sd, rv_fmt_imm_rs2, NULL, 0, 0 },
-    { "c.lbu", rv_codec_zceb_lb, rv_fmt_rs1_rs2_uimm, NULL, 0, 0, 0 },
-    { "c.lhu", rv_codec_zceb_lh, rv_fmt_rs1_rs2_uimm, NULL, 0, 0, 0 },
-    { "c.lb", rv_codec_zceb_lb, rv_fmt_rs1_rs2_uimm, NULL, 0, 0, 0 },
-    { "c.lh", rv_codec_zceb_lh, rv_fmt_rs1_rs2_uimm, NULL, 0, 0, 0 },
-    { "c.sb", rv_codec_zceb_lb, rv_fmt_rs1_rs2_uimm, NULL, 0, 0, 0 },
-    { "c.sh", rv_codec_zceb_lh, rv_fmt_rs1_rs2_uimm, NULL, 0, 0, 0 },
-    { "c.decbnez", rv_codec_zceb_d, rv_fmt_uimm_rd_scale, NULL, 0, 0, 0 },
+    { "c.lbu", rv_codec_zceb_lb, rv_fmt_rs1_rs2_zceimm, NULL, 0, 0, 0 },
+    { "c.lhu", rv_codec_zceb_lh, rv_fmt_rs1_rs2_zceimm, NULL, 0, 0, 0 },
+    { "c.lb", rv_codec_zceb_lb, rv_fmt_rs1_rs2_zceimm, NULL, 0, 0, 0 },
+    { "c.lh", rv_codec_zceb_lh, rv_fmt_rs1_rs2_zceimm, NULL, 0, 0, 0 },
+    { "c.sb", rv_codec_zceb_lb, rv_fmt_rs1_rs2_zceimm, NULL, 0, 0, 0 },
+    { "c.sh", rv_codec_zceb_lh, rv_fmt_rs1_rs2_zceimm, NULL, 0, 0, 0 },
+    { "c.decbnez", rv_codec_zceb_d, rv_fmt_zceimm_rd_scale, NULL, 0, 0, 0 },
     { "c.zext_b", rv_codec_zceb_zext, rv_fmt_rd, NULL, 0 },
     { "c.sext_b", rv_codec_zceb_zext, rv_fmt_rd, NULL, 0 },
     { "c.zext_h", rv_codec_zceb_zext, rv_fmt_rd, NULL, 0 },
@@ -1288,16 +1286,15 @@ const rv_opcode_data opcode_data[] = {
     { "c.neg", rv_codec_zceb_zext, rv_fmt_rd, NULL, 0 },
     { "c.not", rv_codec_zceb_zext, rv_fmt_rd, NULL, 0 },
     { "c.mul", rv_codec_zceb_mul, rv_fmt_rd_rs2, NULL, 0, 0 },
-    { "c.tblj", rv_codec_zceb_tbl, rv_fmt_index, NULL, 0 },
-    { "c.tbljal", rv_codec_zceb_tbl, rv_fmt_index, NULL, 0 },
-    { "c.tbljalm", rv_codec_zceb_tbl, rv_fmt_index, NULL, 0 },
-    //
-    { "c.popret", rv_codec_zceb_popret, rv_fmt_imm_ret_rlist, NULL, 0, 0, 0 },
-    { "c.pop", rv_codec_zceb_pop, rv_fmt_imm_rlist, NULL, 0, 0 },
-    { "c.pop_e", rv_codec_zceb_pop_e, rv_fmt_imm_rlist, NULL, 0, 0 },
-    { "c.push", rv_codec_zceb_push, rv_fmt_imm_rlist, NULL, 0, 0 },
-    { "c.popret_e", rv_codec_zceb_pporet_e, rv_fmt_imm_ret_rlist, NULL, 0, 0, 0 },
-    { "c.push_e", rv_codec_zceb_push_e, rv_fmt_imm_rlist, NULL, 0, 0 },
+    { "c.tblj", rv_codec_zceb_tbl, rv_fmt_zceimm, NULL, 0 },
+    { "c.tbljal", rv_codec_zceb_tbl, rv_fmt_zceimm, NULL, 0 },
+    { "c.tbljalm", rv_codec_zceb_tbl, rv_fmt_zceimm, NULL, 0 },
+    { "c.popret", rv_codec_zceb_popret, rv_fmt_imm_ret_zceimm, NULL, 0, 0, 0 },
+    { "c.pop", rv_codec_zceb_pop, rv_fmt_imm_zceimm, NULL, 0, 0 },
+    { "c.pop_e", rv_codec_zceb_pop_e, rv_fmt_imm_zceimm, NULL, 0, 0 },
+    { "c.push", rv_codec_zceb_push, rv_fmt_imm_zceimm, NULL, 0, 0 },
+    { "c.popret_e", rv_codec_zceb_pporet_e, rv_fmt_imm_ret_zceimm, NULL, 0, 0, 0 },
+    { "c.push_e", rv_codec_zceb_push_e, rv_fmt_imm_zceimm, NULL, 0, 0 },
 };
 
 /* CSR names */
@@ -1733,13 +1730,13 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
         case 1:
             switch (((inst >> 12) & 0b111)) {
             case 2: op = rv_op_flw; break;
-            case 3: 
-                switch((inst >> 29) & 0b111) {
-                case 0: op = rv_op_lwgp; break;
-                case 2: op = rv_op_ldgp; break;
-                case 4: op = rv_op_decbnez; break;
-                default: op = rv_op_fld; break;
-                }
+            case 3: op = rv_op_fld; break;
+                // switch((inst >> 29) & 0b111) {
+                // case 0: op = rv_op_lwgp; break;
+                // case 2: op = rv_op_ldgp; break;
+                // case 4: op = rv_op_decbnez; break;
+                // default: op = rv_op_fld; break;
+                // }
             break;
             case 4: op = rv_op_flq; break;
             }
@@ -1831,12 +1828,13 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
         case 9:
             switch (((inst >> 12) & 0b111)) {
             case 2: op = rv_op_fsw; break;
-            case 3: 
-            switch((inst >> 29) & 0b111) {
-            case 0: op = rv_op_swgp; break;
-            case 2: op = rv_op_sdgp; break;
-            default: op = rv_op_fsd; break;
-            }
+            case 3: op = rv_op_fsd; break;
+            // TODO
+            // switch((inst >> 29) & 0b111) {
+            // case 0: op = rv_op_swgp; break;
+            // case 2: op = rv_op_sdgp; break;
+            // default: op = rv_op_fsd; break;
+            // }
             case 4: op = rv_op_fsq; break;
             }
             break;
@@ -2925,18 +2923,18 @@ static void decode_inst_operands(rv_decode *dec)
         break;
     case rv_codec_zcea_b:
         dec->rs1 = operand_rs1(inst);
-        dec->uimm = operand_uimm(inst);
+        dec->zceimm = operand_uimm(inst);
         dec->offset = operand_offset(inst);
         break;
     case rv_codec_zceb_lb:
         dec->rs1 = operand_crs1(inst);
         dec->rs2 = operand_crs2(inst);
-        dec->uimm = operand_uimm_c_lb(inst);
+        dec->zceimm = operand_uimm_c_lb(inst);
         break;
     case rv_codec_zceb_lh:
         dec->rs1 = operand_crs1(inst);
         dec->rs2 = operand_crs2(inst);
-        dec->uimm = operand_uimm_c_lh(inst);
+        dec->zceimm = operand_uimm_c_lh(inst);
         break;
     case rv_codec_zcea_d:
         dec->rd = operand_rd(inst);
@@ -2962,7 +2960,7 @@ static void decode_inst_operands(rv_decode *dec)
     case rv_codec_zceb_d:
         dec->rd = operand_crd(inst);
         dec->scale = operand_c_decbnez_scale(inst);
-        dec->uimm = operand_c_decbenz_uimm(inst);
+        dec->zceimm = operand_c_decbenz_uimm(inst);
         break;
     case rv_codec_zceb_zext:
         dec->rd = operand_crd(inst);
@@ -2972,33 +2970,33 @@ static void decode_inst_operands(rv_decode *dec)
         dec->rs2 = operand_crs2(inst);
         break;
     case rv_codec_zceb_tbl:
-        dec->index = operand_tbl_index(inst);
+        dec->zceimm = operand_tbl_index(inst);
         break;
     case rv_codec_zceb_popret:
         dec->imm = operand_zce_spimm_1(inst);
         dec->ret = operand_zce_ret_1(inst);
-        dec->rlist = operand_zce_rlist_1(inst);
+        dec->zceimm = operand_zce_rlist_1(inst);
         break;
     case rv_codec_zceb_pop:
         dec->imm = operand_zce_spimm_2(inst);
-        dec->rlist = operand_zce_rlist_1(inst);
+        dec->zceimm = operand_zce_rlist_1(inst);
         break;
     case rv_codec_zceb_pop_e:
         dec->imm = operand_zce_spimm_2(inst);
-        dec->rlist = operand_zce_rlist_2(inst);
+        dec->zceimm = operand_zce_rlist_2(inst);
         break;
     case rv_codec_zceb_push:
         dec->imm = operand_zce_spimm_1(inst);
-        dec->rlist = operand_zce_rlist_1(inst);
+        dec->zceimm = operand_zce_rlist_1(inst);
         break;
     case rv_codec_zceb_pporet_e:
         dec->imm = operand_zce_spimm_1(inst);
         dec->ret = operand_zce_ret_2(inst);
-        dec->rlist = operand_zce_rlist_2(inst);
+        dec->zceimm = operand_zce_rlist_2(inst);
         break;
     case rv_codec_zceb_push_e:
         dec->imm = operand_zce_spimm_3(inst);
-        dec->rlist = operand_zce_rlist_2(inst);
+        dec->zceimm = operand_zce_rlist_2(inst);
         break;
     };
 }
@@ -3276,8 +3274,8 @@ static void format_inst(char *buf, size_t buflen, size_t tab, rv_decode *dec)
                 append(buf, ".rl", buflen);
             }
             break;
-        case 'u':
-            snprintf(tmp, sizeof(tmp), "%d", dec->uimm);
+        case 'z':
+            snprintf(tmp, sizeof(tmp), "%d", dec->zceimm);
             append(buf, tmp, buflen);
             break;
         case 'f':
@@ -3287,19 +3285,11 @@ static void format_inst(char *buf, size_t buflen, size_t tab, rv_decode *dec)
         case 'S':
             snprintf(tmp, sizeof(tmp), "%d", dec->scale);
             append(buf, tmp, buflen);
-            break;  
-        case 'I':
-            snprintf(tmp, sizeof(tmp), "%d", dec->index);
-            append(buf, tmp, buflen);
-            break;           
+            break;
         case 'e':
             snprintf(tmp, sizeof(tmp), "%d", dec->ret);
             append(buf, tmp, buflen);
             break;
-        case 'l':
-            snprintf(tmp, sizeof(tmp), "%d", dec->rlist);
-            append(buf, tmp, buflen);
-            break;        
         default:
             break;
         }
