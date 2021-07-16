@@ -592,6 +592,8 @@ typedef struct {
     int16_t   offset;
     uint8_t   scale;
     uint8_t   ret;
+    uint8_t   rlist;
+    uint8_t   rlist_flag;
 } rv_decode;
 
 typedef struct {
@@ -674,8 +676,7 @@ static const char rv_freg_name_sym[32][5] = {
 #define rv_fmt_imm_rs2                "O\ti,2" 
 #define rv_fmt_zceimm_rd_scale        "O\tz,0,S" 
 #define rv_fmt_zceimm                 "O\tz" 
-#define rv_fmt_imm_ret_zceimm         "O\ti,e,z" 
-#define rv_fmt_imm_zceimm             "O\ti,z" 
+#define rv_fmt_zceimm_rlist            "O\tlz" 
 
 /* pseudo-instruction constraints */
 
@@ -1289,12 +1290,12 @@ const rv_opcode_data opcode_data[] = {
     { "c.tblj", rv_codec_zceb_tbl, rv_fmt_zceimm, NULL, 0 },
     { "c.tbljal", rv_codec_zceb_tbl, rv_fmt_zceimm, NULL, 0 },
     { "c.tbljalm", rv_codec_zceb_tbl, rv_fmt_zceimm, NULL, 0 },
-    { "c.popret", rv_codec_zceb_popret, rv_fmt_imm_ret_zceimm, NULL, 0, 0, 0 },
-    { "c.pop", rv_codec_zceb_pop, rv_fmt_imm_zceimm, NULL, 0, 0 },
-    { "c.pop_e", rv_codec_zceb_pop_e, rv_fmt_imm_zceimm, NULL, 0, 0 },
-    { "c.push", rv_codec_zceb_push, rv_fmt_imm_zceimm, NULL, 0, 0 },
-    { "c.popret_e", rv_codec_zceb_pporet_e, rv_fmt_imm_ret_zceimm, NULL, 0, 0, 0 },
-    { "c.push_e", rv_codec_zceb_push_e, rv_fmt_imm_zceimm, NULL, 0, 0 },
+    { "c.popret", rv_codec_zceb_popret, rv_fmt_zceimm_rlist, NULL, 0, 0, 0 },
+    { "c.pop", rv_codec_zceb_pop, rv_fmt_zceimm_rlist, NULL, 0, 0 },
+    { "c.pop_e", rv_codec_zceb_pop_e, rv_fmt_zceimm_rlist, NULL, 0, 0 },
+    { "c.push", rv_codec_zceb_push, rv_fmt_zceimm_rlist, NULL, 0, 0 },
+    { "c.popret_e", rv_codec_zceb_pporet_e, rv_fmt_zceimm_rlist, NULL, 0, 0, 0 },
+    { "c.push_e", rv_codec_zceb_push_e, rv_fmt_zceimm_rlist, NULL, 0, 0 },
 };
 
 /* CSR names */
@@ -1731,6 +1732,7 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
             switch (((inst >> 12) & 0b111)) {
             case 2: op = rv_op_flw; break;
             case 3: op = rv_op_fld; break;
+                // TODO
                 // switch((inst >> 29) & 0b111) {
                 // case 0: op = rv_op_lwgp; break;
                 // case 2: op = rv_op_ldgp; break;
@@ -2973,30 +2975,33 @@ static void decode_inst_operands(rv_decode *dec)
         dec->zceimm = operand_tbl_index(inst);
         break;
     case rv_codec_zceb_popret:
-        dec->imm = operand_zce_spimm_1(inst);
+        dec->zceimm = operand_zce_spimm_1(inst);
         dec->ret = operand_zce_ret_1(inst);
-        dec->zceimm = operand_zce_rlist_1(inst);
+        dec->rlist = operand_zce_rlist_1(inst);
+        dec->rlist_flag = 3;
         break;
     case rv_codec_zceb_pop:
-        dec->imm = operand_zce_spimm_2(inst);
-        dec->zceimm = operand_zce_rlist_1(inst);
+        dec->zceimm = operand_zce_spimm_2(inst);
+        dec->rlist = operand_zce_rlist_1(inst);
+        dec->rlist_flag = 3;
         break;
     case rv_codec_zceb_pop_e:
-        dec->imm = operand_zce_spimm_2(inst);
-        dec->zceimm = operand_zce_rlist_2(inst);
+        dec->zceimm = operand_zce_spimm_2(inst);
+        dec->rlist = operand_zce_rlist_2(inst);
         break;
     case rv_codec_zceb_push:
-        dec->imm = operand_zce_spimm_1(inst);
-        dec->zceimm = operand_zce_rlist_1(inst);
+        dec->zceimm = operand_zce_spimm_1(inst);
+        dec->rlist = operand_zce_rlist_1(inst);
+        dec->rlist_flag = 3;
         break;
     case rv_codec_zceb_pporet_e:
-        dec->imm = operand_zce_spimm_1(inst);
+        dec->zceimm = operand_zce_spimm_1(inst);
         dec->ret = operand_zce_ret_2(inst);
-        dec->zceimm = operand_zce_rlist_2(inst);
+        dec->rlist = operand_zce_rlist_2(inst);
         break;
     case rv_codec_zceb_push_e:
-        dec->imm = operand_zce_spimm_3(inst);
-        dec->zceimm = operand_zce_rlist_2(inst);
+        dec->zceimm = operand_zce_spimm_3(inst);
+        dec->rlist = operand_zce_rlist_2(inst);
         break;
     };
 }
@@ -3276,6 +3281,48 @@ static void format_inst(char *buf, size_t buflen, size_t tab, rv_decode *dec)
             break;
         case 'z':
             snprintf(tmp, sizeof(tmp), "%d", dec->zceimm);
+            append(buf, tmp, buflen);
+            break;
+        case 'l':
+            if(dec->rlist_flag == 3) {
+                switch(dec->rlist) {
+                    case 0:snprintf(tmp, sizeof(tmp), "{ra}");break;
+                    case 1:snprintf(tmp, sizeof(tmp), "{ra, s0}");break;
+                    case 2:snprintf(tmp, sizeof(tmp), "{ra, s0-s1}");break;
+                    case 3:snprintf(tmp, sizeof(tmp), "{ra, s0-s2}");break;
+                    case 4:snprintf(tmp, sizeof(tmp), "{ra, s0-s3}");break;
+                    case 5:snprintf(tmp, sizeof(tmp), "{ra, s0-s5}");break;
+                    case 6:snprintf(tmp, sizeof(tmp), "{ra, s0-s7}");break;
+                    case 7:snprintf(tmp, sizeof(tmp), "{ra, s0-s11}");break;
+                }
+            } else {
+                switch(dec->rlist) {
+                    case 0:snprintf(tmp, sizeof(tmp), "{ra, s0-s2}");break;
+                    case 1:snprintf(tmp, sizeof(tmp), "{ra, s0-s3}");break;
+                    case 2:snprintf(tmp, sizeof(tmp), "{ra, s0-s4}");break;
+                }
+            }
+            if((((dec->inst) << 57) >> 5) == 0b10) { // c.push 
+                switch(dec->rlist) {
+                    case 1:snprintf(tmp, sizeof(tmp), ", {a0}, ");break;
+                    case 2:snprintf(tmp, sizeof(tmp), ", {a0-a1}, ");break;
+                    case 3:snprintf(tmp, sizeof(tmp), ", {a0-a2}, ");break;
+                    case 4:snprintf(tmp, sizeof(tmp), ", {a0-a3}, ");break;
+                    case 5:snprintf(tmp, sizeof(tmp), ", {a0-a3}, ");break;
+                    case 6:snprintf(tmp, sizeof(tmp), ", {a0-a3}, ");break;
+                    case 7:snprintf(tmp, sizeof(tmp), ", {a0-a3}, ");break;
+                }                
+            } else if(((((dec->inst) << 54) >> 8) == 0b11) && ((((dec->inst) << 57) >> 6) == 0b1)) { // c.push_e
+                switch(dec->rlist) {
+                    case 1:snprintf(tmp, sizeof(tmp), ", {a0-a2}, -");break;
+                    case 2:snprintf(tmp, sizeof(tmp), ", {a0-a3}, -");break;
+                    case 3:snprintf(tmp, sizeof(tmp), ", {a0-a3}, ");break;
+                }                
+            } else if((((dec->inst) << 54) >> 8) == 0b11) { // c.pop, c.pop_e
+                snprintf(tmp, sizeof(tmp), ", {}, ");break;
+            } else {
+                snprintf(tmp, sizeof(tmp), ", {\"\" | 0}, ");break;
+            }
             append(buf, tmp, buflen);
             break;
         case 'f':
