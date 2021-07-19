@@ -26,9 +26,13 @@
 %sh5       20:5
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 %sh10    20:10
 >>>>>>> fix bugs in k
+=======
+%sh6    20:6
+>>>>>>> add support for xperm, clmul and shfl insns
 %sh7    20:7
 %csr    20:12
 %rm     12:3
@@ -52,6 +56,7 @@
 &s    imm rs1 rs2
 &u    imm rd
 &shift     shamt rs1 rd
+&shuf      shamt rs1 rd
 &atomic    aq rl rs2 rs1 rd
 &rmrr      vm rd rs1 rs2
 &rmr       vm rd rs2
@@ -69,10 +74,14 @@
 
 <<<<<<< HEAD
 @sh      ......  ...... .....  ... ..... ....... &shift  shamt=%sh7     %rs1 %rd
+<<<<<<< HEAD
 =======
 @sh      ......  ...... .....  ... ..... ....... &shift  shamt=%sh10      %rs1 %rd
 @sh7      ......  ...... .....  ... ..... ....... &shift  shamt=%sh7      %rs1 %rd
 >>>>>>> fix bugs in k
+=======
+@shuf    ......  ...... .....  ... ..... ....... &shuf   shamt=%sh6     %rs1 %rd
+>>>>>>> add support for xperm, clmul and shfl insns
 @csr     ............   .....  ... ..... .......               %csr     %rs1 %rd
 
 @atom_ld ..... aq:1 rl:1 ..... ........ ..... ....... &atomic rs2=0     %rs1 %rd
@@ -792,6 +801,18 @@ zext_h_64  0000100 00000 ..... 100 ..... 0111011 @r2
 clmul      0000101 .......... 001 ..... 0110011 @r
 clmulh     0000101 .......... 011 ..... 0110011 @r
 clmulr     0000101 .......... 010 ..... 0110011 @r
+
+
+# *** RV32 Zbk* Standard Extension ***
+shfl       0000100 ..... ..... 001 ..... 0110011 @r
+unshfl     0000100 ..... ..... 101 ..... 0110011 @r
+shfli      000010 ...... ..... 001 ..... 0010011 @shuf
+unshfli    000010 ...... ..... 101 ..... 0010011 @shuf
+
+xperm_n    0010100 .......... 010 ..... 0110011 @r
+xperm_b    0010100 .......... 100 ..... 0110011 @r
+xperm_h    0010100 .......... 110 ..... 0110011 @r
+xperm_w    0010100 .......... 000 ..... 0110011 @r
 
 # *** RV32 Zbs Standard Extension ***
 bclr       0100100 .......... 001 ..... 0110011 @r
