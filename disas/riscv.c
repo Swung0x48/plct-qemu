@@ -676,7 +676,7 @@ static const char rv_freg_name_sym[32][5] = {
 #define rv_fmt_imm_rs2                "O\ti,2" 
 #define rv_fmt_zceimm_rd_scale        "O\tz,0,S" 
 #define rv_fmt_zceimm                 "O\tz" 
-#define rv_fmt_zceimm_rlist            "O\tlz" 
+#define rv_fmt_zceimm_rlist            "O\tl" 
 
 /* pseudo-instruction constraints */
 
@@ -2561,7 +2561,7 @@ static uint32_t operand_uimm_c_lh(rv_inst inst)
 
 static uint32_t operand_offset(rv_inst inst)
 {
-    return ((inst << 32) >> 31) | ((inst << 56) >> 7) | ((inst << 33) >> 25) | ((inst << 52) >> 8) | (0b0);
+    return (((inst << 32) >> 31) | ((inst << 56) >> 7) | ((inst << 33) >> 25) | ((inst << 52) >> 8)) << 1;
 }
 
 static uint32_t operand_scale(rv_inst inst)
@@ -2571,27 +2571,27 @@ static uint32_t operand_scale(rv_inst inst)
 
 static uint32_t operand_zce_dec_imm(rv_inst inst)
 {
-    return ((inst << 47) >> 15) | ((inst << 42) >> 20) | ((inst << 35) >> 22) | ((inst << 46) >> 17) | (0b0);
+    return (((inst << 47) >> 15) | ((inst << 42) >> 20) | ((inst << 35) >> 22) | ((inst << 46) >> 17)) << 1;
 }
 
 static uint32_t operand_zce_lwgp_imm(rv_inst inst)
 {
-    return ((inst << 44) >> 15) | ((inst << 42) >> 20) | ((inst << 35) >> 22) | (0b0) | (0b0);
+    return (((inst << 44) >> 15) | ((inst << 42) >> 20) | ((inst << 35) >> 22)) << 2;
 }
 
 static uint32_t operand_zce_ldgp_imm(rv_inst inst)
 {
-    return ((inst << 41) >> 22)  | ((inst << 44) >> 15) | ((inst << 42) >> 20) | ((inst << 35) >> 23) | (0b0) | (0b0) | (0b0);
+    return (((inst << 41) >> 22)  | ((inst << 44) >> 15) | ((inst << 42) >> 20) | ((inst << 35) >> 23)) << 3;
 }
 
 static uint32_t operand_zce_swgp_imm(rv_inst inst)
 {
-    return ((inst << 44) >> 15) | ((inst << 55) >> 7) | ((inst << 35) >> 25)  |  ((inst << 52) >> 9) | (0b0) | (0b0);
+    return (((inst << 44) >> 15) | ((inst << 55) >> 7) | ((inst << 35) >> 25)  |  ((inst << 52) >> 9)) << 2;
 }
 
 static uint32_t operand_zce_sdgp_imm(rv_inst inst)
 {
-    return ((inst << 53) >> 9) | ((inst << 44) >> 15) | ((inst << 55) >> 7) | ((inst << 35) >> 25)  |  ((inst << 52) >> 10) | (0b0) | (0b0) | (0b0);
+    return (((inst << 53) >> 9) | ((inst << 44) >> 15) | ((inst << 55) >> 7) | ((inst << 35) >> 25)  |  ((inst << 52) >> 10)) << 3;
 }
 
 static uint32_t operand_c_decbnez_scale(rv_inst inst)
@@ -2601,7 +2601,7 @@ static uint32_t operand_c_decbnez_scale(rv_inst inst)
 
 static uint32_t operand_c_decbenz_uimm(rv_inst inst)
 {
-    return ((inst << 48) >> 13) | ((inst << 57) >> 4) | (0b0);
+    return (((inst << 48) >> 13) | ((inst << 57) >> 4)) << 1;
 }
 
 static uint32_t operand_tbl_index(rv_inst inst)
@@ -2611,17 +2611,17 @@ static uint32_t operand_tbl_index(rv_inst inst)
 
 static uint32_t operand_zce_spimm_1(rv_inst inst)
 {
-    return ((inst << 54) >> 7) | (0b0) | (0b0) | (0b0) | (0b0);
+    return (((inst << 54) >> 7)) << 4;
 }
 
 static uint32_t operand_zce_spimm_2(rv_inst inst)
 {
-    return ((inst << 56) >> 7) | (0b0) | (0b0) | (0b0) | (0b0);
+    return (((inst << 56) >> 7)) << 4;
 }
 
 static uint32_t operand_zce_spimm_3(rv_inst inst)
 {
-    return  ((inst << 58) >> 4)| ((inst << 56) >> 7) | (0b0) | (0b0) | (0b0) | (0b0);
+    return  (((inst << 58) >> 4)| ((inst << 56) >> 7)) << 4;
 }
 
 static uint32_t operand_zce_ret_1(rv_inst inst)
@@ -3283,48 +3283,56 @@ static void format_inst(char *buf, size_t buflen, size_t tab, rv_decode *dec)
             snprintf(tmp, sizeof(tmp), "%d", dec->zceimm);
             append(buf, tmp, buflen);
             break;
-        case 'l':
+        case 'l': {
+            int32_t stack_adjustment;
+            uint8_t number_of_registers_in_reg_list;
             if(dec->rlist_flag == 3) {
                 switch(dec->rlist) {
-                    case 0:snprintf(tmp, sizeof(tmp), "{ra}");break;
-                    case 1:snprintf(tmp, sizeof(tmp), "{ra, s0}");break;
-                    case 2:snprintf(tmp, sizeof(tmp), "{ra, s0-s1}");break;
-                    case 3:snprintf(tmp, sizeof(tmp), "{ra, s0-s2}");break;
-                    case 4:snprintf(tmp, sizeof(tmp), "{ra, s0-s3}");break;
-                    case 5:snprintf(tmp, sizeof(tmp), "{ra, s0-s5}");break;
-                    case 6:snprintf(tmp, sizeof(tmp), "{ra, s0-s7}");break;
-                    case 7:snprintf(tmp, sizeof(tmp), "{ra, s0-s11}");break;
+                    case 0:snprintf(tmp, sizeof(tmp), "{ra}");number_of_registers_in_reg_list=1;break;
+                    case 1:snprintf(tmp, sizeof(tmp), "{ra, s0}");number_of_registers_in_reg_list=2;break;
+                    case 2:snprintf(tmp, sizeof(tmp), "{ra, s0-s1}");number_of_registers_in_reg_list=3;break;
+                    case 3:snprintf(tmp, sizeof(tmp), "{ra, s0-s2}");number_of_registers_in_reg_list=4;break;
+                    case 4:snprintf(tmp, sizeof(tmp), "{ra, s0-s3}");number_of_registers_in_reg_list=5;break;
+                    case 5:snprintf(tmp, sizeof(tmp), "{ra, s0-s5}");number_of_registers_in_reg_list=7;break;
+                    case 6:snprintf(tmp, sizeof(tmp), "{ra, s0-s7}");number_of_registers_in_reg_list=9;break;
+                    case 7:snprintf(tmp, sizeof(tmp), "{ra, s0-s11}");number_of_registers_in_reg_list=13;break;
                 }
             } else {
                 switch(dec->rlist) {
-                    case 0:snprintf(tmp, sizeof(tmp), "{ra, s0-s2}");break;
-                    case 1:snprintf(tmp, sizeof(tmp), "{ra, s0-s3}");break;
-                    case 2:snprintf(tmp, sizeof(tmp), "{ra, s0-s4}");break;
+                    case 0:snprintf(tmp, sizeof(tmp), "{ra, s0-s2}");number_of_registers_in_reg_list=4;break;
+                    case 1:snprintf(tmp, sizeof(tmp), "{ra, s0-s3}");number_of_registers_in_reg_list=5;break;
+                    case 2:snprintf(tmp, sizeof(tmp), "{ra, s0-s4}");number_of_registers_in_reg_list=6;break;
                 }
             }
+            uint8_t XLEN = 16;
+            stack_adjustment = ((number_of_registers_in_reg_list * XLEN / 8 + 15) &~0xf ) + dec->zceimm;
             if((((dec->inst) << 57) >> 5) == 0b10) { // c.push 
                 switch(dec->rlist) {
-                    case 1:snprintf(tmp, sizeof(tmp), ", {a0}, ");break;
-                    case 2:snprintf(tmp, sizeof(tmp), ", {a0-a1}, ");break;
-                    case 3:snprintf(tmp, sizeof(tmp), ", {a0-a2}, ");break;
-                    case 4:snprintf(tmp, sizeof(tmp), ", {a0-a3}, ");break;
-                    case 5:snprintf(tmp, sizeof(tmp), ", {a0-a3}, ");break;
-                    case 6:snprintf(tmp, sizeof(tmp), ", {a0-a3}, ");break;
-                    case 7:snprintf(tmp, sizeof(tmp), ", {a0-a3}, ");break;
-                }                
+                    case 1:snprintf(tmp, sizeof(tmp), ", {a0}");break;
+                    case 2:snprintf(tmp, sizeof(tmp), ", {a0-a1}");break;
+                    case 3:snprintf(tmp, sizeof(tmp), ", {a0-a2}");break;
+                    case 4:snprintf(tmp, sizeof(tmp), ", {a0-a3}");break;
+                    case 5:snprintf(tmp, sizeof(tmp), ", {a0-a3}");break;
+                    case 6:snprintf(tmp, sizeof(tmp), ", {a0-a3}");break;
+                    case 7:snprintf(tmp, sizeof(tmp), ", {a0-a3}");break;
+                }
+                stack_adjustment = -stack_adjustment;
             } else if(((((dec->inst) << 54) >> 8) == 0b11) && ((((dec->inst) << 57) >> 6) == 0b1)) { // c.push_e
                 switch(dec->rlist) {
-                    case 1:snprintf(tmp, sizeof(tmp), ", {a0-a2}, -");break;
-                    case 2:snprintf(tmp, sizeof(tmp), ", {a0-a3}, -");break;
-                    case 3:snprintf(tmp, sizeof(tmp), ", {a0-a3}, ");break;
-                }                
+                    case 1:snprintf(tmp, sizeof(tmp), ", {a0-a2}");break;
+                    case 2:snprintf(tmp, sizeof(tmp), ", {a0-a3}");break;
+                    case 3:snprintf(tmp, sizeof(tmp), ", {a0-a3}");break;
+                }   
+                stack_adjustment = -stack_adjustment;
             } else if((((dec->inst) << 54) >> 8) == 0b11) { // c.pop, c.pop_e
-                snprintf(tmp, sizeof(tmp), ", {}, ");break;
+                snprintf(tmp, sizeof(tmp), ", {}");break;
             } else {
-                snprintf(tmp, sizeof(tmp), ", {\"\" | 0}, ");break;
+                snprintf(tmp, sizeof(tmp), ", {\"\" | 0}");break;
             }
+            snprintf(tmp, sizeof(tmp), ", %d", stack_adjustment);
             append(buf, tmp, buflen);
             break;
+        }
         case 'f':
             snprintf(tmp, sizeof(tmp), "%d", dec->offset);
             append(buf, tmp, buflen);
