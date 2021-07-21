@@ -879,9 +879,7 @@ static int rmw_pushmsubm(CPURISCVState *env, int csrno, target_ulong *ret_value,
 {
 
     uint64_t notify_addr = new_value * 4 + env->gpr[2];
-
     cpu_physical_memory_rw(notify_addr, &env->msubm,  4, 1);
-
     return 0;
 }
 
@@ -907,9 +905,7 @@ static int rmw_pushmcause(CPURISCVState *env, int csrno, target_ulong *ret_value
                 target_ulong new_value, target_ulong write_mask)
 {
     uint64_t notify_addr = new_value * 4 + env->gpr[2];
-
     cpu_physical_memory_rw(notify_addr, &env->mcause,  4, 1);
-
     return 0;
 }
 

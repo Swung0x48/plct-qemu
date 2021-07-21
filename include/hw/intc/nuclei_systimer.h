@@ -57,9 +57,8 @@ typedef struct NucLeiSYSTIMERState
     uint32_t aperture_size;
     uint32_t timebase_freq;
 
-    DeviceState *eclic;
-    qemu_irq *timer_irq;
-    qemu_irq *soft_irq;
+    qemu_irq timer_irq;
+    qemu_irq soft_irq;
 
 } NucLeiSYSTIMERState;
 

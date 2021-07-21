@@ -219,6 +219,8 @@ static void nuclei_uart_realize(DeviceState *dev, Error **errp)
 {
     NucLeiUARTState *s = NUCLEI_UART(dev);
 
+    sysbus_init_irq(SYS_BUS_DEVICE(dev), &s->irq);
+
     qemu_chr_fe_set_handlers(&s->chr, uart_can_rx, uart_rx, uart_event,
                              uart_be_change, s, NULL, true);
 }

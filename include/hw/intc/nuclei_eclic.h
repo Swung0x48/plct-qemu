@@ -61,6 +61,7 @@ typedef struct NucLeiECLICState {
     /*< public >*/
     MemoryRegion mmio;
 
+    uint32_t aperture_size;
     uint32_t num_sources; /* 4-1024 */
 
     /* config */
@@ -73,14 +74,10 @@ typedef struct NucLeiECLICState {
     uint8_t *clicintattr; /* shv(0) trig(1~2)*/
     uint8_t *clicintctl;
     ECLICPendingInterrupt *clicintlist;
-    uint32_t aperture_size;
 
     QLIST_HEAD(, ECLICPendingInterrupt)
     pending_list;
     size_t active_count;
-
-    /* ECLIC IRQ handlers */
-    qemu_irq *irqs;
 
 } NucLeiECLICState;
 
@@ -106,10 +103,5 @@ enum {
     Internal_PerfMon_IRQn = 18,      /*!<  Performance Monitor */
     Internal_Reserved_Max_IRQn = 19, /*!<  Internal reserved  Max */
 };
-
-DeviceState *nuclei_eclic_create(hwaddr addr,
-                                 uint32_t aperture_size, uint32_t num_sources);
-qemu_irq nuclei_eclic_get_irq(DeviceState *dev, int irq);
-void nuclei_eclic_systimer_cb(DeviceState *dev);
 
 #endif

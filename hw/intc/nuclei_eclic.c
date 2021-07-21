@@ -38,25 +38,15 @@
 static void riscv_cpu_eclic_interrupt(RISCVCPU *cpu, int exccode)
 {
     CPURISCVState *env = &cpu->env;
-    bool locked = false;
 
     env->exccode = exccode;
 
-    if (!qemu_mutex_iothread_locked()) {
-        locked = true;
-        qemu_mutex_lock_iothread();
-    }
-
-    if (exccode != -1) {
+    if (env->exccode != -1) {
         env->irq_pending = true;
         cpu_interrupt(CPU(cpu), CPU_INTERRUPT_ECLIC);
     } else {
         env->irq_pending = false;
         cpu_reset_interrupt(CPU(cpu), CPU_INTERRUPT_ECLIC);
-    }
-
-    if (locked) {
-        qemu_mutex_unlock_iothread();
     }
 }
 
@@ -214,12 +204,6 @@ static void nuclei_eclic_update_intctl(NucLeiECLICState *eclic,
     nuclei_eclic_next_interrupt(eclic);
 }
 
-qemu_irq nuclei_eclic_get_irq(DeviceState *dev, int irq)
-{
-    NucLeiECLICState *eclic = NUCLEI_ECLIC(dev);
-    return eclic->irqs[irq];
-}
-
 static uint64_t nuclei_eclic_read(void *opaque, hwaddr offset, unsigned size)
 {
     NucLeiECLICState *eclic = NUCLEI_ECLIC(opaque);
@@ -342,8 +326,6 @@ void riscv_cpu_eclic_get_next_interrupt(void *eclic_ptr)
     nuclei_eclic_next_interrupt(eclic);
 }
 
-
-
 static void nuclei_eclic_irq_request(void *opaque, int id, int new_intip)
 {
     NucLeiECLICState *eclic = NUCLEI_ECLIC(opaque);
@@ -355,16 +337,11 @@ static void nuclei_eclic_realize(DeviceState *dev, Error **errp)
     NucLeiECLICState *eclic = NUCLEI_ECLIC(dev);
     int id;
 
-    memory_region_init_io(&eclic->mmio, OBJECT(dev), &nuclei_eclic_ops, eclic,
-                          TYPE_NUCLEI_ECLIC, eclic->aperture_size);
-    sysbus_init_mmio(SYS_BUS_DEVICE(dev), &eclic->mmio);
-
     eclic->clicintip = g_new0(uint8_t, eclic->num_sources);
     eclic->clicintlist = g_new0(ECLICPendingInterrupt, eclic->num_sources);
     eclic->clicintie = g_new0(uint8_t, eclic->num_sources);
     eclic->clicintattr = g_new0(uint8_t, eclic->num_sources);
     eclic->clicintctl = g_new0(uint8_t, eclic->num_sources);
-    eclic->irqs = g_new0(qemu_irq, eclic->num_sources);
     QLIST_INIT(&eclic->pending_list);
     for (id = 0; id < eclic->num_sources; id++) {
         eclic->clicintlist[id].irq = id;
@@ -372,42 +349,44 @@ static void nuclei_eclic_realize(DeviceState *dev, Error **errp)
     }
     eclic->active_count = 0;
 
-    /* Init ECLIC IRQ */
-    eclic->irqs[Internal_SysTimerSW_IRQn] =
-        qemu_allocate_irq(nuclei_eclic_irq_request,
-                          eclic, Internal_SysTimerSW_IRQn);
-    eclic->irqs[Internal_SysTimer_IRQn] =
-        qemu_allocate_irq(nuclei_eclic_irq_request,
-                          eclic, Internal_SysTimer_IRQn);
-
-    for (id = Internal_Reserved_Max_IRQn; id < eclic->num_sources; id++) {
-        eclic->irqs[id] = qemu_allocate_irq(nuclei_eclic_irq_request,
-                                            eclic, id);
-    }
+     /* Allocate irq by qdev_init_gpio */
+    qdev_init_gpio_in(dev, nuclei_eclic_irq_request, eclic->num_sources);
 
     RISCVCPU *cpu = RISCV_CPU(qemu_get_cpu(0));
     cpu->env.eclic = eclic;
 }
 
 static Property nuclei_eclic_properties[] = {
-    DEFINE_PROP_UINT32("aperture-size", NucLeiECLICState, aperture_size, 0),
-    DEFINE_PROP_UINT32("num-sources", NucLeiECLICState, num_sources, 0),
+    DEFINE_PROP_UINT32("aperture-size", NucLeiECLICState, aperture_size, 0x10000),
+    DEFINE_PROP_UINT32("num-sources", NucLeiECLICState, num_sources, 1024),
     DEFINE_PROP_END_OF_LIST(),
 };
+
+static void nuclei_eclic_instance_init(Object *obj)
+{
+    NucLeiECLICState *eclic = NUCLEI_ECLIC(obj);
+
+    memory_region_init_io(&eclic->mmio, obj, &nuclei_eclic_ops, eclic,
+                          TYPE_NUCLEI_ECLIC, eclic->aperture_size);
+    sysbus_init_mmio(SYS_BUS_DEVICE(obj), &eclic->mmio);
+}
 
 static void nuclei_eclic_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
 
-    device_class_set_props(dc, nuclei_eclic_properties);
     dc->realize = nuclei_eclic_realize;
+    dc->desc = "NucLei Eclic";
+    device_class_set_props(dc, nuclei_eclic_properties);
 }
 
 static const TypeInfo nuclei_eclic_info = {
     .name = TYPE_NUCLEI_ECLIC,
     .parent = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(NucLeiECLICState),
+    .instance_init = nuclei_eclic_instance_init,
     .class_init = nuclei_eclic_class_init,
+
 };
 
 static void nuclei_eclic_register_types(void)
@@ -416,22 +395,3 @@ static void nuclei_eclic_register_types(void)
 }
 
 type_init(nuclei_eclic_register_types);
-
-void nuclei_eclic_systimer_cb(DeviceState *dev)
-{
-    NucLeiECLICState *eclic = NUCLEI_ECLIC(dev);
-    nuclei_eclic_irq_request(eclic, Internal_SysTimer_IRQn, 1);
-}
-
-DeviceState *nuclei_eclic_create(hwaddr addr,
-                                 uint32_t aperture_size, uint32_t num_sources)
-{
-    DeviceState *dev = qdev_new(TYPE_NUCLEI_ECLIC);
-
-    qdev_prop_set_uint32(dev, "aperture-size", aperture_size);
-    qdev_prop_set_uint32(dev, "num-sources", num_sources);
-
-    sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
-    sysbus_mmio_map(SYS_BUS_DEVICE(dev), 0, addr);
-    return dev;
-}

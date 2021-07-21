@@ -281,32 +281,6 @@ uint32_t riscv_cpu_update_mip(RISCVCPU *cpu, uint32_t mask, uint32_t value)
     return old;
 }
 
-// void riscv_cpu_eclic_interrupt(RISCVCPU *cpu, int exccode)
-// {
-//     CPURISCVState *env = &cpu->env;
-//     bool locked = false;
-
-//     env->exccode = exccode;
-
-//     if (!qemu_mutex_iothread_locked()) {
-//         locked = true;
-//         qemu_mutex_lock_iothread();
-//     }
-
-//     if (exccode != -1) {
-//     	env->irq_pending = true;
-//         cpu_interrupt(CPU(cpu), CPU_INTERRUPT_ECLIC);
-
-//     } else {
-//     	env->irq_pending = false;
-//         cpu_reset_interrupt(CPU(cpu), CPU_INTERRUPT_ECLIC);
-//     }
-
-//     if (locked) {
-//         qemu_mutex_unlock_iothread();
-//     }
-// }
-
 void riscv_cpu_set_rdtime_fn(CPURISCVState *env, uint64_t (*fn)(uint32_t),
                              uint32_t arg)
 {
@@ -983,8 +957,7 @@ void riscv_cpu_do_interrupt(CPUState *cs)
      * so we mask off the MSB and separate into trap type and cause.
      */
     bool async = !!(cs->exception_index & RISCV_EXCP_INT_FLAG);
-    bool eclic_flag = !!(cs->exception_index & RISCV_EXCP_INT_ECLIC);  //TODO: eclic support
-    target_ulong newpc = 0;
+    bool eclic_flag = !!(cs->exception_index & RISCV_EXCP_INT_ECLIC);
     target_ulong cause = cs->exception_index & RISCV_EXCP_INT_MASK;
     target_ulong deleg = async ? env->mideleg : env->medeleg;
     bool write_tval = false;
@@ -1042,8 +1015,7 @@ void riscv_cpu_do_interrupt(CPUState *cs)
         }
     }
 
-    if(eclic_flag)
-    {
+    if (eclic_flag) {
         mode = (cause >> 12) & 0x1;
         level = (cause >> 13) & 0xFF;
         cause &= 0x3ff;
@@ -1055,7 +1027,7 @@ void riscv_cpu_do_interrupt(CPUState *cs)
         cause = set_field(cause, MCAUSE_INTERRUPT, 1);
 
         env->mintstatus = set_field(env->mintstatus, MINTSTATUS_MIL, level);
-    }else{
+    } else {
         cause = set_field(cause, MCAUSE_INTERRUPT, 0);
     }
 
@@ -1131,23 +1103,6 @@ void riscv_cpu_do_interrupt(CPUState *cs)
         riscv_cpu_set_mode(env, PRV_S);
     } else {
         /* handle the trap in M-mode */
-        if(eclic_flag ) {
-            if(mode)
-            {
-                uint64_t vec_addr = (cause & 0x3FF) *4 + env->mtvt;
-                cpu_physical_memory_rw(vec_addr, &newpc,  4, 0);
-            }else{
-                if ((env->mtvt2 & 0x1) == 0) {
-                    newpc = env->mtvec & 0xfffffffc;
-                } else if ((env->mtvt2 & 0x1) == 1) {
-                    newpc = env->mtvt2 & 0xfffffffc;
-                }
-            }
-
-        } else {
-            newpc = (env->mtvec >> 2 << 2) +
-                ((async && (env->mtvec & 3) == 1) ? cause * 4 : 0);
-        }
 
         if (riscv_has_ext(env, RVH)) {
             if (riscv_cpu_virt_enabled(env)) {

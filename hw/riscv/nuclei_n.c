@@ -32,7 +32,6 @@
 #include "hw/riscv/riscv_hart.h"
 #include "hw/riscv/nuclei_n.h"
 #include "hw/intc/nuclei_systimer.h"
-#include "hw/intc/nuclei_eclic.h"
 #include "hw/char/nuclei_uart.h"
 #include "hw/riscv/boot.h"
 #include "sysemu/arch_init.h"
@@ -194,18 +193,27 @@ static void nuclei_n_soc_realize(DeviceState *dev, Error **errp)
     /* Eclic */
     // create_unimplemented_device("riscv.nuclei.n.eclic",
     //     memmap[NUCLEI_N_ECLIC].base, memmap[NUCLEI_N_ECLIC].size);
+    /* ECLIC*/
+    object_property_set_int(OBJECT(&s->eclic), "aperture-size",
+                        memmap[NUCLEI_N_ECLIC].size,   &error_abort);
+    object_property_set_int(OBJECT(&s->eclic), "num-sources",
+                        51,   &error_abort);
 
-    //TODO:update 51
-    s->eclic = nuclei_eclic_create(memmap[NUCLEI_N_ECLIC].base,
-                                   memmap[NUCLEI_N_ECLIC].size, 51);
-    if( s->eclic != NULL)
-    {
-        s->timer.eclic = s->eclic;
-        s->timer.soft_irq =&(NUCLEI_ECLIC(s->eclic)->irqs[Internal_SysTimerSW_IRQn]);
-        s->timer.timer_irq = &(NUCLEI_ECLIC(s->eclic)->irqs[Internal_SysTimer_IRQn]);
-
-        s->uart0.irq = nuclei_eclic_get_irq(DEVICE(s->eclic),22);
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->eclic), errp)) {
+        return;
     }
+    sysbus_mmio_map(SYS_BUS_DEVICE(&s->eclic), 0, memmap[NUCLEI_N_ECLIC].base);
+
+    // s->timer.soft_irq = &qdev_get_gpio_in(DEVICE(s->eclic),Internal_SysTimerSW_IRQn);
+    // s->timer.timer_irq = &qdev_get_gpio_in(DEVICE(s->eclic),Internal_SysTimer_IRQn);
+
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->timer), 0,
+                        qdev_get_gpio_in(DEVICE(&s->eclic),
+                                        Internal_SysTimerSW_IRQn));
+
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->timer), 1,
+                        qdev_get_gpio_in(DEVICE(&s->eclic),
+                                        Internal_SysTimer_IRQn));
 
     /* GPIO */
     create_unimplemented_device("riscv.nuclei.n.gpio",
@@ -218,6 +226,8 @@ static void nuclei_n_soc_realize(DeviceState *dev, Error **errp)
     }
     sysbus_mmio_map(SYS_BUS_DEVICE(&s->uart0), 0,
                     memmap[NUCLEI_N_UART0].base);
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->uart0), 0,
+                        qdev_get_gpio_in(DEVICE(&s->eclic),22));
 
     qdev_prop_set_chr(DEVICE(&s->uart1), "chardev", serial_hd(1));
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->uart1), errp)) {
@@ -286,6 +296,9 @@ static void nuclei_n_soc_instance_init(Object *obj)
 
     object_initialize_child(obj, "systimer", &s->timer,
                             TYPE_NUCLEI_SYSTIMER);
+    
+    object_initialize_child(obj, "eclic", &s->eclic,
+                            TYPE_NUCLEI_ECLIC);
 
     object_initialize_child(obj, "uart0", &s->uart0,
                             TYPE_NUCLEI_UART);

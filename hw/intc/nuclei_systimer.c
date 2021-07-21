@@ -57,7 +57,9 @@ static void nuclei_timer_update_compare(NucLeiSYSTIMERState *s)
     uint64_t cmp, real_time;
     int64_t diff;
 
-    real_time =  s->mtime_lo | ((uint64_t)s->mtime_hi << 32);
+    // real_time =  s->mtime_lo | ((uint64_t)s->mtime_hi << 32);
+
+    real_time= cpu_riscv_read_rtc(s->timebase_freq);
 
     cmp = (uint64_t)s->mtimecmp_lo | ((uint64_t)s->mtimecmp_hi <<32);
     env->timecmp =  cmp;
@@ -65,10 +67,10 @@ static void nuclei_timer_update_compare(NucLeiSYSTIMERState *s)
     diff = cmp - real_time;
 
     if ( real_time >= cmp) {
-        qemu_set_irq(*(s->timer_irq), 1);
+        qemu_set_irq(s->timer_irq, 1);
     }
     else {
-    	qemu_set_irq(*(s->timer_irq), 0);
+    	qemu_set_irq(s->timer_irq, 0);
 
         if (s->mtimecmp_hi != 0xffffffff) {
             // set up future timer interrupt
@@ -160,9 +162,9 @@ static void nuclei_timer_write(void *opaque, hwaddr offset,
     case NUCLEI_SYSTIMER_REG_MSIP:
         s->msip = value;
         if ((s->msip & 0x1) == 1) {
-            qemu_set_irq(*(s->soft_irq), 1);
+            qemu_set_irq(s->soft_irq, 1);
         }else{
-            qemu_set_irq(*(s->soft_irq), 0);
+            qemu_set_irq(s->soft_irq, 0);
         }
 
         break;
@@ -199,7 +201,8 @@ static void nuclei_timer_instance_init(Object *obj)
 static void nuclei_mtimecmp_cb(void *opaque) {
     RISCVCPU *cpu = RISCV_CPU(qemu_get_cpu(0));
     CPURISCVState *env = &cpu->env;
-    nuclei_eclic_systimer_cb(((RISCVCPU *)cpu)->env.eclic);
+    NucLeiSYSTIMERState *s = NUCLEI_SYSTIMER(opaque);
+    qemu_set_irq(s->timer_irq, 1);
     timer_del(env->timer);
 }
 
@@ -207,11 +210,14 @@ static void nuclei_timer_realize(DeviceState *dev, Error **errp)
 {
     RISCVCPU *cpu = RISCV_CPU(qemu_get_cpu(0));
     CPURISCVState *env = &cpu->env;
+    NucLeiSYSTIMERState *s = NUCLEI_SYSTIMER(dev);
+
+    sysbus_init_irq(SYS_BUS_DEVICE(dev), &s->soft_irq);
+    sysbus_init_irq(SYS_BUS_DEVICE(dev), &s->timer_irq);
 
     env->timer = timer_new_ns(QEMU_CLOCK_VIRTUAL,
-                                   &nuclei_mtimecmp_cb, cpu);
+                                   &nuclei_mtimecmp_cb, s);
     env->timecmp = 0;
-
 }
 
 static void nuclei_timer_class_init(ObjectClass *klass, void *data)
