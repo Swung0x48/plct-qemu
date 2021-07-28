@@ -607,13 +607,12 @@ restart:
                benefit. */
             target_ulong vpn = addr >> PGSHIFT;
             int napot_bits = ((pte & PTE_N) ? (ctzl(ppn) + 1) : 0);
-            if (((pte & PTE_N) && (ppn == 0 || i != 0)) || (napot_bits != 0 && napot_bits != 4))
+            if (((pte & PTE_N) && (ppn == 0 || i != levels - 1)) || (napot_bits != 0 && napot_bits != 4))
                  return TRANSLATE_FAIL;
             *physical = (((ppn & ~(((target_ulong)1 << napot_bits) - 1))
                         | (vpn & (((target_ulong)1 << napot_bits) - 1))
                         | (vpn & (((target_ulong)1 << ptshift) - 1))) << PGSHIFT)
                         | (addr & ~TARGET_PAGE_MASK);
-
             /* set permissions on the TLB entry */
             if ((pte & PTE_R) || ((pte & PTE_X) && mxr)) {
                 *prot |= PAGE_READ;
@@ -801,7 +800,6 @@ bool riscv_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
         ret = get_physical_address(env, &pa, &prot, address,
                                    &env->guest_phys_fault_addr, access_type,
                                    mmu_idx, true, true, false);
-
         /*
          * A G-stage exception may be triggered during two state lookup.
          * And the env->guest_phys_fault_addr has already been set in
@@ -824,7 +822,6 @@ bool riscv_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
             ret = get_physical_address(env, &pa, &prot2, im_address, NULL,
                                        access_type, mmu_idx, false, true,
                                        false);
-
             qemu_log_mask(CPU_LOG_MMU,
                     "%s 2nd-stage address=%" VADDR_PRIx " ret %d physical "
                     TARGET_FMT_plx " prot %d\n",
@@ -859,7 +856,6 @@ bool riscv_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
         /* Single stage lookup */
         ret = get_physical_address(env, &pa, &prot, address, NULL,
                                    access_type, mmu_idx, true, false, false);
-
         qemu_log_mask(CPU_LOG_MMU,
                       "%s address=%" VADDR_PRIx " ret %d physical "
                       TARGET_FMT_plx " prot %d\n",
