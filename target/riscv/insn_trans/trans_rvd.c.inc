@@ -197,7 +197,15 @@ static bool trans_fsgnjn_d(DisasContext *ctx, arg_fsgnjn_d *a)
 
     REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
     if (a->rs1 == a->rs2) { /* FNEG */
+#if defined(TARGET_RISCV64)
         tcg_gen_xori_i64(cpu_fpr[a->rd], cpu_fpr[a->rs1], INT64_MIN);
+#else
+        if (ctx->ext_zfinx) {
+            tcg_gen_xori_i32(cpu_gpr[a->rd+1], cpu_gpr[a->rs1+1], 1 << 31);
+        } else {
+            tcg_gen_xori_i64(cpu_fpr[a->rd], cpu_fpr[a->rs1], INT64_MIN);
+        }
+#endif
     } else {
         TCGv_i64 t0 = tcg_temp_new_i64();
         tcg_gen_not_i64(t0, cpu_fpr[a->rs2]);

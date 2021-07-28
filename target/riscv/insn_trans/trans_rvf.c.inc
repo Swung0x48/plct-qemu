@@ -234,7 +234,15 @@ static bool trans_fsgnjn_s(DisasContext *ctx, arg_fsgnjn_s *a)
         gen_check_nanbox_s(rs1, cpu_fpr[a->rs1]);
     }
     if (a->rs1 == a->rs2) { /* FNEG */
+#if defined(TARGET_RISCV64)
         tcg_gen_xori_i64(cpu_fpr[a->rd], rs1, MAKE_64BIT_MASK(31, 1));
+#else
+        if (ctx->ext_zfinx) {
+            tcg_gen_xori_i32(cpu_gpr[a->rd], cpu_gpr[a->rs1], 1 << 31);
+        } else {
+            tcg_gen_xori_i64(cpu_fpr[a->rd], rs1, MAKE_64BIT_MASK(31, 1));
+        }
+#endif
     } else {
         rs2 = tcg_temp_new_i64();
         if (ctx->ext_zfinx) {
