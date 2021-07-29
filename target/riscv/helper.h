@@ -1160,9 +1160,9 @@ DEF_HELPER_3(aes32dsmi, tl, tl, tl, tl)
 DEF_HELPER_3(aes32dsi, tl, tl, tl, tl)
 
 /* Crypto Extension - aes 64 */
-DEF_HELPER_3(aes64esm, tl, tl, tl, tl)
-DEF_HELPER_3(aes64es, tl, tl, tl, tl)
-DEF_HELPER_3(aes64ds, tl, tl, tl, tl)
+DEF_HELPER_2(aes64esm, tl, tl, tl)
+DEF_HELPER_2(aes64es, tl, tl, tl)
+DEF_HELPER_2(aes64ds, tl, tl, tl)
 DEF_HELPER_2(aes64dsm, tl, tl, tl)
 DEF_HELPER_2(aes64ks2, tl, tl, tl)
 DEF_HELPER_2(aes64ks1i, tl, tl, tl)

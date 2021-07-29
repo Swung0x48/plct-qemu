@@ -19,68 +19,86 @@
  */
 
 
-static bool trans_aesesm(DisasContext *ctx, arg_aesesm *a)
+static bool trans_aes32esmi(DisasContext *ctx, arg_aes32esmi *a)
 {
 	REQUIRE_EXT(ctx, RVK);
-	TCGv bs;
-	bs = tcg_const_tl(a->bs);
-
+	TCGv bs = tcg_const_tl(a->bs);
 	TCGv source1 = tcg_temp_new();
 	TCGv source2 = tcg_temp_new();
+
 	gen_get_gpr(source1, a->rs1);
 	gen_get_gpr(source2, a->rs2);
-#ifdef TARGET_RISCV32
 	gen_helper_aes32esmi(source1, source1, source2, bs);
 	gen_set_gpr(a->rs1, source1);
-#endif
 
-#ifdef TARGET_RISCV64
-	TCGv dst = tcg_temp_new();
-	gen_helper_aes64esm(dst, source1, source2, bs); 
-	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
-#endif
 	tcg_temp_free(source1);
 	tcg_temp_free(source2);
 	tcg_temp_free(bs);
 	return true;
 }
 
-static bool trans_aeses(DisasContext *ctx, arg_aeses *a)
+static bool trans_aes64esm(DisasContext *ctx, arg_aes64esm *a)
 {
 	REQUIRE_EXT(ctx, RVK);
-	TCGv bs;
-	bs = tcg_const_tl(a->bs);
-
 	TCGv source1 = tcg_temp_new();
 	TCGv source2 = tcg_temp_new();
+	TCGv dst = tcg_temp_new();
+
 	gen_get_gpr(source1, a->rs1);
 	gen_get_gpr(source2, a->rs2);
-#ifdef TARGET_RISCV32
+	gen_helper_aes64esm(dst, source1, source2); 
+	gen_set_gpr(a->rd, dst);
+
+	tcg_temp_free(dst);
+	tcg_temp_free(source1);
+	tcg_temp_free(source2);
+	return true;
+}
+
+static bool trans_aes32esi(DisasContext *ctx, arg_aes32esi *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	TCGv bs = tcg_const_tl(a->bs);
+	TCGv source1 = tcg_temp_new();
+	TCGv source2 = tcg_temp_new();
+
+	gen_get_gpr(source1, a->rs1);
+	gen_get_gpr(source2, a->rs2);
 	gen_helper_aes32esi(source1, source1, source2, bs);
 	gen_set_gpr(a->rs1, source1);
-#endif
 
-#ifdef TARGET_RISCV64
-	TCGv dst = tcg_temp_new();
-	gen_helper_aes64es(dst, source1, source2, bs);
-	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
-#endif
 	tcg_temp_free(source1);
 	tcg_temp_free(source2);
 	tcg_temp_free(bs);
+	return true;
+}
+
+static bool trans_aes64es(DisasContext *ctx, arg_aes64es *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+	TCGv source1 = tcg_temp_new();
+	TCGv source2 = tcg_temp_new();
+	TCGv dst = tcg_temp_new();
+
+	gen_get_gpr(source1, a->rs1);
+	gen_get_gpr(source2, a->rs2);
+
+	gen_helper_aes64es(dst, source1, source2);
+	gen_set_gpr(a->rd, dst);
+
+	tcg_temp_free(dst);
+	tcg_temp_free(source1);
+	tcg_temp_free(source2);
 	return true;
 }
 
 static bool trans_aes32dsmi(DisasContext *ctx, arg_aes32dsmi *a)
 {
 	REQUIRE_EXT(ctx, RVK);
-	TCGv bs;
-	bs = tcg_const_tl(a->bs);
-
+	TCGv bs = tcg_const_tl(a->bs);
 	TCGv source1 = tcg_temp_new();
 	TCGv source2 = tcg_temp_new();
+
 	gen_get_gpr(source1, a->rs1);
 	gen_get_gpr(source2, a->rs2);
 	gen_helper_aes32dsmi(source1, source1, source2, bs);
@@ -98,14 +116,14 @@ static bool trans_aes64dsm(DisasContext *ctx, arg_aes64dsm *a)
 
 	TCGv source1 = tcg_temp_new();
 	TCGv source2 = tcg_temp_new();
+	TCGv dst = tcg_temp_new();
+
 	gen_get_gpr(source1, a->rs1);
 	gen_get_gpr(source2, a->rs2);
-
-	TCGv dst = tcg_temp_new();
 	gen_helper_aes64dsm(dst, source1, source2);
 	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
 
+	tcg_temp_free(dst);
 	tcg_temp_free(source1);
 	tcg_temp_free(source2);
 	return true;
@@ -114,45 +132,55 @@ static bool trans_aes64dsm(DisasContext *ctx, arg_aes64dsm *a)
 static bool trans_aes64ks2(DisasContext *ctx, arg_aes64ks2 *a)
 {
 	REQUIRE_EXT(ctx, RVK);
-
 	TCGv source1 = tcg_temp_new();
 	TCGv source2 = tcg_temp_new();
+	TCGv dst = tcg_temp_new();
+
 	gen_get_gpr(source1, a->rs1);
 	gen_get_gpr(source2, a->rs2);
-
-	TCGv dst = tcg_temp_new();
 	gen_helper_aes64ks2(dst, source1, source2);
 	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
 
+	tcg_temp_free(dst);
 	tcg_temp_free(source1);
 	tcg_temp_free(source2);
 	return true;
 }
 
-static bool trans_aesds(DisasContext *ctx, arg_aesds *a)
+static bool trans_aes32dsi(DisasContext *ctx, arg_aes32dsi *a)
 {
 	REQUIRE_EXT(ctx, RVK);
-	TCGv bs;
-	bs = tcg_const_tl(a->bs);
+	TCGv bs = tcg_const_tl(a->bs);
 	TCGv source1 = tcg_temp_new();
 	TCGv source2 = tcg_temp_new();
+
 	gen_get_gpr(source1, a->rs1);
 	gen_get_gpr(source2, a->rs2);
-#ifdef TARGET_RISCV32
 	gen_helper_aes32dsi(source1, source1, source2, bs);
 	gen_set_gpr(a->rs1, source1);
-#endif
 
-#ifdef TARGET_RISCV64
-	TCGv dst = tcg_temp_new();
-	gen_helper_aes64ds(dst, source1, source2, bs);
-	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
-#endif
 	tcg_temp_free(source1);
 	tcg_temp_free(source2);
 	tcg_temp_free(bs);
+	return true;
+}
+
+static bool trans_aes64ds(DisasContext *ctx, arg_aes64ds *a)
+{
+	REQUIRE_EXT(ctx, RVK);
+
+	TCGv source1 = tcg_temp_new();
+	TCGv source2 = tcg_temp_new();
+	TCGv dst = tcg_temp_new();
+
+	gen_get_gpr(source1, a->rs1);
+	gen_get_gpr(source2, a->rs2);
+	gen_helper_aes64ds(dst, source1, source2);
+	gen_set_gpr(a->rd, dst);
+
+	tcg_temp_free(dst);
+	tcg_temp_free(source1);
+	tcg_temp_free(source2);
 	return true;
 }
 
@@ -167,13 +195,13 @@ static bool trans_aes64ks1i(DisasContext *ctx, arg_aes64ks1i *a)
 	TCGv rnum;
 	rnum = tcg_const_tl(a->rnum);
 	TCGv source1 = tcg_temp_new();
-	gen_get_gpr(source1, a->rs1);
-
 	TCGv dst = tcg_temp_new();
+
+	gen_get_gpr(source1, a->rs1);
 	gen_helper_aes64ks1i(dst, source1, rnum);
 	gen_set_gpr(a->rd, dst);
+
 	tcg_temp_free(dst);
-	
 	tcg_temp_free(source1);
 	tcg_temp_free(rnum);
 	return true;
@@ -183,13 +211,13 @@ static bool trans_aes64im(DisasContext *ctx, arg_aes64im *a)
 {
 	REQUIRE_EXT(ctx, RVK);
 	TCGv source1 = tcg_temp_new();
-	gen_get_gpr(source1, a->rs1);
-
 	TCGv dst = tcg_temp_new();
+
+	gen_get_gpr(source1, a->rs1);
 	gen_helper_aes64im(dst, source1);
 	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
 
+	tcg_temp_free(dst);
 	tcg_temp_free(source1);
 	return true;
 }
@@ -198,13 +226,13 @@ static bool trans_sha256sig0(DisasContext *ctx, arg_sha256sig0 *a)
 {
 	REQUIRE_EXT(ctx, RVK);
 	TCGv source1 = tcg_temp_new();
-	gen_get_gpr(source1, a->rs1);
-
 	TCGv dst = tcg_temp_new();
+
+	gen_get_gpr(source1, a->rs1);
 	gen_helper_sha256sig0(dst, source1);
 	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
 
+	tcg_temp_free(dst);
 	tcg_temp_free(source1);
 	return true;
 }
@@ -213,13 +241,13 @@ static bool trans_sha256sig1(DisasContext *ctx, arg_sha256sig1 *a)
 {
 	REQUIRE_EXT(ctx, RVK);
 	TCGv source1 = tcg_temp_new();
-	gen_get_gpr(source1, a->rs1);
-
 	TCGv dst = tcg_temp_new();
+
+	gen_get_gpr(source1, a->rs1);
 	gen_helper_sha256sig1(dst, source1);
 	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
 
+	tcg_temp_free(dst);
 	tcg_temp_free(source1);
 	return true;
 }
@@ -228,12 +256,13 @@ static bool trans_sha256sum0(DisasContext *ctx, arg_sha256sum0 *a)
 {
 	REQUIRE_EXT(ctx, RVK);
 	TCGv source1 = tcg_temp_new();
-	gen_get_gpr(source1, a->rs1);
 	TCGv dst = tcg_temp_new();
+
+	gen_get_gpr(source1, a->rs1);
 	gen_helper_sha256sum0(dst, source1);
 	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
 
+	tcg_temp_free(dst);
 	tcg_temp_free(source1);
 	return true;
 }
@@ -242,13 +271,13 @@ static bool trans_sha256sum1(DisasContext *ctx, arg_sha256sum1 *a)
 {
 	REQUIRE_EXT(ctx, RVK);
 	TCGv source1 = tcg_temp_new();
-	gen_get_gpr(source1, a->rs1);
-
 	TCGv dst = tcg_temp_new();
+
+	gen_get_gpr(source1, a->rs1);
 	gen_helper_sha256sum1(dst, source1);
 	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
 
+	tcg_temp_free(dst);
 	tcg_temp_free(source1);
 	return true;
 }
@@ -258,14 +287,14 @@ static bool trans_sha512sum0r(DisasContext *ctx, arg_sha512sum0r *a)
 	REQUIRE_EXT(ctx, RVK);
 	TCGv source1 = tcg_temp_new();
 	TCGv source2 = tcg_temp_new();
+	TCGv dst = tcg_temp_new();
+
 	gen_get_gpr(source1, a->rs1);
 	gen_get_gpr(source2, a->rs2);
-
-	TCGv dst = tcg_temp_new();
 	gen_helper_sha512sum0r(dst, source1, source2);
 	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
 
+	tcg_temp_free(dst);
 	tcg_temp_free(source1);
 	tcg_temp_free(source2);
 	return true;
@@ -276,14 +305,14 @@ static bool trans_sha512sum1r(DisasContext *ctx, arg_sha512sum1r *a)
 	REQUIRE_EXT(ctx, RVK);
 	TCGv source1 = tcg_temp_new();
 	TCGv source2 = tcg_temp_new();
+	TCGv dst = tcg_temp_new();
+
 	gen_get_gpr(source1, a->rs1);
 	gen_get_gpr(source2, a->rs2);
-
-	TCGv dst = tcg_temp_new();
 	gen_helper_sha512sum1r(dst, source1, source2);
 	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
 
+	tcg_temp_free(dst);
 	tcg_temp_free(source1);
 	tcg_temp_free(source2);
 	return true;
@@ -294,14 +323,14 @@ static bool trans_sha512sig0l(DisasContext *ctx, arg_sha512sig0l *a)
 	REQUIRE_EXT(ctx, RVK);
 	TCGv source1 = tcg_temp_new();
 	TCGv source2 = tcg_temp_new();
+	TCGv dst = tcg_temp_new();
+
 	gen_get_gpr(source1, a->rs1);
 	gen_get_gpr(source2, a->rs2);
-
-	TCGv dst = tcg_temp_new();
 	gen_helper_sha512sig0l(dst, source1, source2);
 	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
 
+	tcg_temp_free(dst);
 	tcg_temp_free(source1);
 	tcg_temp_free(source2);
 	return true;
@@ -312,13 +341,14 @@ static bool trans_sha512sig0h(DisasContext *ctx, arg_sha512sig0h *a)
 	REQUIRE_EXT(ctx, RVK);
 	TCGv source1 = tcg_temp_new();
 	TCGv source2 = tcg_temp_new();
+	TCGv dst = tcg_temp_new();
+
 	gen_get_gpr(source1, a->rs1);
 	gen_get_gpr(source2, a->rs2);
-	TCGv dst = tcg_temp_new();
 	gen_helper_sha512sig0h(dst, source1, source2);
 	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
 
+	tcg_temp_free(dst);
 	tcg_temp_free(source1);
 	tcg_temp_free(source2);
 	return true;
@@ -329,14 +359,14 @@ static bool trans_sha512sig1l(DisasContext *ctx, arg_sha512sig1l *a)
 	REQUIRE_EXT(ctx, RVK);
 	TCGv source1 = tcg_temp_new();
 	TCGv source2 = tcg_temp_new();
+
 	gen_get_gpr(source1, a->rs1);
 	gen_get_gpr(source2, a->rs2);
-
 	TCGv dst = tcg_temp_new();
 	gen_helper_sha512sig1l(dst, source1, source2);
 	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
 
+	tcg_temp_free(dst);
 	tcg_temp_free(source1);
 	tcg_temp_free(source2);
 	return true;
@@ -347,13 +377,14 @@ static bool trans_sha512sig1h(DisasContext *ctx, arg_sha512sig1h *a)
 	REQUIRE_EXT(ctx, RVK);
 	TCGv source1 = tcg_temp_new();
 	TCGv source2 = tcg_temp_new();
+	TCGv dst = tcg_temp_new();
+
 	gen_get_gpr(source1, a->rs1);
 	gen_get_gpr(source2, a->rs2);
-	TCGv dst = tcg_temp_new();
 	gen_helper_sha512sig1h(dst, source1, source2);
 	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
 
+	tcg_temp_free(dst);
 	tcg_temp_free(source1);
 	tcg_temp_free(source2);
 	return true;
@@ -363,12 +394,13 @@ static bool trans_sha512sig0(DisasContext *ctx, arg_sha512sig0 *a)
 {
 	REQUIRE_EXT(ctx, RVK);
 	TCGv source1 = tcg_temp_new();
-	gen_get_gpr(source1, a->rs1);
 	TCGv dst = tcg_temp_new();
+
+	gen_get_gpr(source1, a->rs1);
 	gen_helper_sha512sig0(dst, source1);
 	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
 
+	tcg_temp_free(dst);
 	tcg_temp_free(source1);
 	return true;
 }
@@ -377,12 +409,13 @@ static bool trans_sha512sig1(DisasContext *ctx, arg_sha512sig1 *a)
 {
 	REQUIRE_EXT(ctx, RVK);
 	TCGv source1 = tcg_temp_new();
-	gen_get_gpr(source1, a->rs1);
 	TCGv dst = tcg_temp_new();
+
+	gen_get_gpr(source1, a->rs1);
 	gen_helper_sha512sig1(dst, source1);
 	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
 
+	tcg_temp_free(dst);
 	tcg_temp_free(source1);
 	return true;
 }
@@ -391,12 +424,13 @@ static bool trans_sha512sum0(DisasContext *ctx, arg_sha512sum0 *a)
 {
 	REQUIRE_EXT(ctx, RVK);
 	TCGv source1 = tcg_temp_new();
-	gen_get_gpr(source1, a->rs1);
 	TCGv dst = tcg_temp_new();
+
+	gen_get_gpr(source1, a->rs1);
 	gen_helper_sha512sum0(dst, source1);
 	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
 
+	tcg_temp_free(dst);
 	tcg_temp_free(source1);
 	return true;
 }
@@ -405,12 +439,13 @@ static bool trans_sha512sum1(DisasContext *ctx, arg_sha512sum1 *a)
 {
 	REQUIRE_EXT(ctx, RVK);
 	TCGv source1 = tcg_temp_new();
+
 	gen_get_gpr(source1, a->rs1);
 	TCGv dst = tcg_temp_new();
 	gen_helper_sha512sum1(dst, source1);
 	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
 
+	tcg_temp_free(dst);
 	tcg_temp_free(source1);
 	return true;
 }
@@ -420,26 +455,28 @@ static bool trans_sm3p0(DisasContext *ctx, arg_sm3p0 *a)
 {
 	REQUIRE_EXT(ctx, RVK);
 	TCGv source1 = tcg_temp_new();
+
 	gen_get_gpr(source1, a->rs1);
 	TCGv dst = tcg_temp_new();
 	gen_helper_sm3p0(dst, source1);
 	gen_set_gpr(a->rd, dst);
+
 	tcg_temp_free(dst);
-	
-	
 	tcg_temp_free(source1);
 	return true;
 }
+
 static bool trans_sm3p1(DisasContext *ctx, arg_sm3p1 *a)
 {
 	REQUIRE_EXT(ctx, RVK);
 	TCGv source1 = tcg_temp_new();
+
 	gen_get_gpr(source1, a->rs1);
 	TCGv dst = tcg_temp_new();
 	gen_helper_sm3p1(dst, source1);
 	gen_set_gpr(a->rd, dst);
-	tcg_temp_free(dst);
 
+	tcg_temp_free(dst);
 	tcg_temp_free(source1);
 	return true;
 }
@@ -449,16 +486,15 @@ static bool trans_sm4ed(DisasContext *ctx, arg_sm4ed *a)
 {
 	REQUIRE_EXT(ctx, RVK);
 	TCGv bs = tcg_const_tl(a->bs);
-
 	TCGv source1 = tcg_temp_new();
 	TCGv source2 = tcg_temp_new();
+
 	gen_get_gpr(source1, a->rs1);
 	gen_get_gpr(source2, a->rs2);
-
 	TCGv dst = tcg_temp_new();
 	gen_helper_sm4ed(dst, source2, source1, bs);
-
 	gen_set_gpr(a->rd, dst);
+
 	tcg_temp_free(dst);
 	tcg_temp_free(source1);
 	tcg_temp_free(source2);
@@ -470,16 +506,15 @@ static bool trans_sm4ks(DisasContext *ctx, arg_sm4ks *a)
 {
 	REQUIRE_EXT(ctx, RVK);
 	TCGv bs = tcg_const_tl(a->bs);
-
 	TCGv source1 = tcg_temp_new();
 	TCGv source2 = tcg_temp_new();
+
 	gen_get_gpr(source1, a->rs1);
 	gen_get_gpr(source2, a->rs2);
-
 	TCGv dst = tcg_temp_new();
 	gen_helper_sm4ks(dst, source2, source1, bs);
-
 	gen_set_gpr(a->rd, dst);
+
 	tcg_temp_free(dst);
 	tcg_temp_free(source1);
 	tcg_temp_free(source2);
