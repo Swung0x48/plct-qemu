@@ -732,3 +732,10 @@ greviw     0110100 .......... 101 ..... 0011011 @sh5
 gorciw     0010100 .......... 101 ..... 0011011 @sh5
 
 slli_uw    00001. ........... 001 ..... 0011011 @sh
+
+# *** SVINVAL Standard Extension ***
+sinval_vma        0001011 ..... ..... 000 00000 1110011 @sfence_vma
+sfence_w_inval    0001100 00000 ..... 000 00000 1110011 @sfence_vm
+sfence_inval_ir   0001100 00001 ..... 000 00000 1110011 @sfence_vm
+hinval_vvma       0011011 ..... ..... 000 00000 1110011 @hfence_vvma
+hinval_gvma       0111011 ..... ..... 000 00000 1110011 @hfence_gvma
