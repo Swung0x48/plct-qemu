@@ -1426,7 +1426,7 @@ static RISCVException write_pmpaddr(CPURISCVState *env, int csrno,
 static int read_sentropy(CPURISCVState *env, int csrno, target_ulong *val)
 {
     *val = 0;
-    uint32_t return_status = get_field(env->mnoise, K_EXT_NOISE_TEST) ? K_EXT_OPST_BIST : K_EXT_OPST_ES16;
+    uint32_t return_status =  K_EXT_OPST_ES16;
     *val = (*val) | return_status;
     if(return_status == K_EXT_OPST_ES16) {
         uint16_t random_number;
@@ -1448,20 +1448,10 @@ static int read_sentropy(CPURISCVState *env, int csrno, target_ulong *val)
     return 0;
 }
 
-static int read_mnoise(CPURISCVState *env, int csrno, target_ulong *val)
+static RISCVException write_sentropy(CPURISCVState *env, int csrno,
+                                    target_ulong val)
 {
-    *val = 0;
-    if(get_field(env->mnoise, K_EXT_NOISE_TEST) == 1) {
-        *val |= 0x1 << 31;
-    }
-    return 0;
-}
-
-static int write_mnoise(CPURISCVState *env, int csrno, target_ulong val)
-{
-    int new_noisemode = (val >> 31) & 0x1;
-    val = set_field(env->mnoise, K_EXT_NOISE_TEST, new_noisemode == 1);
-    return 0;
+    return RISCV_EXCP_NONE;
 }
 #endif
 
@@ -1476,7 +1466,7 @@ static int write_mnoise(CPURISCVState *env, int csrno, target_ulong val)
 
 RISCVException riscv_csrrw(CPURISCVState *env, int csrno,
                            target_ulong *ret_value,
-                           target_ulong new_value, target_ulong write_mask)
+                           target_ulong new_value, target_ulong write_mask, bool write)
 {
     RISCVException ret;
     target_ulong old_value;
@@ -1498,8 +1488,11 @@ RISCVException riscv_csrrw(CPURISCVState *env, int csrno,
         effective_priv++;
     }
 
-    if ((write_mask && read_only) ||
+    if ((write && read_only) ||
         (!env->debugger && (effective_priv < get_field(csrno, 0x300)))) {
+        return RISCV_EXCP_ILLEGAL_INST;
+    }
+    if (!write && (csrno == CSR_SENTROPY)) {
         return RISCV_EXCP_ILLEGAL_INST;
     }
 #endif
@@ -1565,7 +1558,7 @@ RISCVException riscv_csrrw_debug(CPURISCVState *env, int csrno,
 #if !defined(CONFIG_USER_ONLY)
     env->debugger = true;
 #endif
-    ret = riscv_csrrw(env, csrno, ret_value, new_value, write_mask);
+    ret = riscv_csrrw(env, csrno, ret_value, new_value, write_mask, true);
 #if !defined(CONFIG_USER_ONLY)
     env->debugger = false;
 #endif
@@ -1599,8 +1592,7 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
 
 #if !defined(CONFIG_USER_ONLY)
     /* Crypto Extension */
-    [CSR_SENTROPY] = { "sentropy", smode, read_sentropy},
-    [CSR_MNOISE]   = { "mnoise",   any, read_mnoise,  write_mnoise},
+    [CSR_SENTROPY] = { "sentropy", smode, read_sentropy, write_sentropy},
 
     /* Machine Timers and Counters */
     [CSR_MCYCLE]    = { "mcycle",    any,   read_instret  },

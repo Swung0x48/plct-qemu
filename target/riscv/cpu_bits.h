@@ -335,8 +335,7 @@
 #define CSR_MHPMCOUNTER31H  0xb9f
 
 /* Crypto Extension */
-#define CSR_SENTROPY         0xdbf
-#define CSR_MNOISE           0x7a9
+#define CSR_SENTROPY         0x546
 
 /* mstatus CSR bits */
 #define MSTATUS_UIE         0x00000001
@@ -539,8 +538,8 @@ typedef enum RISCVException {
 #define K_EXT_OPST                        (0b11 << 30)
 #define K_EXT_SEED                        ((0b1 << 16) - 1)
 #define K_EXT_OPST_BIST                   (0b00 << 30)
-#define K_EXT_OPST_ES16                   (0b01 << 30)
-#define K_EXT_OPST_WAIT                   (0b10 << 30)
+#define K_EXT_OPST_WAIT                   (0b01 << 30)
+#define K_EXT_OPST_ES16                   (0b10 << 30)
 #define K_EXT_OPST_DEAD                   (0b11 << 30)
 #define K_EXT_NOISE_TEST                  (0b1 << 31)
 #endif
