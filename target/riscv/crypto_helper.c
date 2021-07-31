@@ -218,6 +218,10 @@ static inline uint32_t aes_mixcolumn_byte(uint8_t x, bool fwd)
 	return u;
 }
 
+#define XLEN (8 * sizeof(target_ulong))
+#define zext32(x) ((uint64_t)(uint32_t)(x))
+#define sext_xlen(x) (((int64_t)(x) << (64 - XLEN)) >> (64 - XLEN))
+
 static inline target_ulong aes32_operation(target_ulong bs, target_ulong rs1, target_ulong rs2, bool enc, bool mix)
 {
 	uint8_t shamt = bs << 3;
@@ -242,7 +246,7 @@ static inline target_ulong aes32_operation(target_ulong bs, target_ulong rs1, ta
 	}
 	mixed = (mixed << shamt) | (mixed >> (32 - shamt));
 	target_ulong res = rs1 ^ mixed;
-	return res;
+	return sext_xlen(res);
 }
 
 target_ulong HELPER(aes32esmi)(target_ulong rs1, target_ulong rs2, target_ulong bs)
@@ -403,31 +407,28 @@ target_ulong HELPER(aes64im)(target_ulong rs1)
 target_ulong HELPER(sha256sig0)(target_ulong rs1)
 {
 	uint32_t a = rs1;
-	return ROR32(a, 7) ^ ROR32(a, 18) ^ (a >> 3);
+	return sext_xlen(ROR32(a, 7) ^ ROR32(a, 18) ^ (a >> 3));
 }
 
 target_ulong HELPER(sha256sig1)(target_ulong rs1)
 {
 	uint32_t a = rs1;
-	return ROR32(a, 17) ^ ROR32(a,19) ^ (a >> 10);
+	return sext_xlen(ROR32(a, 17) ^ ROR32(a,19) ^ (a >> 10));
 }
 
 target_ulong HELPER(sha256sum0)(target_ulong rs1)
 {
 	uint32_t a = rs1;
-	return ROR32(a, 2) ^ ROR32(a,13) ^ ROR32(a, 22);
+	return sext_xlen(ROR32(a, 2) ^ ROR32(a,13) ^ ROR32(a, 22));
 }
 
 target_ulong HELPER(sha256sum1)(target_ulong rs1)
 {
 	uint32_t a = rs1;
-	return ROR32(a, 6) ^ ROR32(a,11) ^ ROR32(a, 25);
+	return sext_xlen(ROR32(a, 6) ^ ROR32(a,11) ^ ROR32(a, 25));
 }
 #undef ROR32
 
-#define XLEN (8 * sizeof(target_ulong))
-#define zext32(x) ((uint64_t)(uint32_t)(x))
-#define sext_xlen(x) (((int64_t)(x) << (64 - XLEN)) >> (64 - XLEN))
 target_ulong HELPER(sha512sum0r)(target_ulong RS1, target_ulong RS2)
 {
 	uint64_t result =
