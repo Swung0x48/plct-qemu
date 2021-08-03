@@ -1149,10 +1149,14 @@ DEF_HELPER_6(vcompress_vm_w, void, ptr, ptr, ptr, ptr, env, i32)
 DEF_HELPER_6(vcompress_vm_d, void, ptr, ptr, ptr, ptr, env, i32)
 
 /* Zce helper */
-DEF_HELPER_3(c_tblj_all, void, env, tl, tl)
+DEF_HELPER_4(c_tblj_all, tl, env, tl, tl, tl)
 DEF_HELPER_4(c_pop, void, env, tl, tl, tl)
 DEF_HELPER_4(c_pop_e, void, env, tl, tl, tl)
 DEF_HELPER_4(c_push, void, env, tl, tl, tl)
 DEF_HELPER_4(c_push_e, void, env, tl, tl, tl)
 DEF_HELPER_5(c_popret, void, env, tl, tl, tl, tl)
 DEF_HELPER_5(c_popret_e, void, env, tl, tl, tl, tl)
+
+DEF_HELPER_5(pop, void, env, tl, tl, tl, tl)
+DEF_HELPER_5(popret, void, env, tl, tl, tl, tl)
+DEF_HELPER_5(push, void, env, tl, tl, tl, tl)

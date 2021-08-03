@@ -44,6 +44,13 @@
 %zce_scale 2:2
 %zce_b_uimm 10:1 5:2 11:1
 %zce_h_uimm 10:2 5:2 !function=ex_shift_1
+%zce_spimm0_5 7:3     !function=ex_shift_4
+%zce_spimm    7:1     !function=ex_shift_4
+%zce_spimm_pe 4:2 7:1 !function=ex_shift_4
+%zce_rlist2   2:2
+%zce_rlist3   2:3
+%zce_ret0_1   5:1
+%zce_ret0_2   4:1
 
 # Argument sets imported from insn32.decode:
 &empty                  !extern
@@ -165,9 +172,9 @@ slli              000 .  .....  ..... 10 @c_shift2
   fsd               101  ... ... .. ... 00 @cs_d
   fld               001  ... ... .. ... 00 @cl_d
   fsd               101   ......  ..... 10 @c_sdsp
-  c_decbnez         101 ... ... ... .. 10  %zce_nzuimm %rs1_3 %zce_scale
-  c_lb              101 0 .. ... .. ... 10 @zce_b
-  c_lh              101 1 .. ... .. ... 10 @zce_h
+  c_decbnez         101  ... ... ... .. 10  %zce_nzuimm %rs1_3 %zce_scale
+  c_lb              001 0 .. ... .. ... 10 @zce_b
+  c_lh              001 1 .. ... .. ... 10 @zce_h
   c_sb              101 0 .. ... .. ... 00 @zce_b
   c_sh              101 1 .. ... .. ... 00 @zce_h
 }
@@ -193,22 +200,16 @@ c_zext_w          100 000 ... 00 100 00 @zcea_unary
 c_neg             100 000 ... 00 110 00 @zcea_unary
 c_not             100 000 ... 00 111 00 @zcea_unary
 c_mul             100 111 ... 10 ... 01 @zce_binary
+c_mva01s07        100 111 ... 11 ... 01 @zce_binary
 
 # c_tblj, c_tbljal, c_tbljalm
 c_tblj_all    100 010 ........ 00 @zce_table_jump
 
-%zce_spimm0_5 7:3     !function=ex_shift_4
-%zce_spimm    7:1     !function=ex_shift_4
-%zce_spimm_pe 4:2 7:1 !function=ex_shift_4
-%zce_rlist2   2:2
-%zce_rlist3   2:3
-%zce_ret0_1   5:1
-%zce_ret0_2   4:1
 {
+  c_popret    100 011 ... 0 .  ...  00 %zce_spimm0_5  %zce_ret0_1  %zce_rlist3
   c_pop       100 011 11. 0 0  ...  00 %zce_spimm     %zce_rlist3
   c_pop_e     100 011 11. 0 1  0..  00 %zce_spimm     %zce_rlist2
-  c_popret    100 011 ... 0 .  ...  00 %zce_spimm0_5  %zce_ret0_1  %zce_rlist3
-  c_popret_e  100 011 ... 1 1  . .. 00 %zce_spimm0_5  %zce_ret0_2  %zce_rlist2
   c_push      100 011 ... 1 0  ...  00 %zce_spimm0_5  %zce_rlist3
+  c_popret_e  100 011 ... 1 1  . .. 00 %zce_spimm0_5  %zce_ret0_2  %zce_rlist2
   c_push_e    100 011 11. 1 .. ..   00 %zce_spimm_pe  %zce_rlist2
 }

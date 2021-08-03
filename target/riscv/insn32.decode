@@ -37,7 +37,10 @@
 %zce_uimm    20:5
 %zce_offset 31:1 7:1 25:6 8:4    !function=ex_shift_1
 %zce_scale   18:2
-
+%zce_rlist     16:4
+%zce_spimm     7:5
+%areg      20:1
+%ret_val       20:2
 # Argument sets:
 &empty
 &b    imm rs2 rs1
@@ -95,8 +98,11 @@
 
 # Formats 64:
 @sh5     .......  ..... .....  ... ..... ....... &shift  shamt=%sh5      %rs1 %rd
-# @zce     ............ ..... ... ..... ....... %imm_i %rs1 %rd
+
+@zce     ............ ..... ... ..... ....... %imm_i %rs1 %rd
 @zcea_b ....... ..... ..... ... ..... ....... &zcea_b zce_offset=%zce_offset zce_uimm=%zce_uimm rs1=%rs1
+@zcea_push .......... .. .... . ... ..... ....... %areg %zce_rlist %zce_spimm
+@zcea_pop .......... .. .... . ... ..... ....... %ret_val %zce_rlist %zce_spimm
 
 # *** Privileged Instructions ***
 ecall       000000000000     00000 000 00000 1110011
@@ -748,17 +754,13 @@ bset       0010100 .......... 001 ..... 0110011 @r
 bseti      00101. ........... 001 ..... 0010011 @sh
 # *** RV32 Zcea Extension ***
 # currently overlapping
-# muli      ............ ..... 001 ..... 0010011 @zce
-beqi . ...... ..... ..... 010 ..... 1100011 @zcea_b
-bnei . ...... ..... ..... 011 ..... 1100011 @zcea_b
+muli            ............    ..... 001 ..... 0001011 @zce
+beqi            . ......  ..... ..... 010 ..... 1100011 @zcea_b
+bnei            . ......  ..... ..... 011 ..... 1100011 @zcea_b
 
 # push, push_e 
-# currently overlapping
-# %zce_rlist     16:4
-# %zce_spimm     7:5
-# @zcea_push_pop .......... .. .... . ... ..... .......  %zce_rlist %zce_spimm
-# push_all      0000000000 00 .... 0 100 ..... 0010011 @zcea_push_pop
+push            0000000000 0.  .... 0 100 ..... 0101011 @zcea_push
 # pop, pop_e
-# pop_all       0000000000 00 .... 0 101 ..... 0010011 @zcea_push_pop
+pop             0000000000 .. ....  0 101 ..... 0101011 @zcea_pop
 # popret, popret_e
-# popret_all    0000000000 00 .... 0 110 ..... 0010011 @zcea_push_pop
+popret          0000000000 .. ....  0 110 ..... 0101011 @zcea_pop

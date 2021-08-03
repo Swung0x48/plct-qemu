@@ -153,24 +153,18 @@
         env->gpr[xSP] = sp + stack_adjust;                                     \
     }
 
-void HELPER(c_tblj_all)(CPURISCVState *env, target_ulong csr, target_ulong index)
+target_ulong HELPER(c_tblj_all)(CPURISCVState *env, target_ulong csr, target_ulong index, target_ulong next_pc)
 {
+    target_ulong target = next_pc;
 #ifndef CONFIG_USER_ONLY
     target_ulong val = 0;
-    RISCVException ret =
-        (env->priv == PRV_U) ? read_zce_tblj_csr_u(env, csr, &val) : (env->priv == PRV_S) ? read_zce_tblj_csr_s(env, csr, &val)
-                                                                                          : read_zce_tblj_csr_m(env, csr, &val);
-
-    if (ret != RISCV_EXCP_NONE)
-    {
-        riscv_raise_exception(env, ret, GETPC());
-    }
+    val = (env->priv == PRV_U) ? env->utbljalvec :
+          (env->priv == PRV_S) ? env->stbljalvec :
+          env->mtbljalvec;
 
     uint8_t mode = get_field(val, TBLJALVEC_MODE);
-    uint8_t scale = get_field(val, TBLJALVEC_SCALE);
+    //uint8_t scale = get_field(val, TBLJALVEC_SCALE);
     target_ulong base = get_field(val, TBLJALVEC_BASE);
-    target_ulong target;
-    target_ulong next_pc = ctx->base.pc_next + imm;
     target_ulong t1 = 0;
     target_ulong t0;
     switch (mode)
@@ -178,13 +172,13 @@ void HELPER(c_tblj_all)(CPURISCVState *env, target_ulong csr, target_ulong index
     case 0: //jump table mode
         if (XLEN == 32)
         {
-            t0 = base + index << 2;
+            t0 = base + (index << 2);
             loadu32;
             target = t1;
         }
         else // XLEN = 8
         {
-            t0 = base + index << 3;
+            t0 = base + (index << 3);
             load64;
             target = t1;
         }
@@ -213,7 +207,7 @@ void HELPER(c_tblj_all)(CPURISCVState *env, target_ulong csr, target_ulong index
         break;
     }
 #endif
-    return;
+    return target;
 }
 
 void HELPER(c_pop)(CPURISCVState *env, target_ulong sp, target_ulong spimm, target_ulong rlist)
@@ -287,6 +281,36 @@ void HELPER(c_push_e)(CPURISCVState *env, target_ulong sp, target_ulong spimm, t
         return;
     }
     ZCE_PUSH(env, sp, bytes, rlist, true, spimm, 0);
+}
+
+void HELPER(pop)(CPURISCVState *env, target_ulong sp, target_ulong spimm, target_ulong rlist, target_ulong ret)
+{
+    if (((XLEN / 4 - 1) & sp) != 0)
+    {
+        return;
+    }
+    target_ulong bytes = XLEN >> 3;
+    ZCE_POP(env, sp, bytes, rlist, true, spimm, ret, false);
+}
+
+void HELPER(popret)(CPURISCVState *env, target_ulong sp, target_ulong spimm, target_ulong rlist, target_ulong ret)
+{
+    if (((XLEN / 4 - 1) & sp) != 0)
+    {
+        return;
+    }
+    target_ulong bytes = XLEN >> 3;
+    ZCE_POP(env, sp, bytes, rlist, true, spimm, ret, true);
+}
+
+void HELPER(push)(CPURISCVState *env, target_ulong sp, target_ulong spimm, target_ulong rlist, target_ulong alist)
+{
+    if (((XLEN / 4 - 1) & sp) != 0)
+    {
+        return;
+    }
+    target_ulong bytes = XLEN >> 3;
+    ZCE_PUSH(env, sp, bytes, rlist, true, spimm, alist);
 }
 
 #undef X_S0

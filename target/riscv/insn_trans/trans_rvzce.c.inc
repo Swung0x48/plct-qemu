@@ -61,21 +61,56 @@ static bool trans_c_sext_h(DisasContext *ctx, arg_c_sext_h *a)
 static bool trans_c_not(DisasContext *ctx, arg_c_not *a)
 {
     REQUIRE_ZCE;
-    tcg_gen_not_tl(cpu_gpr[a->rs1_3], cpu_gpr[a->rs1_3]);
-    return true;
+    return gen_unary(ctx, a, tcg_gen_not_tl);
 }
 
 static bool trans_c_neg(DisasContext *ctx, arg_c_neg *a)
 {
     REQUIRE_ZCE;
-    tcg_gen_neg_tl(cpu_gpr[a->rs1_3], cpu_gpr[a->rs1_3]);
-    return true;
+    return gen_unary(ctx, a, tcg_gen_neg_tl);
 }
 
 static bool trans_c_mul(DisasContext *ctx, arg_c_mul *a)
 {
     REQUIRE_ZCE;
-    tcg_gen_mul_tl(cpu_gpr[a->rs1_3], cpu_gpr[a->rs1_3], cpu_gpr[a->rs2_3]);
+    REQUIRE_EXT(ctx, RVM);
+    TCGv source1, source2;
+    source1 = tcg_temp_new();
+    source2 = tcg_temp_new();
+    gen_get_gpr(source1, a->rs1_3);
+    gen_get_gpr(source2, a->rs2_3);
+    tcg_gen_mul_tl(source1, source1, source2);
+    gen_set_gpr(a->rs1_3, source1);
+    tcg_temp_free(source1);
+    tcg_temp_free(source2);
+    return true;
+}
+
+static bool trans_c_mva01s07(DisasContext *ctx, arg_c_mva01s07 *a)
+{
+    REQUIRE_ZCE;
+    TCGv source1, source2;
+    source1 = tcg_temp_new();
+    source2 = tcg_temp_new();
+    gen_get_gpr(source1, a->rs1_3);
+    gen_get_gpr(source2, a->rs2_3);
+    gen_set_gpr(xA0, source1);
+    gen_set_gpr(xA1, source2);
+    tcg_temp_free(source1);
+    tcg_temp_free(source2);
+    return true;
+}
+
+static bool trans_muli(DisasContext *ctx, arg_muli *a)
+{
+    REQUIRE_ZCE;
+    REQUIRE_EXT(ctx, RVM);
+    TCGv source1;
+    source1 = tcg_temp_new();
+    gen_get_gpr(source1, a->rs1);
+    tcg_gen_muli_tl(source1, source1, a->imm_i);
+    gen_set_gpr(a->rd, source1);
+    tcg_temp_free(source1);
     return true;
 }
 
@@ -184,13 +219,30 @@ static bool trans_swgp(DisasContext *ctx, arg_swgp *a)
 static bool trans_c_tblj_all(DisasContext *ctx, arg_c_tblj_all *a)
 {
     REQUIRE_ZCE;
+    TCGLabel *misaligned = NULL;
+    TCGv t0 = tcg_temp_new();
     TCGv index = tcg_const_tl(a->zce_table_jump_index);
     TCGv csr_store = tcg_temp_new();
+    TCGv next_pc = tcg_const_tl(ctx->pc_succ_insn);
 
-    gen_helper_c_tblj_all(cpu_env, csr_store, index);
+    gen_helper_c_tblj_all(cpu_pc, cpu_env, csr_store, index, next_pc);
 
+    if (!has_ext(ctx, RVC)) {
+        misaligned = gen_new_label();
+        tcg_gen_andi_tl(t0, cpu_pc, 0x2);
+        tcg_gen_brcondi_tl(TCG_COND_NE, t0, 0x0, misaligned);
+    }
+    lookup_and_goto_ptr(ctx);
+
+    if (misaligned) {
+        gen_set_label(misaligned);
+        gen_exception_inst_addr_mis(ctx);
+    }
+    ctx->base.is_jmp = DISAS_NORETURN;
     tcg_temp_free(index);
     tcg_temp_free(csr_store);
+    tcg_temp_free(next_pc);
+    tcg_temp_free(t0);
     return true;
 }
 
@@ -325,7 +377,7 @@ static bool trans_c_popret(DisasContext *ctx, arg_c_popret *a)
 {
     REQUIRE_ZCE;
 
-    if (a->zce_spimm0_5 > 5) {
+    if (a->zce_spimm0_5 > (5 << 4)) {
         return false;
     }
 
@@ -348,7 +400,7 @@ static bool trans_c_popret_e(DisasContext *ctx, arg_c_popret_e *a)
 {
     REQUIRE_ZCE;
 
-    if (a->zce_spimm0_5 > 5) {
+    if (a->zce_spimm0_5 > (5 << 4)) {
         return false;
     }
 
@@ -405,7 +457,7 @@ static bool trans_c_push(DisasContext *ctx, arg_c_push *a)
 {
     REQUIRE_ZCE;
 
-    if (a->zce_spimm0_5 > 5) {
+    if (a->zce_spimm0_5 > (5 << 4)) {
         return false;
     }
 
@@ -426,7 +478,7 @@ static bool trans_c_push_e(DisasContext *ctx, arg_c_push_e *a)
 {
     REQUIRE_ZCE;
 
-    if (a->zce_spimm_pe > 5) {
+    if (a->zce_spimm_pe > (5 << 4)) {
         return false;
     }
 
@@ -440,6 +492,69 @@ static bool trans_c_push_e(DisasContext *ctx, arg_c_push_e *a)
     tcg_temp_free(sp);
     tcg_temp_free(rlist);
     tcg_temp_free(spimm);
+    return true;
+}
+
+static bool trans_push(DisasContext *ctx, arg_push *a)
+{
+    REQUIRE_ZCE;
+    TCGv sp = tcg_temp_new();
+    int zce_rlist, zce_alist;
+    zce_rlist = a->zce_rlist;
+    gen_get_gpr(sp, xSP);
+    if (zce_rlist > 12)  //push.e
+        zce_rlist -= 10;
+    zce_alist = a->areg? zce_rlist <= 4 ? zce_rlist : 4 : 0;
+    TCGv rlist = tcg_const_tl(zce_rlist);
+    TCGv spimm = tcg_const_tl(a->zce_spimm);
+    TCGv alist = tcg_const_tl(zce_alist);   
+    gen_helper_push(cpu_env, sp, spimm, rlist, alist);
+    tcg_temp_free(sp);
+    tcg_temp_free(rlist);
+    tcg_temp_free(spimm);
+    tcg_temp_free(alist);
+    return true;
+}
+
+static bool trans_pop(DisasContext *ctx, arg_pop *a)
+{
+    REQUIRE_ZCE;
+    TCGv sp = tcg_temp_new();
+    int zce_rlist;
+    zce_rlist = a->zce_rlist;
+    gen_get_gpr(sp, xSP);
+    if (zce_rlist > 12)  //pop.e
+        zce_rlist -= 10;
+
+    TCGv rlist = tcg_const_tl(zce_rlist);
+    TCGv spimm = tcg_const_tl(a->zce_spimm);
+    TCGv ret = tcg_const_tl(a->ret_val);   
+    gen_helper_pop(cpu_env, sp, spimm, rlist, ret);
+    tcg_temp_free(sp);
+    tcg_temp_free(rlist);
+    tcg_temp_free(spimm);
+    tcg_temp_free(ret);
+    return true;
+}
+
+static bool trans_popret(DisasContext *ctx, arg_popret *a)
+{
+    REQUIRE_ZCE;
+    TCGv sp = tcg_temp_new();
+    int zce_rlist;
+    zce_rlist = a->zce_rlist;
+    gen_get_gpr(sp, xSP);
+    if (zce_rlist > 12)  //pop.e
+        zce_rlist -= 10;
+
+    TCGv rlist = tcg_const_tl(zce_rlist);
+    TCGv spimm = tcg_const_tl(a->zce_spimm);
+    TCGv ret = tcg_const_tl(a->ret_val);   
+    gen_helper_popret(cpu_env, sp, spimm, rlist, ret);
+    tcg_temp_free(sp);
+    tcg_temp_free(rlist);
+    tcg_temp_free(spimm);
+    tcg_temp_free(ret);
     return true;
 }
 
