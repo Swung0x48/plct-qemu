@@ -34,13 +34,13 @@
 %imm_b    31:s1 7:1 25:6 8:4     !function=ex_shift_1
 %imm_j    31:s1 12:8 20:1 21:10  !function=ex_shift_1
 %imm_u    12:s20                 !function=ex_shift_12
-%zce_uimm    20:5
-%zce_offset 31:1 7:1 25:6 8:4    !function=ex_shift_1
+%zce_uimm 15:5
+%zce_offset  31:1 7:1 25:6 8:4   !function=ex_shift_1
 %zce_scale   18:2
-%zce_rlist     16:4
-%zce_spimm     7:5
-%areg      20:1
-%ret_val       20:2
+%zce_rlist   16:4
+%zce_spimm   7:5
+%areg        20:1
+%ret_val     20:2
 # Argument sets:
 &empty
 &b    imm rs2 rs1
@@ -58,7 +58,7 @@
 &rwdvm     vm wd rd rs1 rs2
 &r2nfvm    vm rd rs1 nf
 &rnfvm     vm rd rs1 rs2 nf
-&zcea_b    zce_offset zce_uimm rs1
+&zcea_b    zce_offset zce_uimm rs2
 
 # Formats 32:
 @r       .......   ..... ..... ... ..... ....... &r                %rs2 %rs1 %rd
@@ -100,7 +100,7 @@
 @sh5     .......  ..... .....  ... ..... ....... &shift  shamt=%sh5      %rs1 %rd
 
 @zce     ............ ..... ... ..... ....... %imm_i %rs1 %rd
-@zcea_b ....... ..... ..... ... ..... ....... &zcea_b zce_offset=%zce_offset zce_uimm=%zce_uimm rs1=%rs1
+@zcea_b ....... ..... ..... ... ..... ....... &zcea_b zce_offset=%zce_offset zce_uimm=%zce_uimm rs2=%rs2
 @zcea_push .......... .. .... . ... ..... ....... %areg %zce_rlist %zce_spimm
 @zcea_pop .......... .. .... . ... ..... ....... %ret_val %zce_rlist %zce_spimm
 

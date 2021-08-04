@@ -118,7 +118,7 @@ static bool gen_branch_zce(DisasContext *ctx, arg_zcea_b *a, TCGCond cond)
 {
     TCGLabel *l = gen_new_label();
     TCGv source = tcg_temp_new();
-    gen_get_gpr(source, a->rs1);
+    gen_get_gpr(source, a->rs2);
     TCGv uimm = tcg_const_tl(a->zce_uimm);
 
     tcg_gen_brcond_tl(cond, source, uimm, l);

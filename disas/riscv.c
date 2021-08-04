@@ -677,7 +677,7 @@ static const char rv_freg_name_sym[32][5] = {
 #define rv_fmt_rd_rs2                 "O\t0,2"
 #define rv_fmt_rs1_offset             "O\t1,o"
 #define rv_fmt_rs2_offset             "O\t2,o"
-#define rv_fmt_rs1_zceimm_offset      "O\t1,z,f"
+#define rv_fmt_rs2_zceimm_offset      "O\t2,z,f"
 #define rv_fmt_rs1_rs2_zceimm         "O\t1,2,z"
 #define rv_fmt_imm_scale_rd           "O\ti,S,0"
 #define rv_fmt_imm_rd                 "O\ti,0" 
@@ -1273,8 +1273,8 @@ const rv_opcode_data opcode_data[] = {
     { "bclr", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
     { "binv", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
     { "bext", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
-    { "beqi", rv_codec_zcea_b, rv_fmt_rs1_zceimm_offset, NULL, 0, 0, 0 },
-    { "bnei", rv_codec_zcea_b, rv_fmt_rs1_zceimm_offset, NULL, 0, 0, 0 },
+    { "beqi", rv_codec_zcea_b, rv_fmt_rs2_zceimm_offset, NULL, 0, 0, 0 },
+    { "bnei", rv_codec_zcea_b, rv_fmt_rs2_zceimm_offset, NULL, 0, 0, 0 },
     { "decbnez", rv_codec_zceb_d, rv_fmt_imm_scale_rd, NULL, 0, 0, 0 },
     { "lwgp", rv_codec_zceb_lw, rv_fmt_imm_rd, NULL, 0, 0 },
     { "ldgp", rv_codec_zceb_ld, rv_fmt_imm_rd, NULL, 0, 0 },
@@ -2601,7 +2601,7 @@ static uint32_t operand_cimmq(rv_inst inst)
 
 static uint32_t operand_uimm(rv_inst inst)
 {
-    return ((inst << 39) >> 59);
+    return ((inst << 44) >> 59);
 }
 
 static uint32_t operand_uimm_c_lb(rv_inst inst)
@@ -3020,7 +3020,7 @@ static void decode_inst_operands(rv_decode *dec)
         dec->imm = operand_cimmsqsp(inst);
         break;
     case rv_codec_zcea_b:
-        dec->rs1 = operand_rs1(inst);
+        dec->rs2 = operand_rs2(inst);
         dec->zceimm = operand_uimm(inst);
         dec->offset = operand_offset(inst);
         break;
