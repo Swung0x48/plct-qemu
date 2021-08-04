@@ -158,16 +158,13 @@ target_ulong HELPER(c_tblj_all)(CPURISCVState *env, target_ulong csr, target_ulo
     target_ulong target = next_pc;
 #ifndef CONFIG_USER_ONLY
     target_ulong val = 0;
-    val = (env->priv == PRV_U) ? env->utbljalvec :
-          (env->priv == PRV_S) ? env->stbljalvec :
-          env->mtbljalvec;
+    val = env->tbljalvec;
 
-    uint8_t mode = get_field(val, TBLJALVEC_MODE);
-    //uint8_t scale = get_field(val, TBLJALVEC_SCALE);
+    uint8_t config = get_field(val, TBLJALVEC_CONFIG);
     target_ulong base = get_field(val, TBLJALVEC_BASE);
     target_ulong t1 = 0;
     target_ulong t0;
-    switch (mode)
+    switch (config)
     {
     case 0: //jump table mode
         if (XLEN == 32)
@@ -197,10 +194,6 @@ target_ulong HELPER(c_tblj_all)(CPURISCVState *env, target_ulong csr, target_ulo
             // C.TBLJAL
             env->gpr[1] = next_pc;
         }
-        break;
-    case 1: // TODO: Vector Table Mode
-        break;
-    case 2: // TODO: Emulation Mode
         break;
     default:
         riscv_raise_exception(env, RISCV_EXCP_ILLEGAL_INST, GETPC());

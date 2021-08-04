@@ -533,11 +533,8 @@ typedef enum RISCVException {
 #define MIE_USIE                           (1 << IRQ_U_SOFT)
 
 /* Zce Extension */
-#define CSR_MTBLJALVEC                     0x7c0
-#define CSR_STBLJALVEC                     0xbc0
-#define CSR_UTBLJALVEC                     0x800
-#define TBLJALVEC_MODE                     0x3
-#define TBLJALVEC_SCALE                   (0xf << 2)
+#define CSR_TBLJALVEC                     0x800
+#define TBLJALVEC_CONFIG                  0x3f
 #define TBLJALVEC_BASE                    (~0x3F)
 
 

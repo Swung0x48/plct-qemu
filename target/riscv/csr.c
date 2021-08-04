@@ -1517,39 +1517,15 @@ RISCVException riscv_csrrw_debug(CPURISCVState *env, int csrno,
     return ret;
 }
 
-static RISCVException read_zce_tblj_csr_m(CPURISCVState *env, int csrno, target_ulong *val)
+static RISCVException read_zce_tblj_csr(CPURISCVState *env, int csrno, target_ulong *val)
 {
-    *val = env->mtbljalvec;
+    *val = env->tbljalvec;
     return RISCV_EXCP_NONE;
 }
 
-static RISCVException write_zce_tblj_csr_m(CPURISCVState *env, int csrno, target_ulong val)
+static RISCVException write_zce_tblj_csr(CPURISCVState *env, int csrno, target_ulong val)
 {
-    env->mtbljalvec = val;
-    return RISCV_EXCP_NONE;
-}
-
-static RISCVException read_zce_tblj_csr_s(CPURISCVState *env, int csrno, target_ulong *val)
-{
-    *val = env->stbljalvec;
-    return RISCV_EXCP_NONE;
-}
-
-static RISCVException write_zce_tblj_csr_s(CPURISCVState *env, int csrno, target_ulong val)
-{
-    env->stbljalvec = val;
-    return RISCV_EXCP_NONE;
-}
-
-static RISCVException read_zce_tblj_csr_u(CPURISCVState *env, int csrno, target_ulong *val)
-{
-    *val = env->utbljalvec;
-    return RISCV_EXCP_NONE;
-}
-
-static RISCVException write_zce_tblj_csr_u(CPURISCVState *env, int csrno, target_ulong val)
-{
-    env->utbljalvec = val;
+    env->tbljalvec = val;
     return RISCV_EXCP_NONE;
 }
 
@@ -1579,9 +1555,7 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_TIMEH] = { "timeh", ctr32, read_timeh },
 
     /* Zce Extension */
-    [CSR_MTBLJALVEC] = {"mtbljalvec", zcemode, read_zce_tblj_csr_m, write_zce_tblj_csr_m},
-    [CSR_STBLJALVEC] = {"stbljalvec", zcemode, read_zce_tblj_csr_s, write_zce_tblj_csr_s},
-    [CSR_UTBLJALVEC] = {"utbljalvec", zcemode, read_zce_tblj_csr_u, write_zce_tblj_csr_u},
+    [CSR_TBLJALVEC] = {"tbljalvec", zcemode, read_zce_tblj_csr, write_zce_tblj_csr},
 
 #if !defined(CONFIG_USER_ONLY)
     /* Machine Timers and Counters */

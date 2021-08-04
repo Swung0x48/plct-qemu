@@ -139,9 +139,7 @@ struct CPURISCVState {
     uint32_t features;
 
     /* Zce Extension */
-    target_ulong mtbljalvec;
-    target_ulong stbljalvec;
-    target_ulong utbljalvec;
+    target_ulong tbljalvec;
 
 #ifdef CONFIG_USER_ONLY
     uint32_t elf_flags;
