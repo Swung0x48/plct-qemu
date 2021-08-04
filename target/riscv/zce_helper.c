@@ -26,8 +26,14 @@
 // #include "tcg/tcg-internal.h"
 #include "exec/cpu_ldst.h"
 
-#define X_S0 8
-#define X_Sn 16
+#define X_S0    8
+#define X_S1    9
+#define X_Sn    16
+#define X_RA    1
+#define X_A0    10
+#define X_S4_E  7
+#define X_S3_E  6
+#define X_S2_E  14
 #define XLEN (8 * sizeof(target_ulong))
 #define align16(x) (((x) + 15) & ~0xf)
 #define sext_xlen(x) (((int64_t)(x) << (64 - XLEN)) >> (64 - XLEN))
@@ -39,13 +45,13 @@
 #define store32 cpu_stw_le_data(env, dat, t0)
 #define store64 cpu_stl_le_data(env, dat, t0)
 
-#define ZCE_POP(env, sp, bytes, rlist, ra, spimm, ret_val, ret) \
+#define ZCE_POP(env, sp, bytes, rlist, ra, spimm, ret_val, ret, eabi) \
     {                                                           \
         target_ulong stack_adjust = rlist * (XLEN >> 3);        \
         stack_adjust += (ra == 1) ? XLEN >> 3 : 0;              \
         stack_adjust = align16(stack_adjust) + spimm;           \
         target_ulong addr = sp + stack_adjust;                  \
-        target_ulong t1 = 0;                                        \
+        target_ulong t1 = 0;                                    \
         target_ulong t0 = addr;                                 \
         if (ra)                                                 \
         {                                                       \
@@ -53,31 +59,63 @@
             switch (bytes)                                      \
             {                                                   \
             case 4:                                             \
-                load32;                            \
-                env->gpr[xRA] = t1;                             \
+                load32;                                         \
+                env->gpr[X_RA] = t1;                             \
                 break;                                          \
             case 8:                                             \
-                load64;                            \
-                env->gpr[xRA] = t1;                             \
+                load64;                                         \
+                env->gpr[X_RA] = t1;                             \
                 break;                                          \
             default:                                            \
                 break;                                          \
             }                                                   \
         }                                                       \
-        for (int i = 0; i < rlist; i++)                         \
-        {                                                       \
+        target_ulong xreg_list[32] = {0};                       \
+        switch (rlist) {                                        \
+        case 12: xreg_list[X_Sn + 11] = 1;                      \
+                /* FALL THROUGH */                              \
+        case 11: xreg_list[X_Sn + 10] = 1;                      \
+                /* FALL THROUGH */                              \
+        case 10: xreg_list[X_Sn + 9] = 1;                       \
+                /* FALL THROUGH */                              \
+        case 9: xreg_list[X_Sn + 8] = 1;                        \
+                /* FALL THROUGH */                              \
+        case 8: xreg_list[X_Sn + 7] = 1;                        \
+                /* FALL THROUGH */                              \
+        case 7: xreg_list[X_Sn + 6] = 1;                        \
+                /* FALL THROUGH */                              \
+        case 6: xreg_list[X_Sn + 5] = 1;                        \
+                /* FALL THROUGH */                              \
+        case 5: if (eabi) xreg_list[X_S4_E] = 1;                \
+                else xreg_list[X_Sn + 4] = 1;                   \
+                /* FALL THROUGH */                              \
+        case 4: if (eabi) xreg_list[X_S3_E] = 1;                \
+                else xreg_list[X_Sn + 3] = 1;                   \
+                /* FALL THROUGH */                              \
+        case 3: if (eabi) xreg_list[X_S2_E] = 1;                \
+                else xreg_list[X_Sn + 2] = 1;                   \
+                /* FALL THROUGH */                              \
+        case 2: xreg_list[X_S1] = 1;                            \
+                /* FALL THROUGH */                              \
+        case 1: xreg_list[X_S0] = 1;                            \
+                /* FALL THROUGH */                              \
+        case 0: xreg_list[X_RA] = 1;                            \
+            break;                                              \
+        }                                                       \
+        \
+        for(int i = 31; i >= 0; i--) {                          \
+            if (xreg_list[i] == 0) continue;                    \
             addr -= bytes;                                      \
             t0 = addr;                                          \
-            target_ulong reg = i < 2 ? X_S0 + i : X_Sn + i;     \
             switch (bytes)                                      \
             {                                                   \
             case 4:                                             \
                 load32;                            \
-                env->gpr[reg] = t1;                             \
+                env->gpr[i] = t1;                             \
                 break;                                          \
             case 8:                                             \
                 load64;                            \
-                env->gpr[reg] = t1;                             \
+                env->gpr[i] = t1;                             \
                 break;                                          \
             default:                                            \
                 break;                                          \
@@ -104,7 +142,7 @@
         }                                                       \
     }
 
-#define ZCE_PUSH(env, sp, bytes, rlist, ra, spimm, alist)                      \
+#define ZCE_PUSH(env, sp, bytes, rlist, ra, spimm, alist, eabi)                \
     {                                                                          \
         target_ulong addr = sp;                                                \
         target_ulong dat;                                                      \
@@ -113,7 +151,7 @@
         {                                                                      \
             addr -= bytes;                                                     \
             t0 = addr;                                                         \
-            dat = env->gpr[xRA];                                               \
+            dat = env->gpr[X_RA];                                               \
             switch (bytes)                                                     \
             {                                                                  \
             case 4:                                                            \
@@ -126,11 +164,49 @@
                 break;                                                         \
             }                                                                  \
         }                                                                      \
+        target_ulong xreg_list[32] = {0};                                      \
+        target_ulong xareg_list[32] = {0};                                     \
+        switch (rlist) {                                                       \
+        case 12: xreg_list[X_Sn + 11] = 1;                                     \
+                /* FALL THROUGH */                                             \
+        case 11: xreg_list[X_Sn + 10] = 1;                                     \
+                /* FALL THROUGH */                                             \
+        case 10: xreg_list[X_Sn + 9] = 1;                                      \
+                /* FALL THROUGH */                                             \
+        case 9: xreg_list[X_Sn + 8] = 1;                                       \
+                /* FALL THROUGH */                                             \
+        case 8: xreg_list[X_Sn + 7] = 1;                                       \
+                /* FALL THROUGH */                                             \
+        case 7: xreg_list[X_Sn + 6] = 1;                                       \
+                /* FALL THROUGH */                                             \
+        case 6: xreg_list[X_Sn + 5] = 1;                                       \
+                /* FALL THROUGH */                                             \
+        case 5: if (eabi) xreg_list[X_S4_E] = 1;                               \
+                else xreg_list[X_Sn + 4] = 1;                                  \
+                /* FALL THROUGH */                                             \
+        case 4: if (eabi) xreg_list[X_S3_E] = 1;                               \
+                else xreg_list[X_Sn + 3] = 1;                                  \
+                xareg_list[X_A0 + 3] = alist;                                  \
+                /* FALL THROUGH */                                             \
+        case 3: if (eabi) xreg_list[X_S2_E] = 1;                               \
+                else xreg_list[X_Sn + 2] = 1;                                  \
+                xareg_list[X_A0 + 2] = alist;                                  \
+                /* FALL THROUGH */                                             \
+        case 2: xreg_list[X_S1] = 1;                                           \
+                xareg_list[X_A0 + 1] = alist;                                  \
+                /* FALL THROUGH */                                             \
+        case 1: xreg_list[X_S0] = 1;                                           \
+                xareg_list[X_A0] = alist;                                      \
+                /* FALL THROUGH */                                             \
+        case 0: xreg_list[X_RA] = 1;                                           \
+            break;                                                             \
+        }                                                                      \
         target_ulong data;                                                     \
-        for (int i = 0; i < rlist; i++)                                        \
+        for (int i = 31; i >= 0; i--)                                          \
         {                                                                      \
+            if (xreg_list[i] == 0) continue;                                   \
             addr -= bytes;                                                     \
-            data = i < 2 ? X_S0 + i : X_Sn + i;                                \
+            data = env->gpr[i];                                                \
             t0 = addr;                                                         \
             dat = data;                                                        \
             switch (bytes)                                                     \
@@ -145,10 +221,14 @@
                 break;                                                         \
             }                                                                  \
         }                                                                      \
-        for (int i = 0; i < alist; i++)                                        \
-        {                                                                      \
-            env->gpr[i < 2 ? X_S0 + i : X_Sn + i] = (long)(env->gpr[xA0 + i]); \
-        }                                                                      \
+        if (xareg_list[10])                                                    \
+            env->gpr[8] = env->gpr[10];                                        \
+        if (xareg_list[11])                                                    \
+            env->gpr[9] = env->gpr[11];                                        \
+        if (xareg_list[12])                                                    \
+            env->gpr[eabi? 14 : 18] = env->gpr[12];                            \
+        if (xareg_list[13])                                                    \
+            env->gpr[eabi? 6 : 19] = env->gpr[13];                             \
         target_ulong stack_adjust = align16(addr - sp) - spimm;                \
         env->gpr[xSP] = sp + stack_adjust;                                     \
     }
@@ -210,7 +290,7 @@ void HELPER(c_pop)(CPURISCVState *env, target_ulong sp, target_ulong spimm, targ
         return;
     }
     target_ulong bytes = XLEN >> 3;
-    ZCE_POP(env, sp, bytes, rlist, true, spimm, 0, false);
+    ZCE_POP(env, sp, bytes, rlist, true, spimm, 0, false, false);
 }
 
 void HELPER(c_pop_e)(CPURISCVState *env, target_ulong sp, target_ulong spimm, target_ulong rlist)
@@ -224,7 +304,7 @@ void HELPER(c_pop_e)(CPURISCVState *env, target_ulong sp, target_ulong spimm, ta
         return;
     }
     target_ulong bytes = XLEN >> 3;
-    ZCE_POP(env, sp, bytes, rlist, true, spimm, 0, false);
+    ZCE_POP(env, sp, bytes, rlist, true, spimm, 0, false, true);
 }
 
 void HELPER(c_popret)(CPURISCVState *env, target_ulong sp, target_ulong spimm, target_ulong rlist, target_ulong ret)
@@ -234,7 +314,7 @@ void HELPER(c_popret)(CPURISCVState *env, target_ulong sp, target_ulong spimm, t
         return;
     }
     target_ulong bytes = XLEN >> 3;
-    ZCE_POP(env, sp, bytes, rlist, true, spimm, ret, true);
+    ZCE_POP(env, sp, bytes, rlist, true, spimm, ret, true, false);
 }
 
 void HELPER(c_popret_e)(CPURISCVState *env, target_ulong sp, target_ulong spimm, target_ulong rlist, target_ulong ret)
@@ -248,7 +328,7 @@ void HELPER(c_popret_e)(CPURISCVState *env, target_ulong sp, target_ulong spimm,
         return;
     }
     target_ulong bytes = XLEN >> 3;
-    ZCE_POP(env, sp, bytes, rlist, true, spimm, ret, true);
+    ZCE_POP(env, sp, bytes, rlist, true, spimm, ret, true, true);
 }
 
 void HELPER(c_push)(CPURISCVState *env, target_ulong sp, target_ulong spimm, target_ulong rlist)
@@ -259,7 +339,7 @@ void HELPER(c_push)(CPURISCVState *env, target_ulong sp, target_ulong spimm, tar
     }
     target_ulong bytes = XLEN >> 3;
     target_ulong alist = rlist <= 4 ? rlist : 4;
-    ZCE_PUSH(env, sp, bytes, rlist, true, spimm, alist);
+    ZCE_PUSH(env, sp, bytes, rlist, true, spimm, alist, false);
 }
 
 void HELPER(c_push_e)(CPURISCVState *env, target_ulong sp, target_ulong spimm, target_ulong rlist)
@@ -273,7 +353,7 @@ void HELPER(c_push_e)(CPURISCVState *env, target_ulong sp, target_ulong spimm, t
     {
         return;
     }
-    ZCE_PUSH(env, sp, bytes, rlist, true, spimm, 0);
+    ZCE_PUSH(env, sp, bytes, rlist, true, spimm, 0, true);
 }
 
 void HELPER(pop)(CPURISCVState *env, target_ulong sp, target_ulong spimm, target_ulong rlist, target_ulong ret)
@@ -282,8 +362,10 @@ void HELPER(pop)(CPURISCVState *env, target_ulong sp, target_ulong spimm, target
     {
         return;
     }
+    if (rlist > 12)  //pop.e
+        rlist -= 10;
     target_ulong bytes = XLEN >> 3;
-    ZCE_POP(env, sp, bytes, rlist, true, spimm, ret, false);
+    ZCE_POP(env, sp, bytes, rlist, true, spimm, ret, false, (rlist > 12));
 }
 
 void HELPER(popret)(CPURISCVState *env, target_ulong sp, target_ulong spimm, target_ulong rlist, target_ulong ret)
@@ -292,8 +374,10 @@ void HELPER(popret)(CPURISCVState *env, target_ulong sp, target_ulong spimm, tar
     {
         return;
     }
+    if (rlist > 12)  //popret.e
+        rlist -= 10;
     target_ulong bytes = XLEN >> 3;
-    ZCE_POP(env, sp, bytes, rlist, true, spimm, ret, true);
+    ZCE_POP(env, sp, bytes, rlist, true, spimm, ret, true, (rlist > 12));
 }
 
 void HELPER(push)(CPURISCVState *env, target_ulong sp, target_ulong spimm, target_ulong rlist, target_ulong alist)
@@ -302,8 +386,10 @@ void HELPER(push)(CPURISCVState *env, target_ulong sp, target_ulong spimm, targe
     {
         return;
     }
+    if (rlist > 12)  //push.e
+        rlist -= 10;
     target_ulong bytes = XLEN >> 3;
-    ZCE_PUSH(env, sp, bytes, rlist, true, spimm, alist);
+    ZCE_PUSH(env, sp, bytes, rlist, true, spimm, alist, (rlist > 12));
 }
 
 #undef X_S0

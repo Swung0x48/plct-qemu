@@ -502,8 +502,6 @@ static bool trans_push(DisasContext *ctx, arg_push *a)
     int zce_rlist, zce_alist;
     zce_rlist = a->zce_rlist;
     gen_get_gpr(sp, xSP);
-    if (zce_rlist > 12)  //push.e
-        zce_rlist -= 10;
     zce_alist = a->areg? zce_rlist <= 4 ? zce_rlist : 4 : 0;
     TCGv rlist = tcg_const_tl(zce_rlist);
     TCGv spimm = tcg_const_tl(a->zce_spimm);
@@ -523,8 +521,6 @@ static bool trans_pop(DisasContext *ctx, arg_pop *a)
     int zce_rlist;
     zce_rlist = a->zce_rlist;
     gen_get_gpr(sp, xSP);
-    if (zce_rlist > 12)  //pop.e
-        zce_rlist -= 10;
 
     TCGv rlist = tcg_const_tl(zce_rlist);
     TCGv spimm = tcg_const_tl(a->zce_spimm);
@@ -544,8 +540,6 @@ static bool trans_popret(DisasContext *ctx, arg_popret *a)
     int zce_rlist;
     zce_rlist = a->zce_rlist;
     gen_get_gpr(sp, xSP);
-    if (zce_rlist > 12)  //pop.e
-        zce_rlist -= 10;
 
     TCGv rlist = tcg_const_tl(zce_rlist);
     TCGv spimm = tcg_const_tl(a->zce_spimm);
