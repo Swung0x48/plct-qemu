@@ -104,7 +104,7 @@ target_ulong HELPER(unshfl)(target_ulong rs1,
 {
     target_ulong x = rs1;
     int i, shift;
-    int bits = TARGET_LONG_BITS > 1;
+    int bits = TARGET_LONG_BITS >> 1;
     for (i = 0, shift = 1; shift < bits; i++, shift <<= 1) {
         if (rs2 & shift) {
             x = do_shuf_stage(x, shuf_masks[i], shuf_masks[i] >> shift, shift);
