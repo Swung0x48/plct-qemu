@@ -220,7 +220,7 @@ static inline uint32_t aes_mixcolumn_byte(uint8_t x, bool fwd)
 
 #define XLEN (8 * sizeof(target_ulong))
 #define zext32(x) ((uint64_t)(uint32_t)(x))
-#define sext_xlen(x) (((int64_t)(x) << (64 - XLEN)) >> (64 - XLEN))
+#define sext_xlen(x) (((int64_t)(x) << (XLEN - 32)) >> (XLEN  - 32))
 
 static inline target_ulong aes32_operation(target_ulong bs, target_ulong rs1, target_ulong rs2, bool enc, bool mix)
 {
