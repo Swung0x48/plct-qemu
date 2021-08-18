@@ -29,7 +29,7 @@ static bool trans_aes32esmi(DisasContext *ctx, arg_aes32esmi *a)
 	gen_get_gpr(source1, a->rs1);
 	gen_get_gpr(source2, a->rs2);
 	gen_helper_aes32esmi(source1, source1, source2, bs);
-	gen_set_gpr(a->rs1, source1);
+	gen_set_gpr(a->rd, source1);
 
 	tcg_temp_free(source1);
 	tcg_temp_free(source2);
@@ -65,7 +65,7 @@ static bool trans_aes32esi(DisasContext *ctx, arg_aes32esi *a)
 	gen_get_gpr(source1, a->rs1);
 	gen_get_gpr(source2, a->rs2);
 	gen_helper_aes32esi(source1, source1, source2, bs);
-	gen_set_gpr(a->rs1, source1);
+	gen_set_gpr(a->rd, source1);
 
 	tcg_temp_free(source1);
 	tcg_temp_free(source2);
@@ -102,7 +102,7 @@ static bool trans_aes32dsmi(DisasContext *ctx, arg_aes32dsmi *a)
 	gen_get_gpr(source1, a->rs1);
 	gen_get_gpr(source2, a->rs2);
 	gen_helper_aes32dsmi(source1, source1, source2, bs);
-	gen_set_gpr(a->rs1, source1);
+	gen_set_gpr(a->rd, source1);
 
 	tcg_temp_free(source1);
 	tcg_temp_free(source2);
@@ -157,7 +157,7 @@ static bool trans_aes32dsi(DisasContext *ctx, arg_aes32dsi *a)
 	gen_get_gpr(source1, a->rs1);
 	gen_get_gpr(source2, a->rs2);
 	gen_helper_aes32dsi(source1, source1, source2, bs);
-	gen_set_gpr(a->rs1, source1);
+	gen_set_gpr(a->rd, source1);
 
 	tcg_temp_free(source1);
 	tcg_temp_free(source2);
