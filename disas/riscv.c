@@ -1553,51 +1553,53 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
             break;
         case 4:
             switch((inst >> 10) & 0b111) {
+            case 0:
+                switch((inst >> 2) & 0b11111) {
+                    case 0: op = rv_op_c_zext_b; break;
+                    case 1: op = rv_op_c_sext_b; break;
+                    case 2: op = rv_op_c_zext_h; break;
+                    case 3: op = rv_op_c_sext_h; break;
+                    case 4: op = rv_op_c_zext_w; break;
+                    case 6: op = rv_op_c_neg; break;
+                    case 7: op = rv_op_c_not; break;
+                }
+                break;
+            case 2:
+                if(((inst >> 2) & 0b11111111) < 8) {
+                    op = rv_op_c_tbljalm;
+                } else if(((inst >> 2) & 0b11111111) >= 64) {
+                    op = rv_op_c_tbljal;
+                } else {
+                    op = rv_op_c_tblj;
+                }
+                break;
+            case 3:
+                switch((inst >> 6) & 0b1) {
                 case 0:
-                    switch((inst >> 2) & 0b11111) {
-                        case 0: op = rv_op_c_zext_b; break;
-                        case 1: op = rv_op_c_sext_b; break;
-                        case 2: op = rv_op_c_zext_h; break;
-                        case 3: op = rv_op_c_sext_h; break;
-                        case 4: op = rv_op_c_zext_w; break;
-                        case 6: op = rv_op_c_neg; break;
-                        case 7: op = rv_op_c_not; break;
+                    switch((inst >> 8) & 0b11) {
+                        case 3:
+                            switch((inst >> 5) & 0b1) {
+                                case 0: op = rv_op_c_pop; break;
+                                case 1: op = rv_op_c_pop_e; break;
+                            }
+                            break;
+                        default: op = rv_op_c_popret; break;
                     }
                     break;
-                case 2:
-                    if(((inst >> 2) & 0b11111111) < 8) {
-                        op = rv_op_c_tbljalm;
-                    } else if(((inst >> 2) & 0b11111111) >= 64) {
-                        op = rv_op_c_tbljal;
-                    } else {
-                        op = rv_op_c_tblj;
+                case 1:
+                    switch((inst >> 8) & 0b11) {
+                        case 3: op = rv_op_c_push_e; break;
+                        default:
+                            switch((inst >> 5) & 0b1) {
+                                case 0: op = rv_op_c_push; break;
+                                case 1: op = rv_op_c_popret_e; break;                                
+                            }
                     }
                     break;
-                case 3:
-                    switch((inst >> 6) & 0b1) {
-                        case 0:
-                            switch((inst >> 8) & 0b11) {
-                                case 3:
-                                    switch((inst >> 5) & 0b1) {
-                                        case 0: op = rv_op_c_pop; break;
-                                        case 1: op = rv_op_c_pop_e; break;
-                                    }
-                                    break;
-                                default: op = rv_op_c_popret; break;
-                            }
-                        break;
-                        case 1:
-                            switch((inst >> 8) & 0b11) {
-                                case 3: op = rv_op_c_push_e; break;
-                                default:
-                                    switch((inst >> 5) & 0b1) {
-                                        case 0: op = rv_op_c_push; break;
-                                        case 1: op = rv_op_c_popret_e; break;                                
-                                    }
-                            }
-                        break;
-                    }
+                }
+                break;
             }
+            break;
         case 5:
             switch((inst >> 12) & 0b1) {
                 case 0: op = rv_op_c_sb; break;
