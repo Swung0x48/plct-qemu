@@ -349,7 +349,7 @@ static bool trans_fcvt_w_d(DisasContext *ctx, arg_fcvt_w_d *a)
 {
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVD);
-    REQUIRE_SYNC_2(ctx, a->rd, a->rs1);
+    REQUIRE_SYNC_2(ctx, a->rs1+1, a->rs1);
 
     TCGv t0 = tcg_temp_new();
     gen_set_rm(ctx, a->rm);
