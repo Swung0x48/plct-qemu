@@ -405,6 +405,8 @@ static inline void mark_fs_dirty(DisasContext *ctx) {
         for (i = 1; i < 32; i++) {
             tcg_gen_sync_tl(cpu_gpr[i]);
             tcg_gen_discard_tl(cpu_gpr[i]);
+            tcg_gen_sync_i64(cpu_fpr[i]);
+            tcg_gen_discard_i64(cpu_fpr[i]);
         }
     }
 }
