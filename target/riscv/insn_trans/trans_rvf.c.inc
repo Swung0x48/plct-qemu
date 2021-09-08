@@ -75,7 +75,9 @@ static bool trans_fmadd_s(DisasContext *ctx, arg_fmadd_s *a)
 
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
-    gen_get_gpr(old, a->rd + 1);
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
 #endif
 
     gen_set_rm(ctx, a->rm);
@@ -83,7 +85,9 @@ static bool trans_fmadd_s(DisasContext *ctx, arg_fmadd_s *a)
                        cpu_fpr[a->rs2], cpu_fpr[a->rs3]);
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
-        gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        if (a->rd != 31) {
+            gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        }
     }
     tcg_temp_free(old);
 #endif
@@ -101,7 +105,9 @@ static bool trans_fmsub_s(DisasContext *ctx, arg_fmsub_s *a)
 
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
-    gen_get_gpr(old, a->rd + 1);
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
 #endif
 
     gen_set_rm(ctx, a->rm);
@@ -109,7 +115,9 @@ static bool trans_fmsub_s(DisasContext *ctx, arg_fmsub_s *a)
                        cpu_fpr[a->rs2], cpu_fpr[a->rs3]);
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
-        gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        if (a->rd != 31) {
+            gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        }
     }
     tcg_temp_free(old);
 #endif
@@ -126,7 +134,9 @@ static bool trans_fnmsub_s(DisasContext *ctx, arg_fnmsub_s *a)
     REQUIRE_SYNC_3(ctx, a->rs1, a->rs2, a->rs3);
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
-    gen_get_gpr(old, a->rd + 1);
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
 #endif
 
     gen_set_rm(ctx, a->rm);
@@ -134,7 +144,9 @@ static bool trans_fnmsub_s(DisasContext *ctx, arg_fnmsub_s *a)
                         cpu_fpr[a->rs2], cpu_fpr[a->rs3]);
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
-        gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        if (a->rd != 31) {
+            gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        }
     }
     tcg_temp_free(old);
 #endif
@@ -153,14 +165,18 @@ static bool trans_fnmadd_s(DisasContext *ctx, arg_fnmadd_s *a)
 
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
-    gen_get_gpr(old, a->rd + 1);
+    if (a->rd != 31) { 
+        gen_get_gpr(old, a->rd + 1);
+    }
 #endif
 
     gen_helper_fnmadd_s(cpu_fpr[a->rd], cpu_env, cpu_fpr[a->rs1],
                         cpu_fpr[a->rs2], cpu_fpr[a->rs3]);
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
-        gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        if (a->rd != 31) {
+            gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        }
     }
     tcg_temp_free(old);
 #endif
@@ -178,7 +194,9 @@ static bool trans_fadd_s(DisasContext *ctx, arg_fadd_s *a)
 
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
-    gen_get_gpr(old, a->rd + 1);
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
 #endif
 
     gen_set_rm(ctx, a->rm);
@@ -186,7 +204,9 @@ static bool trans_fadd_s(DisasContext *ctx, arg_fadd_s *a)
                       cpu_fpr[a->rs1], cpu_fpr[a->rs2]);
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
-        gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        if (a->rd != 31) {
+            gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        }
     }
     tcg_temp_free(old);
 #endif
@@ -204,7 +224,9 @@ static bool trans_fsub_s(DisasContext *ctx, arg_fsub_s *a)
 
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
-    gen_get_gpr(old, a->rd + 1);
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
 #endif
 
     gen_set_rm(ctx, a->rm);
@@ -212,7 +234,9 @@ static bool trans_fsub_s(DisasContext *ctx, arg_fsub_s *a)
                       cpu_fpr[a->rs1], cpu_fpr[a->rs2]);
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
-        gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        if (a->rd != 31) {
+            gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        }
     }
     tcg_temp_free(old);
 #endif
@@ -229,7 +253,9 @@ static bool trans_fmul_s(DisasContext *ctx, arg_fmul_s *a)
     REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
-    gen_get_gpr(old, a->rd + 1);
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
 #endif
 
 
@@ -238,7 +264,9 @@ static bool trans_fmul_s(DisasContext *ctx, arg_fmul_s *a)
                       cpu_fpr[a->rs1], cpu_fpr[a->rs2]);
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
-        gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        if (a->rd != 31) {
+            gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        }
     }
     tcg_temp_free(old);
 #endif
@@ -255,7 +283,9 @@ static bool trans_fdiv_s(DisasContext *ctx, arg_fdiv_s *a)
     REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
-    gen_get_gpr(old, a->rd + 1);
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
 #endif
 
 
@@ -264,7 +294,9 @@ static bool trans_fdiv_s(DisasContext *ctx, arg_fdiv_s *a)
                       cpu_fpr[a->rs1], cpu_fpr[a->rs2]);
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
-        gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        if (a->rd != 31) {
+            gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        }
     }
     tcg_temp_free(old);
 #endif
@@ -282,14 +314,18 @@ static bool trans_fsqrt_s(DisasContext *ctx, arg_fsqrt_s *a)
 
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
-    gen_get_gpr(old, a->rd + 1);
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
 #endif
 
     gen_set_rm(ctx, a->rm);
     gen_helper_fsqrt_s(cpu_fpr[a->rd], cpu_env, cpu_fpr[a->rs1]);
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
-        gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        if (a->rd != 31) {
+            gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        }
     }
     tcg_temp_free(old);
 #endif
@@ -307,7 +343,9 @@ static bool trans_fsgnj_s(DisasContext *ctx, arg_fsgnj_s *a)
 
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
-    gen_get_gpr(old, a->rd + 1);
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
 #endif
 
     if (a->rs1 == a->rs2) { /* FMOV */
@@ -335,7 +373,9 @@ static bool trans_fsgnj_s(DisasContext *ctx, arg_fsgnj_s *a)
     }
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
-        gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        if (a->rd != 31) {
+            gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        }
     }
     tcg_temp_free(old);
 #endif
@@ -354,7 +394,9 @@ static bool trans_fsgnjn_s(DisasContext *ctx, arg_fsgnjn_s *a)
     REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
-    gen_get_gpr(old, a->rd + 1);
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
 #endif
 
 
@@ -398,7 +440,9 @@ static bool trans_fsgnjn_s(DisasContext *ctx, arg_fsgnjn_s *a)
 
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
-        gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        if (a->rd != 31) {
+            gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        }
     }
     tcg_temp_free(old);
 #endif
@@ -418,7 +462,9 @@ static bool trans_fsgnjx_s(DisasContext *ctx, arg_fsgnjx_s *a)
 
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
-    gen_get_gpr(old, a->rd + 1);
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
 #endif
 
     rs1 = tcg_temp_new_i64();
@@ -450,7 +496,9 @@ static bool trans_fsgnjx_s(DisasContext *ctx, arg_fsgnjx_s *a)
     tcg_temp_free_i64(rs1);
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
-        gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        if (a->rd != 31) {
+            gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        }
     }
     tcg_temp_free(old);
 #endif
@@ -468,7 +516,9 @@ static bool trans_fmin_s(DisasContext *ctx, arg_fmin_s *a)
     REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
-    gen_get_gpr(old, a->rd + 1);
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
 #endif
 
 
@@ -476,7 +526,9 @@ static bool trans_fmin_s(DisasContext *ctx, arg_fmin_s *a)
                       cpu_fpr[a->rs2]);
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
-        gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        if (a->rd != 31) {
+            gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        }
     }
     tcg_temp_free(old);
 #endif
@@ -493,7 +545,9 @@ static bool trans_fmax_s(DisasContext *ctx, arg_fmax_s *a)
     REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
-    gen_get_gpr(old, a->rd + 1);
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
 #endif
 
 
@@ -501,7 +555,9 @@ static bool trans_fmax_s(DisasContext *ctx, arg_fmax_s *a)
                       cpu_fpr[a->rs2]);
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
-        gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        if (a->rd != 31) {
+            gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        }
     }
     tcg_temp_free(old);
 #endif
@@ -623,7 +679,9 @@ static bool trans_fcvt_s_w(DisasContext *ctx, arg_fcvt_s_w *a)
     REQUIRE_SYNC_1(ctx, a->rs1);
 
     TCGv t0 = tcg_temp_new();
-    gen_get_gpr(t0, a->rs1);
+    if (a->rd != 31) {
+        gen_get_gpr(t0, a->rs1);
+    }
 
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
@@ -635,7 +693,9 @@ static bool trans_fcvt_s_w(DisasContext *ctx, arg_fcvt_s_w *a)
 
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
-        gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        if (a->rd != 31) {
+            gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        }
     }
     tcg_temp_free(old);
 #endif
@@ -654,7 +714,9 @@ static bool trans_fcvt_s_wu(DisasContext *ctx, arg_fcvt_s_wu *a)
     REQUIRE_SYNC_1(ctx, a->rs1);
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
-    gen_get_gpr(old, a->rd + 1);
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
 #endif
 
 
@@ -666,7 +728,9 @@ static bool trans_fcvt_s_wu(DisasContext *ctx, arg_fcvt_s_wu *a)
 
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
-        gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        if (a->rd != 31) {
+            gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        }
     }
     tcg_temp_free(old);
 #endif
@@ -739,7 +803,9 @@ static bool trans_fcvt_s_l(DisasContext *ctx, arg_fcvt_s_l *a)
     REQUIRE_SYNC_1(ctx, a->rs1);
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
-    gen_get_gpr(old, a->rd + 1);
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
 #endif
 
 
@@ -751,7 +817,9 @@ static bool trans_fcvt_s_l(DisasContext *ctx, arg_fcvt_s_l *a)
 
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
-        gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        if (a->rd != 31) {
+            gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        }
     }
     tcg_temp_free(old);
 #endif
@@ -770,7 +838,9 @@ static bool trans_fcvt_s_lu(DisasContext *ctx, arg_fcvt_s_lu *a)
     REQUIRE_SYNC_1(ctx, a->rs1);
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
-    gen_get_gpr(old, a->rd + 1);
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
 #endif
 
 
@@ -782,7 +852,9 @@ static bool trans_fcvt_s_lu(DisasContext *ctx, arg_fcvt_s_lu *a)
 
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
-        gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        if (a->rd != 31) {
+            gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        }
     }
     tcg_temp_free(old);
 #endif
