@@ -3936,8 +3936,17 @@ MINMAX_2(float32)
 MINMAX_2(float64)
 MINMAX_2(float128)
 
+#define MINMAX_3(type) \
+    MINMAX_1(type, maxnum_noprop, minmax_isnum | minmax_ismag)      \
+    MINMAX_1(type, minnum_noprop, minmax_ismin | minmax_isnum)
+
+MINMAX_3(float16)
+MINMAX_3(float32)
+MINMAX_3(float64)
+
 #undef MINMAX_1
 #undef MINMAX_2
+#undef MINMAX_3
 
 /*
  * Floating point compare
