@@ -268,10 +268,22 @@ static bool trans_fcvt_s_d(DisasContext *ctx, arg_fcvt_s_d *a)
     REQUIRE_EXT(ctx, RVD);
 
     REQUIRE_SYNC_1(ctx, a->rs1);
+#ifdef TARGET_RISCV32
+    TCGv_i32 old = tcg_temp_new();
+    gen_get_gpr(old, a->rd + 1);
+#endif
 
     gen_set_rm(ctx, a->rm);
     gen_helper_fcvt_s_d(cpu_fpr[a->rd], cpu_env, cpu_fpr[a->rs1]);
 
+#ifdef TARGET_RISCV32
+    if (ctx->ext_zfinx) {
+        if (a->rd != 31) {
+            gen_helper_write_i32(cpu_fpr[a->rd], cpu_env, old, cpu_fpr[a->rd]);
+        }
+    }
+    tcg_temp_free(old);
+#endif
     mark_fs_dirty(ctx);
     return true;
 }
