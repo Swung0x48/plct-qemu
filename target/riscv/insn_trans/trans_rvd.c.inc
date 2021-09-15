@@ -202,6 +202,7 @@ static bool trans_fsgnjn_d(DisasContext *ctx, arg_fsgnjn_d *a)
 #else
         if (ctx->ext_zfinx) {
             tcg_gen_xori_i32(cpu_gpr[a->rd+1], cpu_gpr[a->rs1+1], 1 << 31);
+            tcg_gen_xori_i32(cpu_gpr[a->rd], cpu_gpr[a->rs1], 0);
         } else {
             tcg_gen_xori_i64(cpu_fpr[a->rd], cpu_fpr[a->rs1], INT64_MIN);
         }
