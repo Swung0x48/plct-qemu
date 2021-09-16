@@ -1222,10 +1222,17 @@ static FloatPartsN *partsN(minmax)(FloatPartsN *a, FloatPartsN *b,
          * For minnum/maxnum, if one operand is a QNaN, and the other
          * operand is numerical, then return numerical argument.
          */
-        if ((flags & minmax_isnum)
-            && !(ab_mask & float_cmask_snan)
-            && (ab_mask & ~float_cmask_qnan)) {
-            return is_nan(a->cls) ? b : a;
+        if (flags & minmax_isnum) {
+            if (ab_mask & float_cmask_snan) {
+                if (flags & minmax_issnanprop)
+                    return parts_pick_nan(a, b, s);
+                else {
+                    float_raise(float_flag_invalid, s);
+                    return is_nan(a->cls) ? b : a;
+                }
+            }
+            if (ab_mask & ~float_cmask_qnan)
+                return is_nan(a->cls) ? b : a;
         }
         return parts_pick_nan(a, b, s);
     }

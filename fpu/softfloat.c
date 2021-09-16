@@ -434,6 +434,8 @@ enum {
     minmax_ismin = 1,
     /* Set for the IEEE 754-2008 minNum() and maxNum() operations. */
     minmax_isnum = 2,
+    /* Set for the IEEE 754-201x minNum() and maxNum() operations. */
+    minmax_issnanprop = 3,
     /* Set for the IEEE 754-2008 minNumMag() and minNumMag() operations. */
     minmax_ismag = 4,
 };
@@ -3923,12 +3925,12 @@ static float128 float128_minmax(float128 a, float128 b,
     { return type##_minmax(a, b, s, flags); }
 
 #define MINMAX_2(type) \
-    MINMAX_1(type, max, 0)                                      \
-    MINMAX_1(type, maxnum, minmax_isnum)                        \
-    MINMAX_1(type, maxnummag, minmax_isnum | minmax_ismag)      \
-    MINMAX_1(type, min, minmax_ismin)                           \
-    MINMAX_1(type, minnum, minmax_ismin | minmax_isnum)         \
-    MINMAX_1(type, minnummag, minmax_ismin | minmax_isnum | minmax_ismag)
+    MINMAX_1(type, max, minmax_issnanprop)                                      \
+    MINMAX_1(type, maxnum, minmax_isnum | minmax_issnanprop)                        \
+    MINMAX_1(type, maxnummag, minmax_isnum | minmax_ismag | minmax_issnanprop)      \
+    MINMAX_1(type, min, minmax_ismin | minmax_issnanprop)                           \
+    MINMAX_1(type, minnum, minmax_ismin | minmax_isnum | minmax_issnanprop)         \
+    MINMAX_1(type, minnummag, minmax_ismin | minmax_isnum | minmax_ismag | minmax_issnanprop)
 
 MINMAX_2(float16)
 MINMAX_2(bfloat16)
@@ -3937,7 +3939,7 @@ MINMAX_2(float64)
 MINMAX_2(float128)
 
 #define MINMAX_3(type) \
-    MINMAX_1(type, maxnum_noprop, minmax_isnum | minmax_ismag)      \
+    MINMAX_1(type, maxnum_noprop, minmax_isnum)      \
     MINMAX_1(type, minnum_noprop, minmax_ismin | minmax_isnum)
 
 MINMAX_3(float16)
