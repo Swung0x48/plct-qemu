@@ -1228,7 +1228,8 @@ static FloatPartsN *partsN(minmax)(FloatPartsN *a, FloatPartsN *b,
                     return parts_pick_nan(a, b, s);
                 else {
                     float_raise(float_flag_invalid, s);
-                    return is_nan(a->cls) ? b : a;
+                    if (ab_mask & ~(float_cmask_qnan | float_cmask_snan))
+                        return is_nan(a->cls) ? b : a;
                 }
             }
             if (ab_mask & ~float_cmask_qnan)
