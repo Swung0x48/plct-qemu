@@ -224,6 +224,23 @@ static inline void gen_set_gpr(int reg_num_dst, TCGv t)
     }
 }
 
+static inline void gen_get_fpr(TCGv_i64 t, int reg_num)
+{
+    if (reg_num == 0) {
+        tcg_gen_movi_i64(t, 0);
+    } else {
+        tcg_gen_mov_i64(t, cpu_fpr[reg_num]);
+    }
+}
+
+static inline void gen_set_fpr(int reg_num_dst, TCGv_i64 t)
+{
+    if (reg_num_dst != 0) {
+        tcg_gen_mov_i64(cpu_fpr[reg_num_dst], t);
+    }
+}
+
+
 static void gen_mulhsu(TCGv ret, TCGv arg1, TCGv arg2)
 {
     TCGv rl = tcg_temp_new();
