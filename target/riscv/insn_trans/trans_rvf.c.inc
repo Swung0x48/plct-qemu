@@ -102,7 +102,13 @@ static bool trans_fmadd_s(DisasContext *ctx, arg_fmadd_s *a)
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
         if (a->rd != 31) {
-            gen_set_gpr(a->rd + 1, old);
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
         }
     }
     tcg_temp_free(old);
@@ -148,7 +154,13 @@ static bool trans_fmsub_s(DisasContext *ctx, arg_fmsub_s *a)
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
         if (a->rd != 31) {
-            gen_set_gpr(a->rd + 1, old);
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
         }
     }
     tcg_temp_free(old);
@@ -193,7 +205,13 @@ static bool trans_fnmsub_s(DisasContext *ctx, arg_fnmsub_s *a)
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
         if (a->rd != 31) {
-            gen_set_gpr(a->rd + 1, old);
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
         }
     }
     tcg_temp_free(old);
@@ -239,7 +257,13 @@ static bool trans_fnmadd_s(DisasContext *ctx, arg_fnmadd_s *a)
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
         if (a->rd != 31) {
-            gen_set_gpr(a->rd + 1, old);
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
         }
     }
     tcg_temp_free(old);
@@ -282,7 +306,13 @@ static bool trans_fadd_s(DisasContext *ctx, arg_fadd_s *a)
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
         if (a->rd != 31) {
-            gen_set_gpr(a->rd + 1, old);
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
         }
     }
     tcg_temp_free(old);
@@ -325,7 +355,13 @@ static bool trans_fsub_s(DisasContext *ctx, arg_fsub_s *a)
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
         if (a->rd != 31) {
-            gen_set_gpr(a->rd + 1, old);
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
         }
     }
     tcg_temp_free(old);
@@ -368,7 +404,13 @@ static bool trans_fmul_s(DisasContext *ctx, arg_fmul_s *a)
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
         if (a->rd != 31) {
-            gen_set_gpr(a->rd + 1, old);
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
         }
     }
     tcg_temp_free(old);
@@ -411,7 +453,13 @@ static bool trans_fdiv_s(DisasContext *ctx, arg_fdiv_s *a)
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
         if (a->rd != 31) {
-            gen_set_gpr(a->rd + 1, old);
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
         }
     }
     tcg_temp_free(old);
@@ -450,7 +498,13 @@ static bool trans_fsqrt_s(DisasContext *ctx, arg_fsqrt_s *a)
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
         if (a->rd != 31) {
-            gen_set_gpr(a->rd + 1, old);
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
         }
     }
     tcg_temp_free(old);
@@ -519,7 +573,13 @@ static bool trans_fsgnj_s(DisasContext *ctx, arg_fsgnj_s *a)
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
         if (a->rd != 31) {
-            gen_set_gpr(a->rd + 1, old);
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
         }
     }
     tcg_temp_free(old);
@@ -607,7 +667,13 @@ static bool trans_fsgnjn_s(DisasContext *ctx, arg_fsgnjn_s *a)
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
         if (a->rd != 31) {
-            gen_set_gpr(a->rd + 1, old);
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
         }
     }
     tcg_temp_free(old);
@@ -682,7 +748,13 @@ static bool trans_fsgnjx_s(DisasContext *ctx, arg_fsgnjx_s *a)
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
         if (a->rd != 31) {
-            gen_set_gpr(a->rd + 1, old);
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
         }
     }
     tcg_temp_free(old);
@@ -725,7 +797,13 @@ static bool trans_fmin_s(DisasContext *ctx, arg_fmin_s *a)
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
         if (a->rd != 31) {
-            gen_set_gpr(a->rd + 1, old);
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
         }
     }
     tcg_temp_free(old);
@@ -765,7 +843,13 @@ static bool trans_fmax_s(DisasContext *ctx, arg_fmax_s *a)
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
         if (a->rd != 31) {
-            gen_set_gpr(a->rd + 1, old);
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
         }
     }
     tcg_temp_free(old);
@@ -961,7 +1045,13 @@ static bool trans_fcvt_s_w(DisasContext *ctx, arg_fcvt_s_w *a)
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
         if (a->rd != 31) {
-            gen_set_gpr(a->rd + 1, old);
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
         }
     }
     tcg_temp_free(old);
@@ -1003,7 +1093,13 @@ static bool trans_fcvt_s_wu(DisasContext *ctx, arg_fcvt_s_wu *a)
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
         if (a->rd != 31) {
-            gen_set_gpr(a->rd + 1, old);
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
         }
     }
     tcg_temp_free(old);
@@ -1113,7 +1209,13 @@ static bool trans_fcvt_s_l(DisasContext *ctx, arg_fcvt_s_l *a)
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
         if (a->rd != 31) {
-            gen_set_gpr(a->rd + 1, old);
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
         }
     }
     tcg_temp_free(old);
@@ -1155,7 +1257,13 @@ static bool trans_fcvt_s_lu(DisasContext *ctx, arg_fcvt_s_lu *a)
 #ifdef TARGET_RISCV32
     if (ctx->ext_zfinx) {
         if (a->rd != 31) {
-            gen_set_gpr(a->rd + 1, old);
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
         }
     }
     tcg_temp_free(old);
