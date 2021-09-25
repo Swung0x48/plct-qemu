@@ -308,6 +308,7 @@ static bool trans_feq_d(DisasContext *ctx, arg_feq_d *a)
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVD);
     REQUIRE_SYNC_3(ctx, a->rd, a->rs1, a->rs2);
+    REQUIRE_SYNC_2(ctx, a->rs1 + 1, a->rs2 + 1);
 
     TCGv t0 = tcg_temp_new();
     gen_helper_feq_d(t0, cpu_env, cpu_fpr[a->rs1], cpu_fpr[a->rs2]);
