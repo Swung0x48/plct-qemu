@@ -470,24 +470,36 @@ EX_SH(12)
     }                           \
 } while (0)
 
-#define REQUIRE_SYNC_1(ctx, reg_num) do {  \
-    if (ctx->ext_zfinx) {                  \
-        tcg_gen_sync_tl(cpu_gpr[reg_num]); \
-    }                                      \
+#define REQUIRE_SYNC_1(ctx, reg_num) do {      \
+    if (ctx->ext_zfinx) {                      \
+        if (reg_num > 0 && reg_num < 32) {     \
+            tcg_gen_sync_tl(cpu_gpr[reg_num]); \
+        }                                      \
+    }                                          \
 } while (0)
 
 #define REQUIRE_SYNC_2(ctx, reg_num_1, reg_num_2) do { \
     if (ctx->ext_zfinx) {                              \
-        tcg_gen_sync_tl(cpu_gpr[reg_num_1]);           \
-        tcg_gen_sync_tl(cpu_gpr[reg_num_2]);           \
+        if (reg_num_1 > 0 && reg_num_1 < 32) {         \
+            tcg_gen_sync_tl(cpu_gpr[reg_num_1]);       \
+        }                                              \
+        if (reg_num_2 > 0 && reg_num_2 < 32) {         \
+            tcg_gen_sync_tl(cpu_gpr[reg_num_2]);       \
+        }                                              \
     }                                                  \
 } while (0)
 
 #define REQUIRE_SYNC_3(ctx, reg_num_1, reg_num_2, reg_num_3) do { \
     if (ctx->ext_zfinx) {                                         \
-        tcg_gen_sync_tl(cpu_gpr[reg_num_1]);                      \
-        tcg_gen_sync_tl(cpu_gpr[reg_num_2]);                      \
-        tcg_gen_sync_tl(cpu_gpr[reg_num_3]);                      \
+        if (reg_num_1 > 0 && reg_num_1 < 32) {                    \
+            tcg_gen_sync_tl(cpu_gpr[reg_num_1]);                  \
+        }                                                         \
+        if (reg_num_2 > 0 && reg_num_2 < 32) {                    \
+            tcg_gen_sync_tl(cpu_gpr[reg_num_2]);                  \
+        }                                                         \
+        if (reg_num_3 > 0 && reg_num_3 < 32) {                    \
+            tcg_gen_sync_tl(cpu_gpr[reg_num_3]);                  \
+        }                                                         \
     }                                                             \
 } while (0)
 
