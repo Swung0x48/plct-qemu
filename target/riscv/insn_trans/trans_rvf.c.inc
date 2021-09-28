@@ -862,7 +862,7 @@ static bool trans_fcvt_w_s(DisasContext *ctx, arg_fcvt_w_s *a)
 {
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
-    REQUIRE_SYNC_2(ctx, a->rd, a->rs1);
+    REQUIRE_SYNC_1(ctx, a->rs1);
 
     TCGv t0 = tcg_temp_new();
     gen_set_rm(ctx, a->rm);
@@ -884,7 +884,7 @@ static bool trans_fcvt_wu_s(DisasContext *ctx, arg_fcvt_wu_s *a)
 {
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
-    REQUIRE_SYNC_2(ctx, a->rd, a->rs1);
+    REQUIRE_SYNC_1(ctx, a->rs1);
 
     TCGv t0 = tcg_temp_new();
     gen_set_rm(ctx, a->rm);
@@ -930,7 +930,7 @@ static bool trans_feq_s(DisasContext *ctx, arg_feq_s *a)
 {
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
-    REQUIRE_SYNC_3(ctx, a->rd, a->rs1, a->rs2);
+    REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
     TCGv t0 = tcg_temp_new();
     if (ctx->ext_zfinx) {
     TCGv_i64 rs1 = tcg_temp_new_i64();
@@ -952,7 +952,7 @@ static bool trans_flt_s(DisasContext *ctx, arg_flt_s *a)
 {
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
-    REQUIRE_SYNC_3(ctx, a->rd, a->rs1, a->rs2);
+    REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
     TCGv t0 = tcg_temp_new();
     if (ctx->ext_zfinx) {
     TCGv_i64 rs1 = tcg_temp_new_i64();
@@ -974,7 +974,7 @@ static bool trans_fle_s(DisasContext *ctx, arg_fle_s *a)
 {
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
-    REQUIRE_SYNC_3(ctx, a->rd, a->rs1, a->rs2);
+    REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
     TCGv t0 = tcg_temp_new();
     if (ctx->ext_zfinx) {
     TCGv_i64 rs1 = tcg_temp_new_i64();
@@ -996,7 +996,7 @@ static bool trans_fclass_s(DisasContext *ctx, arg_fclass_s *a)
 {
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
-    REQUIRE_SYNC_2(ctx, a->rd, a->rs1);
+    REQUIRE_SYNC_1(ctx, a->rs1);
 
     TCGv t0 = tcg_temp_new();
 
@@ -1020,16 +1020,14 @@ static bool trans_fcvt_s_w(DisasContext *ctx, arg_fcvt_s_w *a)
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
 
-    REQUIRE_SYNC_1(ctx, a->rs1);
-
     TCGv t0 = tcg_temp_new();
-    if (a->rd != 31) {
-        gen_get_gpr(t0, a->rs1);
-    }
+    gen_get_gpr(t0, a->rs1);
 
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
-    gen_get_gpr(old, a->rd + 1);
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
 #endif
 
     gen_set_rm(ctx, a->rm);
@@ -1068,7 +1066,6 @@ static bool trans_fcvt_s_wu(DisasContext *ctx, arg_fcvt_s_wu *a)
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
 
-    REQUIRE_SYNC_1(ctx, a->rs1);
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
     if (a->rd != 31) {
@@ -1184,7 +1181,6 @@ static bool trans_fcvt_s_l(DisasContext *ctx, arg_fcvt_s_l *a)
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
 
-    REQUIRE_SYNC_1(ctx, a->rs1);
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
     if (a->rd != 31) {
@@ -1232,7 +1228,6 @@ static bool trans_fcvt_s_lu(DisasContext *ctx, arg_fcvt_s_lu *a)
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
 
-    REQUIRE_SYNC_1(ctx, a->rs1);
 #ifdef TARGET_RISCV32
     TCGv_i32 old = tcg_temp_new();
     if (a->rd != 31) {
