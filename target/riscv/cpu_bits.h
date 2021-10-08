@@ -335,7 +335,7 @@
 #define CSR_MHPMCOUNTER31H  0xb9f
 
 /* Crypto Extension */
-#define CSR_SENTROPY         0x546
+#define CSR_SEED           0x015
 
 /* mstatus CSR bits */
 #define MSTATUS_UIE         0x00000001
