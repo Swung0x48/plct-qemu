@@ -461,13 +461,13 @@ static bool trans_unshfli(DisasContext *ctx, arg_unshfli *a)
     return gen_shufi(ctx, a, gen_helper_unshfl);
 }
 
-static bool trans_xperm_n(DisasContext *ctx, arg_xperm_n *a)
+static bool trans_xperm4(DisasContext *ctx, arg_xperm4 *a)
 {
     REQUIRE_EXT(ctx, RVB);
     return gen_xperm(ctx, a, 2);
 }
 
-static bool trans_xperm_b(DisasContext *ctx, arg_xperm_b *a)
+static bool trans_xperm8(DisasContext *ctx, arg_xperm8 *a)
 {
     REQUIRE_EXT(ctx, RVB);
     return gen_xperm(ctx, a, 3);

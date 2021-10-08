@@ -213,6 +213,23 @@ static RISCVException epmp(CPURISCVState *env, int csrno)
 }
 #endif
 
+/* Predicates */
+static RISCVException seed(CPURISCVState *env, int csrno)
+{
+#if !defined(CONFIG_USER_ONLY)
+    if (env->priv == PRV_M)
+        return RISCV_EXCP_NONE;
+    else if (env->priv == PRV_S && (env->mseccfg & MSECCFG_SSEED))
+        return RISCV_EXCP_NONE;
+    else if (env->priv == PRV_U && (env->mseccfg & MSECCFG_USEED))
+        return RISCV_EXCP_NONE;
+    else
+        return RISCV_EXCP_ILLEGAL_INST;
+#else
+    return RISCV_EXCP_NONE;
+#endif
+}
+
 /* User Floating-Point CSRs */
 static RISCVException read_fflags(CPURISCVState *env, int csrno,
                                   target_ulong *val)
@@ -1421,9 +1438,10 @@ static RISCVException write_pmpaddr(CPURISCVState *env, int csrno,
     pmpaddr_csr_write(env, csrno - CSR_PMPADDR0, val);
     return RISCV_EXCP_NONE;
 }
+#endif
 
 /* Crypto Extension */
-static int read_sentropy(CPURISCVState *env, int csrno, target_ulong *val)
+static int read_seed(CPURISCVState *env, int csrno, target_ulong *val)
 {
     *val = 0;
     uint32_t return_status =  K_EXT_OPST_ES16;
@@ -1448,12 +1466,11 @@ static int read_sentropy(CPURISCVState *env, int csrno, target_ulong *val)
     return 0;
 }
 
-static RISCVException write_sentropy(CPURISCVState *env, int csrno,
+static RISCVException write_seed(CPURISCVState *env, int csrno,
                                     target_ulong val)
 {
     return RISCV_EXCP_NONE;
 }
-#endif
 
 /*
  * riscv_csrrw - read and/or update control and status register
@@ -1492,11 +1509,10 @@ RISCVException riscv_csrrw(CPURISCVState *env, int csrno,
         (!env->debugger && (effective_priv < get_field(csrno, 0x300)))) {
         return RISCV_EXCP_ILLEGAL_INST;
     }
-    if (!write && (csrno == CSR_SENTROPY)) {
+#endif
+    if (!write && (csrno == CSR_SEED)) {
         return RISCV_EXCP_ILLEGAL_INST;
     }
-#endif
-
     /* ensure the CSR extension is enabled. */
     if (!cpu->cfg.ext_icsr) {
         return RISCV_EXCP_ILLEGAL_INST;
@@ -1590,10 +1606,10 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_TIME]  = { "time",  ctr,   read_time  },
     [CSR_TIMEH] = { "timeh", ctr32, read_timeh },
 
-#if !defined(CONFIG_USER_ONLY)
     /* Crypto Extension */
-    [CSR_SENTROPY] = { "sentropy", smode, read_sentropy, write_sentropy},
+    [CSR_SEED] = { "seed", seed, read_seed, write_seed},
 
+#if !defined(CONFIG_USER_ONLY)
     /* Machine Timers and Counters */
     [CSR_MCYCLE]    = { "mcycle",    any,   read_instret  },
     [CSR_MINSTRET]  = { "minstret",  any,   read_instret  },
