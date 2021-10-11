@@ -563,7 +563,6 @@ typedef enum {
     rv_op_zip = 396,
     rv_op_xperm4 = 397,
     rv_op_xperm8 = 398,
-
 } rv_op;
 
 /* structures */
