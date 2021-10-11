@@ -50,7 +50,21 @@ target_ulong HELPER(clmulr)(target_ulong rs1, target_ulong rs2)
     return result;
 }
 
-static target_ulong do_gorc(target_ulong rs1,
+static const uint64_t adjacent_masks[] = {
+    dup_const(MO_8, 0x55),
+    dup_const(MO_8, 0x33),
+    dup_const(MO_8, 0x0f),
+    dup_const(MO_16, 0xff),
+    dup_const(MO_32, 0xffff),
+    UINT32_MAX
+};
+
+static inline target_ulong do_swap(target_ulong x, uint64_t mask, int shift)
+{
+    return ((x & mask) << shift) | ((x & ~mask) >> shift);
+}
+
+static target_ulong do_grev(target_ulong rs1,
                             target_ulong rs2,
                             int bits)
 {
@@ -59,16 +73,16 @@ static target_ulong do_gorc(target_ulong rs1,
 
     for (i = 0, shift = 1; shift < bits; i++, shift <<= 1) {
         if (rs2 & shift) {
-            x |= do_swap(x, adjacent_masks[i], shift);
+            x = do_swap(x, adjacent_masks[i], shift);
         }
     }
 
     return x;
 }
 
-target_ulong HELPER(gorc)(target_ulong rs1, target_ulong rs2)
+target_ulong HELPER(grev)(target_ulong rs1, target_ulong rs2)
 {
-    return do_gorc(rs1, rs2, TARGET_LONG_BITS);
+    return do_grev(rs1, rs2, TARGET_LONG_BITS);
 }
 
 target_ulong HELPER(xperm)(target_ulong rs1, target_ulong rs2, uint32_t sz_log2)

@@ -24,7 +24,7 @@
 %rs1       15:5
 %rd        7:5
 %sh5       20:5
-%sh10    20:10
+
 %sh6    20:6
 %sh7    20:7
 %csr    20:12
@@ -49,7 +49,7 @@
 &s    imm rs1 rs2
 &u    imm rd
 &shift     shamt rs1 rd
-&shuf      shamt rs1 rd
+&shuf      rs1 rd
 &atomic    aq rl rs2 rs1 rd
 &rmrr      vm rd rs1 rs2
 &rmr       vm rd rs2
@@ -66,9 +66,7 @@
 @j       ....................      ..... ....... &j      imm=%imm_j          %rd
 
 @sh      ......  ...... .....  ... ..... ....... &shift  shamt=%sh7     %rs1 %rd
-@sh10      ......  ...... .....  ... ..... ....... &shift  shamt=%sh10      %rs1 %rd
-@sh7      ......  ...... .....  ... ..... ....... &shift  shamt=%sh7      %rs1 %rd
-@shuf    ......  ...... .....  ... ..... ....... &shuf   shamt=%sh6     %rs1 %rd
+@shuf    ......  ...... .....  ... ..... ....... &shuf    %rs1 %rd
 
 @csr     ............   .....  ... ..... .......               %csr     %rs1 %rd
 
@@ -704,7 +702,10 @@ sext_h     011000 000101 ..... 001 ..... 0010011 @r2
 xnor       0100000 .......... 100 ..... 0110011 @r
 # The encoding for zext.h differs between RV32 and RV64.
 # zext_h_32 denotes the RV32 variant.
-zext_h_32  0000100 00000 ..... 100 ..... 0110011 @r2
+{
+  zext_h_32  0000100 00000 ..... 100 ..... 0110011 @r2
+  pack       0000100 ..... ..... 100 ..... 0110011 @r
+}
 # *** RV64 Zbb Standard Extension (in addition to RV32 Zbb) ***
 clzw       0110000 00000 ..... 001 ..... 0011011 @r2
 ctzw       0110000 00001 ..... 001 ..... 0011011 @r2
@@ -719,20 +720,24 @@ rorw       0110000 .......... 101 ..... 0111011 @r
 # The encoding for zext.h differs between RV32 and RV64.
 # When executing on RV64, the encoding used in RV32 is an illegal
 # instruction, so we use different handler functions to differentiate.
-zext_h_64  0000100 00000 ..... 100 ..... 0111011 @r2
-
+{
+  zext_h_64  0000100 00000 ..... 100 ..... 0111011 @r2
+  packw      0000100 .......... 100 ..... 0111011 @r
+}
 # *** RV32 Zbc Standard Extension ***
 clmul      0000101 .......... 001 ..... 0110011 @r
 clmulh     0000101 .......... 011 ..... 0110011 @r
 clmulr     0000101 .......... 010 ..... 0110011 @r
 
+# *** RV32 Zbkb Standard Extension ***
+brev8      0110100 00111 ..... 101 ..... 0010011 @r2  #grevi
 
-# *** RV32 Zbk* Standard Extension ***
-shfl       0000100 ..... ..... 001 ..... 0110011 @r
-unshfl     0000100 ..... ..... 101 ..... 0110011 @r
-shfli      000010 ...... ..... 001 ..... 0010011 @shuf
-unshfli    000010 ...... ..... 101 ..... 0010011 @shuf
+packh      0000100 .......... 111 ..... 0110011 @r
 
+unzip      0000100 01111 ..... 101 ..... 0010011 @shuf
+zip        0000100 01111 ..... 001 ..... 0010011 @shuf
+
+# *** RV32 Zbkx Standard Extension ***
 xperm4    0010100 .......... 010 ..... 0110011 @r
 xperm8    0010100 .......... 100 ..... 0110011 @r
 

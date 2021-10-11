@@ -134,7 +134,6 @@ struct CPURISCVState {
     target_ulong guest_phys_fault_addr;
 
     target_ulong priv_ver;
-    target_ulong bext_ver;
     target_ulong vext_ver;
     target_ulong misa;
     target_ulong misa_mask;
@@ -297,6 +296,8 @@ struct RISCVCPU {
         bool ext_zbb;
         bool ext_zbc;
         bool ext_zbs;
+        bool ext_zbkb;
+        bool ext_zbkx;
         bool ext_k;
         bool ext_counters;
         bool ext_ifencei;
