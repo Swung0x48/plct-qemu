@@ -262,6 +262,13 @@ uint64_t helper_fcvt_s_w(CPURISCVState *env, target_ulong rs1)
     return nanbox_s(int32_to_float32((int32_t)rs1, &env->fp_status));
 }
 
+#ifdef TARGET_RISCV32
+uint64_t helper_write_i32(CPURISCVState *env, uint32_t old, uint64_t new)
+{
+    return ((uint64_t)old << 32) | (new & 0xFFFFFFFF);
+}
+#endif
+
 uint64_t helper_fcvt_s_wu(CPURISCVState *env, target_ulong rs1)
 {
     return nanbox_s(uint32_to_float32((uint32_t)rs1, &env->fp_status));

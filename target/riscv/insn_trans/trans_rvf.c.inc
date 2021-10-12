@@ -29,8 +29,11 @@ static bool trans_flw(DisasContext *ctx, arg_flw *a)
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
 
-    REQUIRE_SYNC_1(ctx, a->rs1);
 
+    if (ctx->ext_zfinx) {
+        return false;
+    }
+    
     TCGv t0 = tcg_temp_new();
     gen_get_gpr(t0, a->rs1);
     tcg_gen_addi_tl(t0, t0, a->imm);
@@ -47,7 +50,10 @@ static bool trans_fsw(DisasContext *ctx, arg_fsw *a)
 {
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
-    REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
+
+    if (ctx->ext_zfinx) {
+        return false;
+    }
 
     TCGv t0 = tcg_temp_new();
     gen_get_gpr(t0, a->rs1);
@@ -67,9 +73,47 @@ static bool trans_fmadd_s(DisasContext *ctx, arg_fmadd_s *a)
 
     REQUIRE_SYNC_3(ctx, a->rs1, a->rs2, a->rs3);
 
+#ifdef TARGET_RISCV32
+    TCGv_i32 old = tcg_temp_new();
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
+#endif
+
     gen_set_rm(ctx, a->rm);
-    gen_helper_fmadd_s(cpu_fpr[a->rd], cpu_env, cpu_fpr[a->rs1],
+    if (ctx->ext_zfinx) {
+        TCGv_i64 rd = tcg_temp_new_i64();
+        TCGv_i64 rs1 = tcg_temp_new_i64();
+        TCGv_i64 rs2 = tcg_temp_new_i64();
+        TCGv_i64 rs3 = tcg_temp_new_i64();
+        gen_get_fpr(rs1, a->rs1);
+        gen_get_fpr(rs2, a->rs2);
+        gen_get_fpr(rs3, a->rs3);
+        gen_helper_fmadd_s(rd, cpu_env, rs1, rs2, rs3);
+        gen_set_fpr(a->rd, rd);
+        tcg_temp_free_i64(rd);
+        tcg_temp_free_i64(rs1);
+        tcg_temp_free_i64(rs2);
+        tcg_temp_free_i64(rs3);
+    } else {
+        gen_helper_fmadd_s(cpu_fpr[a->rd], cpu_env, cpu_fpr[a->rs1],
                        cpu_fpr[a->rs2], cpu_fpr[a->rs3]);
+    }
+#ifdef TARGET_RISCV32
+    if (ctx->ext_zfinx) {
+        if (a->rd != 31) {
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
+        }
+    }
+    tcg_temp_free(old);
+#endif
+
     mark_fs_dirty(ctx);
     return true;
 }
@@ -81,9 +125,47 @@ static bool trans_fmsub_s(DisasContext *ctx, arg_fmsub_s *a)
 
     REQUIRE_SYNC_3(ctx, a->rs1, a->rs2, a->rs3);
 
+#ifdef TARGET_RISCV32
+    TCGv_i32 old = tcg_temp_new();
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
+#endif
+
     gen_set_rm(ctx, a->rm);
+    if (ctx->ext_zfinx) {
+        TCGv_i64 rd = tcg_temp_new_i64();
+        TCGv_i64 rs1 = tcg_temp_new_i64();
+        TCGv_i64 rs2 = tcg_temp_new_i64();
+        TCGv_i64 rs3 = tcg_temp_new_i64();
+        gen_get_fpr(rs1, a->rs1);
+        gen_get_fpr(rs2, a->rs2);
+        gen_get_fpr(rs3, a->rs3);
+        gen_helper_fmsub_s(rd, cpu_env, rs1, rs2, rs3);
+        gen_set_fpr(a->rd, rd);
+        tcg_temp_free_i64(rd);
+        tcg_temp_free_i64(rs1);
+        tcg_temp_free_i64(rs2);
+        tcg_temp_free_i64(rs3);
+    } else {
     gen_helper_fmsub_s(cpu_fpr[a->rd], cpu_env, cpu_fpr[a->rs1],
                        cpu_fpr[a->rs2], cpu_fpr[a->rs3]);
+    }
+#ifdef TARGET_RISCV32
+    if (ctx->ext_zfinx) {
+        if (a->rd != 31) {
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
+        }
+    }
+    tcg_temp_free(old);
+#endif
+
     mark_fs_dirty(ctx);
     return true;
 }
@@ -94,9 +176,47 @@ static bool trans_fnmsub_s(DisasContext *ctx, arg_fnmsub_s *a)
     REQUIRE_EXT(ctx, RVF);
 
     REQUIRE_SYNC_3(ctx, a->rs1, a->rs2, a->rs3);
+#ifdef TARGET_RISCV32
+    TCGv_i32 old = tcg_temp_new();
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
+#endif
+
     gen_set_rm(ctx, a->rm);
+    if (ctx->ext_zfinx) {
+        TCGv_i64 rd = tcg_temp_new_i64();
+        TCGv_i64 rs1 = tcg_temp_new_i64();
+        TCGv_i64 rs2 = tcg_temp_new_i64();
+        TCGv_i64 rs3 = tcg_temp_new_i64();
+        gen_get_fpr(rs1, a->rs1);
+        gen_get_fpr(rs2, a->rs2);
+        gen_get_fpr(rs3, a->rs3);
+        gen_helper_fnmsub_s(rd, cpu_env, rs1, rs2, rs3);
+        gen_set_fpr(a->rd, rd);
+        tcg_temp_free_i64(rd);
+        tcg_temp_free_i64(rs1);
+        tcg_temp_free_i64(rs2);
+        tcg_temp_free_i64(rs3);
+    } else {
     gen_helper_fnmsub_s(cpu_fpr[a->rd], cpu_env, cpu_fpr[a->rs1],
-                        cpu_fpr[a->rs2], cpu_fpr[a->rs3]);
+                       cpu_fpr[a->rs2], cpu_fpr[a->rs3]);
+    }
+#ifdef TARGET_RISCV32
+    if (ctx->ext_zfinx) {
+        if (a->rd != 31) {
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
+        }
+    }
+    tcg_temp_free(old);
+#endif
+
     mark_fs_dirty(ctx);
     return true;
 }
@@ -109,8 +229,46 @@ static bool trans_fnmadd_s(DisasContext *ctx, arg_fnmadd_s *a)
 
     REQUIRE_SYNC_3(ctx, a->rs1, a->rs2, a->rs3);
 
+#ifdef TARGET_RISCV32
+    TCGv_i32 old = tcg_temp_new();
+    if (a->rd != 31) { 
+        gen_get_gpr(old, a->rd + 1);
+    }
+#endif
+
+    if (ctx->ext_zfinx) {
+        TCGv_i64 rd = tcg_temp_new_i64();
+        TCGv_i64 rs1 = tcg_temp_new_i64();
+        TCGv_i64 rs2 = tcg_temp_new_i64();
+        TCGv_i64 rs3 = tcg_temp_new_i64();
+        gen_get_fpr(rs1, a->rs1);
+        gen_get_fpr(rs2, a->rs2);
+        gen_get_fpr(rs3, a->rs3);
+        gen_helper_fnmadd_s(rd, cpu_env, rs1, rs2, rs3);
+        gen_set_fpr(a->rd, rd);
+        tcg_temp_free_i64(rd);
+        tcg_temp_free_i64(rs1);
+        tcg_temp_free_i64(rs2);
+        tcg_temp_free_i64(rs3);
+    } else {
     gen_helper_fnmadd_s(cpu_fpr[a->rd], cpu_env, cpu_fpr[a->rs1],
-                        cpu_fpr[a->rs2], cpu_fpr[a->rs3]);
+                       cpu_fpr[a->rs2], cpu_fpr[a->rs3]);
+    }
+#ifdef TARGET_RISCV32
+    if (ctx->ext_zfinx) {
+        if (a->rd != 31) {
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
+        }
+    }
+    tcg_temp_free(old);
+#endif
+
     mark_fs_dirty(ctx);
     return true;
 }
@@ -122,9 +280,44 @@ static bool trans_fadd_s(DisasContext *ctx, arg_fadd_s *a)
 
     REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
 
+#ifdef TARGET_RISCV32
+    TCGv_i32 old = tcg_temp_new();
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
+#endif
+
     gen_set_rm(ctx, a->rm);
-    gen_helper_fadd_s(cpu_fpr[a->rd], cpu_env,
-                      cpu_fpr[a->rs1], cpu_fpr[a->rs2]);
+    if (ctx->ext_zfinx) {
+        TCGv_i64 rd = tcg_temp_new_i64();
+        TCGv_i64 rs1 = tcg_temp_new_i64();
+        TCGv_i64 rs2 = tcg_temp_new_i64();
+        gen_get_fpr(rs1, a->rs1);
+        gen_get_fpr(rs2, a->rs2);
+        gen_helper_fadd_s(rd, cpu_env, rs1, rs2);
+        gen_set_fpr(a->rd, rd);
+        tcg_temp_free_i64(rd);
+        tcg_temp_free_i64(rs1);
+        tcg_temp_free_i64(rs2);
+    } else {
+    gen_helper_fadd_s(cpu_fpr[a->rd], cpu_env, cpu_fpr[a->rs1],
+                       cpu_fpr[a->rs2]);
+    }
+#ifdef TARGET_RISCV32
+    if (ctx->ext_zfinx) {
+        if (a->rd != 31) {
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
+        }
+    }
+    tcg_temp_free(old);
+#endif
+
     mark_fs_dirty(ctx);
     return true;
 }
@@ -136,9 +329,44 @@ static bool trans_fsub_s(DisasContext *ctx, arg_fsub_s *a)
 
     REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
 
+#ifdef TARGET_RISCV32
+    TCGv_i32 old = tcg_temp_new();
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
+#endif
+
     gen_set_rm(ctx, a->rm);
-    gen_helper_fsub_s(cpu_fpr[a->rd], cpu_env,
-                      cpu_fpr[a->rs1], cpu_fpr[a->rs2]);
+    if (ctx->ext_zfinx) {
+        TCGv_i64 rd = tcg_temp_new_i64();
+        TCGv_i64 rs1 = tcg_temp_new_i64();
+        TCGv_i64 rs2 = tcg_temp_new_i64();
+        gen_get_fpr(rs1, a->rs1);
+        gen_get_fpr(rs2, a->rs2);
+        gen_helper_fsub_s(rd, cpu_env, rs1, rs2);
+        gen_set_fpr(a->rd, rd);
+        tcg_temp_free_i64(rd);
+        tcg_temp_free_i64(rs1);
+        tcg_temp_free_i64(rs2);
+    } else {
+        gen_helper_fsub_s(cpu_fpr[a->rd], cpu_env, cpu_fpr[a->rs1],
+                       cpu_fpr[a->rs2]);
+    }
+#ifdef TARGET_RISCV32
+    if (ctx->ext_zfinx) {
+        if (a->rd != 31) {
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
+        }
+    }
+    tcg_temp_free(old);
+#endif
+
     mark_fs_dirty(ctx);
     return true;
 }
@@ -149,10 +377,45 @@ static bool trans_fmul_s(DisasContext *ctx, arg_fmul_s *a)
     REQUIRE_EXT(ctx, RVF);
 
     REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
+#ifdef TARGET_RISCV32
+    TCGv_i32 old = tcg_temp_new();
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
+#endif
+
 
     gen_set_rm(ctx, a->rm);
-    gen_helper_fmul_s(cpu_fpr[a->rd], cpu_env,
-                      cpu_fpr[a->rs1], cpu_fpr[a->rs2]);
+    if (ctx->ext_zfinx) {
+        TCGv_i64 rd = tcg_temp_new_i64();
+        TCGv_i64 rs1 = tcg_temp_new_i64();
+        TCGv_i64 rs2 = tcg_temp_new_i64();
+        gen_get_fpr(rs1, a->rs1);
+        gen_get_fpr(rs2, a->rs2);
+        gen_helper_fmul_s(rd, cpu_env, rs1, rs2);
+        gen_set_fpr(a->rd, rd);
+        tcg_temp_free_i64(rd);
+        tcg_temp_free_i64(rs1);
+        tcg_temp_free_i64(rs2);
+    } else {
+        gen_helper_fmul_s(cpu_fpr[a->rd], cpu_env, cpu_fpr[a->rs1],
+                       cpu_fpr[a->rs2]);
+    }
+#ifdef TARGET_RISCV32
+    if (ctx->ext_zfinx) {
+        if (a->rd != 31) {
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
+        }
+    }
+    tcg_temp_free(old);
+#endif
+
     mark_fs_dirty(ctx);
     return true;
 }
@@ -163,10 +426,45 @@ static bool trans_fdiv_s(DisasContext *ctx, arg_fdiv_s *a)
     REQUIRE_EXT(ctx, RVF);
 
     REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
+#ifdef TARGET_RISCV32
+    TCGv_i32 old = tcg_temp_new();
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
+#endif
+
 
     gen_set_rm(ctx, a->rm);
-    gen_helper_fdiv_s(cpu_fpr[a->rd], cpu_env,
-                      cpu_fpr[a->rs1], cpu_fpr[a->rs2]);
+    if (ctx->ext_zfinx) {
+        TCGv_i64 rd = tcg_temp_new_i64();
+        TCGv_i64 rs1 = tcg_temp_new_i64();
+        TCGv_i64 rs2 = tcg_temp_new_i64();
+        gen_get_fpr(rs1, a->rs1);
+        gen_get_fpr(rs2, a->rs2);
+        gen_helper_fdiv_s(rd, cpu_env, rs1, rs2);
+        gen_set_fpr(a->rd, rd);
+        tcg_temp_free_i64(rd);
+        tcg_temp_free_i64(rs1);
+        tcg_temp_free_i64(rs2);
+    } else {
+        gen_helper_fdiv_s(cpu_fpr[a->rd], cpu_env, cpu_fpr[a->rs1],
+                       cpu_fpr[a->rs2]);
+    }
+#ifdef TARGET_RISCV32
+    if (ctx->ext_zfinx) {
+        if (a->rd != 31) {
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
+        }
+    }
+    tcg_temp_free(old);
+#endif
+
     mark_fs_dirty(ctx);
     return true;
 }
@@ -178,8 +476,40 @@ static bool trans_fsqrt_s(DisasContext *ctx, arg_fsqrt_s *a)
 
     REQUIRE_SYNC_1(ctx, a->rs1);
 
+#ifdef TARGET_RISCV32
+    TCGv_i32 old = tcg_temp_new();
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
+#endif
+
     gen_set_rm(ctx, a->rm);
-    gen_helper_fsqrt_s(cpu_fpr[a->rd], cpu_env, cpu_fpr[a->rs1]);
+    if (ctx->ext_zfinx) {
+        TCGv_i64 rd = tcg_temp_new_i64();
+        TCGv_i64 rs1 = tcg_temp_new_i64();
+        gen_get_fpr(rs1, a->rs1);
+        gen_helper_fsqrt_s(rd, cpu_env, rs1);
+        gen_set_fpr(a->rd, rd);
+        tcg_temp_free_i64(rd);
+        tcg_temp_free_i64(rs1);
+    } else {
+        gen_helper_fsqrt_s(cpu_fpr[a->rd], cpu_env, cpu_fpr[a->rs1]);
+    }
+#ifdef TARGET_RISCV32
+    if (ctx->ext_zfinx) {
+        if (a->rd != 31) {
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
+        }
+    }
+    tcg_temp_free(old);
+#endif
+
     mark_fs_dirty(ctx);
     return true;
 }
@@ -191,9 +521,22 @@ static bool trans_fsgnj_s(DisasContext *ctx, arg_fsgnj_s *a)
 
     REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
 
+#ifdef TARGET_RISCV32
+    TCGv_i32 old = tcg_temp_new();
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
+#endif
+
     if (a->rs1 == a->rs2) { /* FMOV */
         if (ctx->ext_zfinx) {
-            gen_nanbox_s(cpu_fpr[a->rd], cpu_fpr[a->rs1]);
+            TCGv_i64 rd = tcg_temp_new_i64();
+            TCGv_i64 rs1 = tcg_temp_new_i64();
+            gen_get_fpr(rs1, a->rs1);
+            gen_nanbox_s(rd, rs1);
+            gen_set_fpr(a->rd, rd);
+            tcg_temp_free_i64(rd);
+            tcg_temp_free_i64(rs1);
         } else {
             gen_check_nanbox_s(cpu_fpr[a->rd], cpu_fpr[a->rs1]);
         }
@@ -202,18 +545,46 @@ static bool trans_fsgnj_s(DisasContext *ctx, arg_fsgnj_s *a)
         TCGv_i64 rs2 = tcg_temp_new_i64();
 
         if (ctx->ext_zfinx) {
-            gen_nanbox_s(rs1, cpu_fpr[a->rs1]);
-            gen_nanbox_s(rs2, cpu_fpr[a->rs2]);
+            TCGv_i64 read_rs1 = tcg_temp_new_i64();
+            TCGv_i64 read_rs2 = tcg_temp_new_i64();
+            gen_get_fpr(read_rs1, a->rs1);
+            gen_get_fpr(read_rs2, a->rs2);
+            gen_nanbox_s(rs1, read_rs1);
+            gen_nanbox_s(rs2, read_rs2);
+            tcg_temp_free_i64(read_rs1);
+            tcg_temp_free_i64(read_rs2);
         } else {
             gen_check_nanbox_s(rs1, cpu_fpr[a->rs1]);
             gen_check_nanbox_s(rs2, cpu_fpr[a->rs2]);
         }
 
         /* This formulation retains the nanboxing of rs2. */
-        tcg_gen_deposit_i64(cpu_fpr[a->rd], rs2, rs1, 0, 31);
+        if (ctx->ext_zfinx) {
+            TCGv_i64 rd = tcg_temp_new_i64();
+            tcg_gen_deposit_i64(rd, rs2, rs1, 0, 31);
+            gen_set_fpr(a->rd, rd);
+            tcg_temp_free_i64(rd);
+        } else {
+            tcg_gen_deposit_i64(cpu_fpr[a->rd], rs2, rs1, 0, 31);
+        }
         tcg_temp_free_i64(rs1);
         tcg_temp_free_i64(rs2);
     }
+#ifdef TARGET_RISCV32
+    if (ctx->ext_zfinx) {
+        if (a->rd != 31) {
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
+        }
+    }
+    tcg_temp_free(old);
+#endif
+
     mark_fs_dirty(ctx);
     return true;
 }
@@ -226,19 +597,47 @@ static bool trans_fsgnjn_s(DisasContext *ctx, arg_fsgnjn_s *a)
     REQUIRE_EXT(ctx, RVF);
 
     REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
+#ifdef TARGET_RISCV32
+    TCGv_i32 old = tcg_temp_new();
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
+#endif
+
 
     rs1 = tcg_temp_new_i64();
     if (ctx->ext_zfinx) {
-        gen_nanbox_s(rs1, cpu_fpr[a->rs1]);
+        TCGv_i64 read_rs1 = tcg_temp_new_i64();
+        gen_get_fpr(read_rs1, a->rs1);
+        gen_nanbox_s(rs1, read_rs1);
+        tcg_temp_free_i64(read_rs1);
     } else {
         gen_check_nanbox_s(rs1, cpu_fpr[a->rs1]);
     }
     if (a->rs1 == a->rs2) { /* FNEG */
+#if defined(TARGET_RISCV64)
+    if (ctx->ext_zfinx) {
+        TCGv_i64 rd = tcg_temp_new_i64();
+        tcg_gen_xori_i64(rd, rs1, MAKE_64BIT_MASK(31, 1));
+        gen_set_fpr(a->rd, rd);
+        tcg_temp_free_i64(rd);
+    } else {
         tcg_gen_xori_i64(cpu_fpr[a->rd], rs1, MAKE_64BIT_MASK(31, 1));
+    }
+#else
+        if (ctx->ext_zfinx) {
+             tcg_gen_xori_i32(cpu_gpr[a->rd], cpu_gpr[a->rs1], 1 << 31);
+         } else {
+            tcg_gen_xori_i64(cpu_fpr[a->rd], rs1, MAKE_64BIT_MASK(31, 1));
+        }
+#endif
     } else {
         rs2 = tcg_temp_new_i64();
         if (ctx->ext_zfinx) {
-            gen_nanbox_s(rs2, cpu_fpr[a->rs2]);
+            TCGv_i64 read_rs2 = tcg_temp_new_i64();
+            gen_get_fpr(read_rs2, a->rs2);
+            gen_nanbox_s(rs2, read_rs2);
+            tcg_temp_free_i64(read_rs2);
         } else {
             gen_check_nanbox_s(rs2, cpu_fpr[a->rs2]);
         }
@@ -250,12 +649,35 @@ static bool trans_fsgnjn_s(DisasContext *ctx, arg_fsgnjn_s *a)
         mask = tcg_const_i64(~MAKE_64BIT_MASK(31, 1));
         tcg_gen_nor_i64(rs2, rs2, mask);
         tcg_gen_and_i64(rs1, mask, rs1);
-        tcg_gen_or_i64(cpu_fpr[a->rd], rs1, rs2);
+
+        if (ctx->ext_zfinx) {
+            TCGv_i64 rd = tcg_temp_new_i64();
+            tcg_gen_or_i64(rd, rs1, rs2);
+            gen_set_fpr(a->rd, rd);
+            tcg_temp_free_i64(rd);
+        } else {
+            tcg_gen_or_i64(cpu_fpr[a->rd], rs1, rs2);
+        }
 
         tcg_temp_free_i64(mask);
         tcg_temp_free_i64(rs2);
     }
     tcg_temp_free_i64(rs1);
+
+#ifdef TARGET_RISCV32
+    if (ctx->ext_zfinx) {
+        if (a->rd != 31) {
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
+        }
+    }
+    tcg_temp_free(old);
+#endif
 
     mark_fs_dirty(ctx);
     return true;
@@ -270,19 +692,39 @@ static bool trans_fsgnjx_s(DisasContext *ctx, arg_fsgnjx_s *a)
 
     REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
 
+#ifdef TARGET_RISCV32
+    TCGv_i32 old = tcg_temp_new();
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
+#endif
+
     rs1 = tcg_temp_new_i64();
     if (ctx->ext_zfinx) {
-        gen_nanbox_s(rs1, cpu_fpr[a->rs1]);
+        TCGv_i64 read_rs1 = tcg_temp_new_i64();
+        gen_get_fpr(read_rs1, a->rs1);
+        gen_nanbox_s(rs1, read_rs1);
+        tcg_temp_free_i64(read_rs1);
     } else {
         gen_check_nanbox_s(rs1, cpu_fpr[a->rs1]);
     }
 
     if (a->rs1 == a->rs2) { /* FABS */
+    if (ctx->ext_zfinx) {
+        TCGv_i64 rd = tcg_temp_new_i64();
+        tcg_gen_andi_i64(rd, rs1, ~MAKE_64BIT_MASK(31, 1));
+        gen_set_fpr(a->rd, rd);
+        tcg_temp_free_i64(rd);
+    } else {
         tcg_gen_andi_i64(cpu_fpr[a->rd], rs1, ~MAKE_64BIT_MASK(31, 1));
+    }
     } else {
         rs2 = tcg_temp_new_i64();
         if (ctx->ext_zfinx) {
+            TCGv_i64 read_rs2 = tcg_temp_new_i64();
+            gen_get_fpr(read_rs2, a->rs2);
             gen_nanbox_s(rs2, cpu_fpr[a->rs2]);
+            tcg_temp_free_i64(read_rs2);
         } else {
             gen_check_nanbox_s(rs2, cpu_fpr[a->rs2]);
         }
@@ -292,11 +734,32 @@ static bool trans_fsgnjx_s(DisasContext *ctx, arg_fsgnjx_s *a)
          * This formulation retains the nanboxing of rs1.
          */
         tcg_gen_andi_i64(rs2, rs2, MAKE_64BIT_MASK(31, 1));
-        tcg_gen_xor_i64(cpu_fpr[a->rd], rs1, rs2);
-
+        if (ctx->ext_zfinx) {
+        TCGv_i64 rd = tcg_temp_new_i64();
+        tcg_gen_xor_i64(rd, rs1, rs2);
+        gen_set_fpr(a->rd, rd);
+        tcg_temp_free_i64(rd);
+        } else {
+            tcg_gen_xor_i64(cpu_fpr[a->rd], rs1, rs2);
+        }
         tcg_temp_free_i64(rs2);
     }
     tcg_temp_free_i64(rs1);
+#ifdef TARGET_RISCV32
+    if (ctx->ext_zfinx) {
+        if (a->rd != 31) {
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
+        }
+    }
+    tcg_temp_free(old);
+#endif
+
 
     mark_fs_dirty(ctx);
     return true;
@@ -308,9 +771,44 @@ static bool trans_fmin_s(DisasContext *ctx, arg_fmin_s *a)
     REQUIRE_EXT(ctx, RVF);
 
     REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
+#ifdef TARGET_RISCV32
+    TCGv_i32 old = tcg_temp_new();
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
+#endif
 
-    gen_helper_fmin_s(cpu_fpr[a->rd], cpu_env, cpu_fpr[a->rs1],
+    if (ctx->ext_zfinx) {
+    TCGv_i64 rd = tcg_temp_new_i64();
+    TCGv_i64 rs1 = tcg_temp_new_i64();
+    TCGv_i64 rs2 = tcg_temp_new_i64();
+    gen_get_fpr(rs1, a->rs1);
+    gen_get_fpr(rs2, a->rs2);
+    gen_helper_fmin_s(rd, cpu_env, rs1,
+                      rs2);
+    gen_set_fpr(a->rd, rd);
+    tcg_temp_free_i64(rd);
+    tcg_temp_free_i64(rs1);
+    tcg_temp_free_i64(rs2);
+    } else {
+        gen_helper_fmin_s(cpu_fpr[a->rd], cpu_env, cpu_fpr[a->rs1],
                       cpu_fpr[a->rs2]);
+    }
+#ifdef TARGET_RISCV32
+    if (ctx->ext_zfinx) {
+        if (a->rd != 31) {
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
+        }
+    }
+    tcg_temp_free(old);
+#endif
+
     mark_fs_dirty(ctx);
     return true;
 }
@@ -321,9 +819,41 @@ static bool trans_fmax_s(DisasContext *ctx, arg_fmax_s *a)
     REQUIRE_EXT(ctx, RVF);
 
     REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
+#ifdef TARGET_RISCV32
+    TCGv_i32 old = tcg_temp_new();
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
+#endif
 
-    gen_helper_fmax_s(cpu_fpr[a->rd], cpu_env, cpu_fpr[a->rs1],
+    if (ctx->ext_zfinx) {
+    TCGv_i64 rd = tcg_temp_new_i64();
+    TCGv_i64 rs1 = tcg_temp_new_i64();
+    TCGv_i64 rs2 = tcg_temp_new_i64();
+    gen_get_fpr(rs1, a->rs1);
+    gen_get_fpr(rs2, a->rs2);
+    gen_helper_fmax_s(rd, cpu_env, rs1, rs2);
+    gen_set_fpr(a->rd, rd);
+    tcg_temp_free_i64(rs1);
+    tcg_temp_free_i64(rs2);
+    } else {
+        gen_helper_fmax_s(cpu_fpr[a->rd], cpu_env, cpu_fpr[a->rs1],
                       cpu_fpr[a->rs2]);
+    }
+#ifdef TARGET_RISCV32
+    if (ctx->ext_zfinx) {
+        if (a->rd != 31) {
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
+        }
+    }
+    tcg_temp_free(old);
+#endif
     mark_fs_dirty(ctx);
     return true;
 }
@@ -332,11 +862,18 @@ static bool trans_fcvt_w_s(DisasContext *ctx, arg_fcvt_w_s *a)
 {
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
-    REQUIRE_SYNC_2(ctx, a->rd, a->rs1);
+    REQUIRE_SYNC_1(ctx, a->rs1);
 
     TCGv t0 = tcg_temp_new();
     gen_set_rm(ctx, a->rm);
-    gen_helper_fcvt_w_s(t0, cpu_env, cpu_fpr[a->rs1]);
+    if (ctx->ext_zfinx) {
+    TCGv_i64 rs1 = tcg_temp_new_i64();
+    gen_get_fpr(rs1, a->rs1);
+    gen_helper_fcvt_w_s(t0, cpu_env, rs1);
+    tcg_temp_free_i64(rs1);
+    } else {
+        gen_helper_fcvt_w_s(t0, cpu_env, cpu_fpr[a->rs1]);
+    }
     gen_set_gpr(a->rd, t0);
     tcg_temp_free(t0);
 
@@ -347,11 +884,18 @@ static bool trans_fcvt_wu_s(DisasContext *ctx, arg_fcvt_wu_s *a)
 {
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
-    REQUIRE_SYNC_2(ctx, a->rd, a->rs1);
+    REQUIRE_SYNC_1(ctx, a->rs1);
 
     TCGv t0 = tcg_temp_new();
     gen_set_rm(ctx, a->rm);
-    gen_helper_fcvt_wu_s(t0, cpu_env, cpu_fpr[a->rs1]);
+    if (ctx->ext_zfinx) {
+    TCGv_i64 rs1 = tcg_temp_new_i64();
+    gen_get_fpr(rs1, a->rs1);
+    gen_helper_fcvt_wu_s(t0, cpu_env, rs1);
+    tcg_temp_free_i64(rs1);
+    } else {
+        gen_helper_fcvt_wu_s(t0, cpu_env, cpu_fpr[a->rs1]);
+    }
     gen_set_gpr(a->rd, t0);
     tcg_temp_free(t0);
 
@@ -363,7 +907,10 @@ static bool trans_fmv_x_w(DisasContext *ctx, arg_fmv_x_w *a)
     /* NOTE: This was FMV.X.S in an earlier version of the ISA spec! */
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
-    REQUIRE_SYNC_2(ctx, a->rd, a->rs1);
+
+    if (ctx->ext_zfinx) {
+        return false;
+    }
 
     TCGv t0 = tcg_temp_new();
 
@@ -383,9 +930,19 @@ static bool trans_feq_s(DisasContext *ctx, arg_feq_s *a)
 {
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
-    REQUIRE_SYNC_3(ctx, a->rd, a->rs1, a->rs2);
+    REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
     TCGv t0 = tcg_temp_new();
-    gen_helper_feq_s(t0, cpu_env, cpu_fpr[a->rs1], cpu_fpr[a->rs2]);
+    if (ctx->ext_zfinx) {
+    TCGv_i64 rs1 = tcg_temp_new_i64();
+    TCGv_i64 rs2 = tcg_temp_new_i64();
+    gen_get_fpr(rs1, a->rs1);
+    gen_get_fpr(rs2, a->rs2);
+    gen_helper_feq_s(t0, cpu_env, rs1, rs2);
+    tcg_temp_free_i64(rs1);
+    tcg_temp_free_i64(rs2);
+    } else {
+        gen_helper_feq_s(t0, cpu_env, cpu_fpr[a->rs1], cpu_fpr[a->rs2]);
+    }
     gen_set_gpr(a->rd, t0);
     tcg_temp_free(t0);
     return true;
@@ -395,9 +952,19 @@ static bool trans_flt_s(DisasContext *ctx, arg_flt_s *a)
 {
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
-    REQUIRE_SYNC_3(ctx, a->rd, a->rs1, a->rs2);
+    REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
     TCGv t0 = tcg_temp_new();
-    gen_helper_flt_s(t0, cpu_env, cpu_fpr[a->rs1], cpu_fpr[a->rs2]);
+    if (ctx->ext_zfinx) {
+    TCGv_i64 rs1 = tcg_temp_new_i64();
+    TCGv_i64 rs2 = tcg_temp_new_i64();
+    gen_get_fpr(rs1, a->rs1);
+    gen_get_fpr(rs2, a->rs2);
+    gen_helper_flt_s(t0, cpu_env, rs1, rs2);
+    tcg_temp_free_i64(rs1);
+    tcg_temp_free_i64(rs2);
+    } else {
+        gen_helper_flt_s(t0, cpu_env, cpu_fpr[a->rs1], cpu_fpr[a->rs2]);
+    }
     gen_set_gpr(a->rd, t0);
     tcg_temp_free(t0);
     return true;
@@ -407,9 +974,19 @@ static bool trans_fle_s(DisasContext *ctx, arg_fle_s *a)
 {
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
-    REQUIRE_SYNC_3(ctx, a->rd, a->rs1, a->rs2);
+    REQUIRE_SYNC_2(ctx, a->rs1, a->rs2);
     TCGv t0 = tcg_temp_new();
-    gen_helper_fle_s(t0, cpu_env, cpu_fpr[a->rs1], cpu_fpr[a->rs2]);
+    if (ctx->ext_zfinx) {
+    TCGv_i64 rs1 = tcg_temp_new_i64();
+    TCGv_i64 rs2 = tcg_temp_new_i64();
+    gen_get_fpr(rs1, a->rs1);
+    gen_get_fpr(rs2, a->rs2);
+    gen_helper_fle_s(t0, cpu_env, rs1, rs2);
+    tcg_temp_free_i64(rs1);
+    tcg_temp_free_i64(rs2);
+    } else {
+        gen_helper_fle_s(t0, cpu_env, cpu_fpr[a->rs1], cpu_fpr[a->rs2]);
+    }
     gen_set_gpr(a->rd, t0);
     tcg_temp_free(t0);
     return true;
@@ -419,11 +996,18 @@ static bool trans_fclass_s(DisasContext *ctx, arg_fclass_s *a)
 {
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
-    REQUIRE_SYNC_2(ctx, a->rd, a->rs1);
+    REQUIRE_SYNC_1(ctx, a->rs1);
 
     TCGv t0 = tcg_temp_new();
 
-    gen_helper_fclass_s(t0, cpu_fpr[a->rs1]);
+    if (ctx->ext_zfinx) {
+    TCGv_i64 rs1 = tcg_temp_new_i64();
+    gen_get_fpr(rs1, a->rs1);
+    gen_helper_fclass_s(t0, rs1);
+    tcg_temp_free_i64(rs1);
+    } else {
+        gen_helper_fclass_s(t0, cpu_fpr[a->rs1]);
+    }
 
     gen_set_gpr(a->rd, t0);
     tcg_temp_free(t0);
@@ -436,13 +1020,40 @@ static bool trans_fcvt_s_w(DisasContext *ctx, arg_fcvt_s_w *a)
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
 
-    REQUIRE_SYNC_1(ctx, a->rs1);
-
     TCGv t0 = tcg_temp_new();
     gen_get_gpr(t0, a->rs1);
 
+#ifdef TARGET_RISCV32
+    TCGv_i32 old = tcg_temp_new();
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
+#endif
+
     gen_set_rm(ctx, a->rm);
-    gen_helper_fcvt_s_w(cpu_fpr[a->rd], cpu_env, t0);
+    if (ctx->ext_zfinx) {
+    TCGv_i64 rd = tcg_temp_new_i64();
+    gen_helper_fcvt_s_w(rd, cpu_env, t0);
+    gen_set_fpr(a->rd, rd);
+    tcg_temp_free_i64(rd);
+    } else {
+        gen_helper_fcvt_s_w(cpu_fpr[a->rd], cpu_env, t0);
+    }
+
+#ifdef TARGET_RISCV32
+    if (ctx->ext_zfinx) {
+        if (a->rd != 31) {
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
+        }
+    }
+    tcg_temp_free(old);
+#endif
 
     mark_fs_dirty(ctx);
     tcg_temp_free(t0);
@@ -455,13 +1066,41 @@ static bool trans_fcvt_s_wu(DisasContext *ctx, arg_fcvt_s_wu *a)
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
 
-    REQUIRE_SYNC_1(ctx, a->rs1);
+#ifdef TARGET_RISCV32
+    TCGv_i32 old = tcg_temp_new();
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
+#endif
+
 
     TCGv t0 = tcg_temp_new();
     gen_get_gpr(t0, a->rs1);
 
     gen_set_rm(ctx, a->rm);
-    gen_helper_fcvt_s_wu(cpu_fpr[a->rd], cpu_env, t0);
+    if (ctx->ext_zfinx) {
+    TCGv_i64 rd = tcg_temp_new_i64();
+    gen_helper_fcvt_s_wu(rd, cpu_env, t0);
+    gen_set_fpr(a->rd, rd);
+    tcg_temp_free_i64(rd);
+    } else {
+        gen_helper_fcvt_s_wu(cpu_fpr[a->rd], cpu_env, t0);
+    }
+
+#ifdef TARGET_RISCV32
+    if (ctx->ext_zfinx) {
+        if (a->rd != 31) {
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
+        }
+    }
+    tcg_temp_free(old);
+#endif
 
     mark_fs_dirty(ctx);
     tcg_temp_free(t0);
@@ -475,7 +1114,10 @@ static bool trans_fmv_w_x(DisasContext *ctx, arg_fmv_w_x *a)
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
 
-    REQUIRE_SYNC_1(ctx, a->rs1);
+
+    if (ctx->ext_zfinx) {
+        return false;
+    }
 
     TCGv t0 = tcg_temp_new();
     gen_get_gpr(t0, a->rs1);
@@ -498,7 +1140,14 @@ static bool trans_fcvt_l_s(DisasContext *ctx, arg_fcvt_l_s *a)
 
     TCGv t0 = tcg_temp_new();
     gen_set_rm(ctx, a->rm);
-    gen_helper_fcvt_l_s(t0, cpu_env, cpu_fpr[a->rs1]);
+    if (ctx->ext_zfinx) {
+    TCGv_i64 rs1 = tcg_temp_new_i64();
+    gen_get_fpr(rs1, a->rs1);
+    gen_helper_fcvt_l_s(t0, cpu_env, rs1);
+    tcg_temp_free_i64(rs1);
+    } else {
+        gen_helper_fcvt_l_s(t0, cpu_env, cpu_fpr[a->rs1]);
+    }
     gen_set_gpr(a->rd, t0);
     tcg_temp_free(t0);
     return true;
@@ -513,7 +1162,14 @@ static bool trans_fcvt_lu_s(DisasContext *ctx, arg_fcvt_lu_s *a)
 
     TCGv t0 = tcg_temp_new();
     gen_set_rm(ctx, a->rm);
-    gen_helper_fcvt_lu_s(t0, cpu_env, cpu_fpr[a->rs1]);
+    if (ctx->ext_zfinx) {
+    TCGv_i64 rs1 = tcg_temp_new_i64();
+    gen_get_fpr(rs1, a->rs1);
+    gen_helper_fcvt_lu_s(t0, cpu_env, rs1);
+    tcg_temp_free_i64(rs1);
+    } else {
+        gen_helper_fcvt_lu_s(t0, cpu_env, cpu_fpr[a->rs1]);
+    }
     gen_set_gpr(a->rd, t0);
     tcg_temp_free(t0);
     return true;
@@ -525,13 +1181,41 @@ static bool trans_fcvt_s_l(DisasContext *ctx, arg_fcvt_s_l *a)
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
 
-    REQUIRE_SYNC_1(ctx, a->rs1);
+#ifdef TARGET_RISCV32
+    TCGv_i32 old = tcg_temp_new();
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
+#endif
+
 
     TCGv t0 = tcg_temp_new();
     gen_get_gpr(t0, a->rs1);
 
     gen_set_rm(ctx, a->rm);
-    gen_helper_fcvt_s_l(cpu_fpr[a->rd], cpu_env, t0);
+    if (ctx->ext_zfinx) {
+    TCGv_i64 rd = tcg_temp_new_i64();
+    gen_helper_fcvt_s_l(rd, cpu_env, t0);
+    gen_set_fpr(a->rd, rd);
+    tcg_temp_free_i64(rd);
+    } else {
+        gen_helper_fcvt_s_l(cpu_fpr[a->rd], cpu_env, t0);
+    }
+
+#ifdef TARGET_RISCV32
+    if (ctx->ext_zfinx) {
+        if (a->rd != 31) {
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
+        }
+    }
+    tcg_temp_free(old);
+#endif
 
     mark_fs_dirty(ctx);
     tcg_temp_free(t0);
@@ -544,13 +1228,41 @@ static bool trans_fcvt_s_lu(DisasContext *ctx, arg_fcvt_s_lu *a)
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
 
-    REQUIRE_SYNC_1(ctx, a->rs1);
+#ifdef TARGET_RISCV32
+    TCGv_i32 old = tcg_temp_new();
+    if (a->rd != 31) {
+        gen_get_gpr(old, a->rd + 1);
+    }
+#endif
+
 
     TCGv t0 = tcg_temp_new();
     gen_get_gpr(t0, a->rs1);
 
     gen_set_rm(ctx, a->rm);
-    gen_helper_fcvt_s_lu(cpu_fpr[a->rd], cpu_env, t0);
+    if (ctx->ext_zfinx) {
+    TCGv_i64 rd = tcg_temp_new_i64();
+    gen_helper_fcvt_s_lu(rd, cpu_env, t0);
+    gen_set_fpr(a->rd, rd);
+    tcg_temp_free_i64(rd);
+    } else {
+        gen_helper_fcvt_s_lu(cpu_fpr[a->rd], cpu_env, t0);
+    }
+
+#ifdef TARGET_RISCV32
+    if (ctx->ext_zfinx) {
+        if (a->rd != 31) {
+            TCGv_i64 read = tcg_temp_new_i64();
+            TCGv_i64 write = tcg_temp_new_i64();
+            gen_get_fpr(read, a->rd);
+            gen_helper_write_i32(write, cpu_env, old, read);
+            gen_set_fpr(a->rd, write);
+            tcg_temp_free_i64(read);
+            tcg_temp_free_i64(write);
+        }
+    }
+    tcg_temp_free(old);
+#endif
 
     mark_fs_dirty(ctx);
     tcg_temp_free(t0);

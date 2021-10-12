@@ -224,6 +224,23 @@ static inline void gen_set_gpr(int reg_num_dst, TCGv t)
     }
 }
 
+static inline void gen_get_fpr(TCGv_i64 t, int reg_num)
+{
+    if (reg_num == 0) {
+        tcg_gen_movi_i64(t, 0);
+    } else {
+        tcg_gen_mov_i64(t, cpu_fpr[reg_num]);
+    }
+}
+
+static inline void gen_set_fpr(int reg_num_dst, TCGv_i64 t)
+{
+    if (reg_num_dst != 0) {
+        tcg_gen_mov_i64(cpu_fpr[reg_num_dst], t);
+    }
+}
+
+
 static void gen_mulhsu(TCGv ret, TCGv arg1, TCGv arg2)
 {
     TCGv rl = tcg_temp_new();
@@ -405,6 +422,8 @@ static inline void mark_fs_dirty(DisasContext *ctx) {
         for (i = 1; i < 32; i++) {
             tcg_gen_sync_tl(cpu_gpr[i]);
             tcg_gen_discard_tl(cpu_gpr[i]);
+            tcg_gen_sync_i64(cpu_fpr[i]);
+            tcg_gen_discard_i64(cpu_fpr[i]);
         }
     }
 }
@@ -451,24 +470,36 @@ EX_SH(12)
     }                           \
 } while (0)
 
-#define REQUIRE_SYNC_1(ctx, reg_num) do {  \
-    if (ctx->ext_zfinx) {                  \
-        tcg_gen_sync_tl(cpu_gpr[reg_num]); \
-    }                                      \
+#define REQUIRE_SYNC_1(ctx, reg_num) do {      \
+    if (ctx->ext_zfinx) {                      \
+        if (reg_num > 0 && reg_num < 32) {     \
+            tcg_gen_sync_tl(cpu_gpr[reg_num]); \
+        }                                      \
+    }                                          \
 } while (0)
 
 #define REQUIRE_SYNC_2(ctx, reg_num_1, reg_num_2) do { \
     if (ctx->ext_zfinx) {                              \
-        tcg_gen_sync_tl(cpu_gpr[reg_num_1]);           \
-        tcg_gen_sync_tl(cpu_gpr[reg_num_2]);           \
+        if (reg_num_1 > 0 && reg_num_1 < 32) {         \
+            tcg_gen_sync_tl(cpu_gpr[reg_num_1]);       \
+        }                                              \
+        if (reg_num_2 > 0 && reg_num_2 < 32) {         \
+            tcg_gen_sync_tl(cpu_gpr[reg_num_2]);       \
+        }                                              \
     }                                                  \
 } while (0)
 
 #define REQUIRE_SYNC_3(ctx, reg_num_1, reg_num_2, reg_num_3) do { \
     if (ctx->ext_zfinx) {                                         \
-        tcg_gen_sync_tl(cpu_gpr[reg_num_1]);                      \
-        tcg_gen_sync_tl(cpu_gpr[reg_num_2]);                      \
-        tcg_gen_sync_tl(cpu_gpr[reg_num_3]);                      \
+        if (reg_num_1 > 0 && reg_num_1 < 32) {                    \
+            tcg_gen_sync_tl(cpu_gpr[reg_num_1]);                  \
+        }                                                         \
+        if (reg_num_2 > 0 && reg_num_2 < 32) {                    \
+            tcg_gen_sync_tl(cpu_gpr[reg_num_2]);                  \
+        }                                                         \
+        if (reg_num_3 > 0 && reg_num_3 < 32) {                    \
+            tcg_gen_sync_tl(cpu_gpr[reg_num_3]);                  \
+        }                                                         \
     }                                                             \
 } while (0)
 
