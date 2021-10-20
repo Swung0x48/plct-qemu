@@ -151,6 +151,7 @@ typedef struct DeviceOption {
     QTAILQ_ENTRY(DeviceOption) next;
 } DeviceOption;
 
+const char* signature_file = NULL;
 static const char *cpu_option;
 static const char *mem_path;
 static const char *incoming;
@@ -3649,6 +3650,14 @@ void qemu_init(int argc, char **argv, char **envp)
                     error_report("open %s: %s", optarg, strerror(errno));
                     exit(1);
                 }
+                break;
+            case QEMU_OPTION_dump_signature_data:
+                if (signature_file) {
+                    error_report("only one '-dump-signature-data' "
+                                 "option may be given");
+                    exit(1);
+                }
+                signature_file = optarg;
                 break;
             case QEMU_OPTION_enable_sync_profile:
                 qsp_enable();
