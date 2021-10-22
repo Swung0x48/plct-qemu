@@ -23,13 +23,12 @@
         return false;                       \
 } while (0)
 
-static bool gen_unary(DisasContext *ctx, arg_zcea_unary *a, void (*func)(TCGv, TCGv))
+static bool gen_zce_unary(DisasContext *ctx, arg_zcea_unary *a, void (*func)(TCGv, TCGv))
 {
-    TCGv source = tcg_temp_new();
-    gen_get_gpr(source, a->rs1_3);
+    TCGv source = get_gpr(ctx, a->rs1_3, EXT_NONE);
 
     (*func)(source, source);
-    gen_set_gpr(a->rs1_3, source);
+    gen_set_gpr(ctx, a->rs1_3, source);
     tcg_temp_free(source);
     return true;
 }
@@ -37,67 +36,57 @@ static bool gen_unary(DisasContext *ctx, arg_zcea_unary *a, void (*func)(TCGv, T
 static bool trans_c_zext_b(DisasContext *ctx, arg_c_zext_b *a)
 {
     REQUIRE_ZCE;
-    return gen_unary(ctx, a, tcg_gen_ext8u_tl);
+    return gen_zce_unary(ctx, a, tcg_gen_ext8u_tl);
 }
 
 static bool trans_c_zext_h(DisasContext *ctx, arg_c_zext_h *a)
 {
     REQUIRE_ZCE;
-    return gen_unary(ctx, a, tcg_gen_ext16u_tl);
+    return gen_zce_unary(ctx, a, tcg_gen_ext16u_tl);
 }
 
 static bool trans_c_sext_b(DisasContext *ctx, arg_c_sext_b *a)
 {
     REQUIRE_ZCE;
-    return gen_unary(ctx, a, tcg_gen_ext8s_tl);
+    return gen_zce_unary(ctx, a, tcg_gen_ext8s_tl);
 }
 
 static bool trans_c_sext_h(DisasContext *ctx, arg_c_sext_h *a)
 {
     REQUIRE_ZCE;
-    return gen_unary(ctx, a, tcg_gen_ext16s_tl);
+    return gen_zce_unary(ctx, a, tcg_gen_ext16s_tl);
 }
 
 static bool trans_c_not(DisasContext *ctx, arg_c_not *a)
 {
     REQUIRE_ZCE;
-    return gen_unary(ctx, a, tcg_gen_not_tl);
+    return gen_zce_unary(ctx, a, tcg_gen_not_tl);
 }
 
 static bool trans_c_neg(DisasContext *ctx, arg_c_neg *a)
 {
     REQUIRE_ZCE;
-    return gen_unary(ctx, a, tcg_gen_neg_tl);
+    return gen_zce_unary(ctx, a, tcg_gen_neg_tl);
 }
 
 static bool trans_c_mul(DisasContext *ctx, arg_c_mul *a)
 {
     REQUIRE_ZCE;
     REQUIRE_EXT(ctx, RVM);
-    TCGv source1, source2;
-    source1 = tcg_temp_new();
-    source2 = tcg_temp_new();
-    gen_get_gpr(source1, a->rs1_3);
-    gen_get_gpr(source2, a->rs2_3);
+    TCGv source1 = get_gpr(ctx, a->rs1_3, EXT_NONE);
+    TCGv source2 = get_gpr(ctx, a->rs2_3, EXT_NONE);
     tcg_gen_mul_tl(source1, source1, source2);
-    gen_set_gpr(a->rs1_3, source1);
-    tcg_temp_free(source1);
-    tcg_temp_free(source2);
+    gen_set_gpr(ctx, a->rs1_3, source1);
     return true;
 }
 
 static bool trans_c_mva01s07(DisasContext *ctx, arg_c_mva01s07 *a)
 {
     REQUIRE_ZCE;
-    TCGv source1, source2;
-    source1 = tcg_temp_new();
-    source2 = tcg_temp_new();
-    gen_get_gpr(source1, a->rs1_3);
-    gen_get_gpr(source2, a->rs2_3);
-    gen_set_gpr(xA0, source1);
-    gen_set_gpr(xA1, source2);
-    tcg_temp_free(source1);
-    tcg_temp_free(source2);
+    TCGv source1 = get_gpr(ctx, a->rs1_3, EXT_NONE);
+    TCGv source2 = get_gpr(ctx, a->rs2_3, EXT_NONE);
+    gen_set_gpr(ctx, xA0, source1);
+    gen_set_gpr(ctx, xA1, source2);
     return true;
 }
 
@@ -105,20 +94,17 @@ static bool trans_muli(DisasContext *ctx, arg_muli *a)
 {
     REQUIRE_ZCE;
     REQUIRE_EXT(ctx, RVM);
-    TCGv source1;
-    source1 = tcg_temp_new();
-    gen_get_gpr(source1, a->rs1);
-    tcg_gen_muli_tl(source1, source1, a->imm_i);
-    gen_set_gpr(a->rd, source1);
-    tcg_temp_free(source1);
+    TCGv dest = dest_gpr(ctx, a->rd);
+    TCGv source1 = get_gpr(ctx, a->rs1, EXT_NONE);
+    tcg_gen_muli_tl(dest, source1, a->imm_i);
+    gen_set_gpr(ctx, a->rd, dest);
     return true;
 }
 
 static bool gen_branch_zce(DisasContext *ctx, arg_zcea_b *a, TCGCond cond)
 {
     TCGLabel *l = gen_new_label();
-    TCGv source = tcg_temp_new();
-    gen_get_gpr(source, a->rs2);
+    TCGv source = get_gpr(ctx, a->rs2, EXT_NONE);
     TCGv uimm = tcg_const_tl(a->zce_uimm);
 
     tcg_gen_brcond_tl(cond, source, uimm, l);
@@ -136,7 +122,6 @@ static bool gen_branch_zce(DisasContext *ctx, arg_zcea_b *a, TCGCond cond)
     }
     ctx->base.is_jmp = DISAS_NORETURN;
 
-    tcg_temp_free(source);
     tcg_temp_free(uimm);
 
     return true;
@@ -155,8 +140,7 @@ static bool trans_bnei(DisasContext *ctx, arg_bnei *a)
 static bool trans_decbnez(DisasContext *ctx, arg_decbnez *a)
 {
     REQUIRE_ZCE;
-    TCGv source = tcg_temp_new();
-    gen_get_gpr(source, a->rd);
+    TCGv source = get_gpr(ctx, a->rd, EXT_NONE);
     TCGv scale = tcg_const_tl(1 << a->zce_scale);
     tcg_gen_sub_tl(source, source, scale);
 
@@ -178,7 +162,6 @@ static bool trans_decbnez(DisasContext *ctx, arg_decbnez *a)
     }
     ctx->base.is_jmp = DISAS_NORETURN;
 
-    tcg_temp_free(source);
     tcg_temp_free(scale);
 
     return true;
@@ -187,32 +170,28 @@ static bool trans_decbnez(DisasContext *ctx, arg_decbnez *a)
 static bool trans_lwgp(DisasContext *ctx, arg_lwgp *a)
 {
     REQUIRE_ZCE;
-    TCGv t0 = tcg_temp_new();
-    TCGv t1 = tcg_temp_new();
-    gen_get_gpr(t0, xGP);
+    TCGv t0 = get_gpr(ctx, xGP, EXT_NONE);
+    TCGv t1 = dest_gpr(ctx, a->rd);
+
     tcg_gen_addi_tl(t0, t0, a->zce_b_imm_lw);
 
     MemOp memop = MO_TESL; // 32s-bit
     tcg_gen_qemu_ld_tl(t1, t0, ctx->mem_idx, memop);
-    gen_set_gpr(a->rd, t1);
-    tcg_temp_free(t0);
-    tcg_temp_free(t1);
+    gen_set_gpr(ctx, a->rd, t1);
     return true;
 }
 
 static bool trans_swgp(DisasContext *ctx, arg_swgp *a)
 {
     REQUIRE_ZCE;
-    TCGv t0 = tcg_temp_new();
-    TCGv dat = tcg_temp_new();
-    gen_get_gpr(t0, xGP);
+    TCGv t0 = get_gpr(ctx, xGP, EXT_NONE);
+    TCGv dat = get_gpr(ctx, a->rs2, EXT_NONE);
+
     tcg_gen_addi_tl(t0, t0, a->zce_b_imm_sw);
-    gen_get_gpr(dat, a->rs2);
 
     MemOp memop = MO_TESL; // 32s-bit
     tcg_gen_qemu_st_tl(dat, t0, ctx->mem_idx, memop);
-    tcg_temp_free(t0);
-    tcg_temp_free(dat);
+
     return true;
 }
 
@@ -232,7 +211,7 @@ static bool trans_c_tblj_all(DisasContext *ctx, arg_c_tblj_all *a)
         tcg_gen_andi_tl(t0, cpu_pc, 0x2);
         tcg_gen_brcondi_tl(TCG_COND_NE, t0, 0x0, misaligned);
     }
-    lookup_and_goto_ptr(ctx);
+    tcg_gen_lookup_and_goto_ptr();
 
     if (misaligned) {
         gen_set_label(misaligned);
@@ -249,8 +228,7 @@ static bool trans_c_tblj_all(DisasContext *ctx, arg_c_tblj_all *a)
 static bool trans_c_decbnez(DisasContext *ctx, arg_c_decbnez *a)
 {
     REQUIRE_ZCE;
-    TCGv source = tcg_temp_new();
-    gen_get_gpr(source, a->rs1_3);
+    TCGv source = get_gpr(ctx, a->rs1_3, EXT_NONE);
     TCGv scale = tcg_const_tl(1 << a->zce_scale);
     tcg_gen_sub_tl(source, source, scale);
 
@@ -272,7 +250,6 @@ static bool trans_c_decbnez(DisasContext *ctx, arg_c_decbnez *a)
     }
     ctx->base.is_jmp = DISAS_NORETURN;
 
-    tcg_temp_free(source);
     tcg_temp_free(scale);
     return true;
 }
@@ -280,15 +257,14 @@ static bool trans_c_decbnez(DisasContext *ctx, arg_c_decbnez *a)
 static bool trans_c_lbu(DisasContext *ctx, arg_c_lbu *a)
 {
     REQUIRE_ZCE;
-    TCGv t0 = tcg_temp_new();
+    TCGv t0 = get_gpr(ctx, a->rs1_3, EXT_NONE);
+    TCGv dest = dest_gpr(ctx, a->rs2_3);
     TCGv t1 = tcg_temp_new();
-    gen_get_gpr(t0, a->rs1_3);
-    tcg_gen_addi_tl(t0, t0, a->zce_b_uimm);
 
+    tcg_gen_addi_tl(t1, t0, a->zce_b_uimm);
     MemOp memop = MO_UB; // 8u-bit
-    tcg_gen_qemu_ld_tl(t1, t0, ctx->mem_idx, memop);
-    gen_set_gpr(a->rs2_3, t1);
-    tcg_temp_free(t0);
+    tcg_gen_qemu_ld_tl(dest, t1, ctx->mem_idx, memop);
+    gen_set_gpr(ctx, a->rs2_3, dest);
     tcg_temp_free(t1);
     return true;
 }
@@ -296,15 +272,14 @@ static bool trans_c_lbu(DisasContext *ctx, arg_c_lbu *a)
 static bool trans_c_lhu(DisasContext *ctx, arg_c_lhu *a)
 {
     REQUIRE_ZCE;
-    TCGv t0 = tcg_temp_new();
+    TCGv t0 = get_gpr(ctx, a->rs1_3, EXT_NONE);
+    TCGv dest = dest_gpr(ctx, a->rs2_3);
     TCGv t1 = tcg_temp_new();
-    gen_get_gpr(t0, a->rs1_3);
-    tcg_gen_addi_tl(t0, t0, a->zce_h_uimm);
+    tcg_gen_addi_tl(t1, t0, a->zce_h_uimm);
 
     MemOp memop = MO_UW; // 16u-bit
-    tcg_gen_qemu_ld_tl(t1, t0, ctx->mem_idx, memop);
-    gen_set_gpr(a->rs2_3, t1);
-    tcg_temp_free(t0);
+    tcg_gen_qemu_ld_tl(dest, t1, ctx->mem_idx, memop);
+    gen_set_gpr(ctx, a->rs2_3, dest);
     tcg_temp_free(t1);
     return true;
 }
@@ -312,15 +287,14 @@ static bool trans_c_lhu(DisasContext *ctx, arg_c_lhu *a)
 static bool trans_c_lb(DisasContext *ctx, arg_c_lb *a)
 {
     REQUIRE_ZCE;
-    TCGv t0 = tcg_temp_new();
+    TCGv t0 = get_gpr(ctx, a->rs1_3, EXT_NONE);
+    TCGv dest = dest_gpr(ctx, a->rs2_3);
     TCGv t1 = tcg_temp_new();
-    gen_get_gpr(t0, a->rs1_3);
-    tcg_gen_addi_tl(t0, t0, a->zce_b_uimm);
+    tcg_gen_addi_tl(t1, t0, a->zce_b_uimm);
 
     MemOp memop = MO_SB; // 8s-bit
-    tcg_gen_qemu_ld_tl(t1, t0, ctx->mem_idx, memop);
-    gen_set_gpr(a->rs2_3, t1);
-    tcg_temp_free(t0);
+    tcg_gen_qemu_ld_tl(dest, t1, ctx->mem_idx, memop);
+    gen_set_gpr(ctx, a->rs2_3, dest);
     tcg_temp_free(t1);
     return true;
 }
@@ -328,15 +302,14 @@ static bool trans_c_lb(DisasContext *ctx, arg_c_lb *a)
 static bool trans_c_lh(DisasContext *ctx, arg_c_lh *a)
 {
     REQUIRE_ZCE;
-    TCGv t0 = tcg_temp_new();
+    TCGv t0 = get_gpr(ctx, a->rs1_3, EXT_NONE);
+    TCGv dest = dest_gpr(ctx, a->rs2_3);
     TCGv t1 = tcg_temp_new();
-    gen_get_gpr(t0, a->rs1_3);
-    tcg_gen_addi_tl(t0, t0, a->zce_h_uimm);
+    tcg_gen_addi_tl(t1, t0, a->zce_h_uimm);
 
     MemOp memop = MO_SW; // 16s-bit
-    tcg_gen_qemu_ld_tl(t1, t0, ctx->mem_idx, memop);
-    gen_set_gpr(a->rs2_3, t1);
-    tcg_temp_free(t0);
+    tcg_gen_qemu_ld_tl(dest, t1, ctx->mem_idx, memop);
+    gen_set_gpr(ctx, a->rs2_3, dest);
     tcg_temp_free(t1);
     return true;
 }
@@ -344,27 +317,23 @@ static bool trans_c_lh(DisasContext *ctx, arg_c_lh *a)
 static bool trans_c_sb(DisasContext *ctx, arg_c_sb *a)
 {
     REQUIRE_ZCE;
-    TCGv t0 = tcg_temp_new();
-    TCGv dat = tcg_temp_new();
-    gen_get_gpr(t0, a->rs1_3);
-    tcg_gen_addi_tl(t0, t0, a->zce_b_uimm);
-    gen_get_gpr(dat, a->rs2_3);
+    TCGv t0 = get_gpr(ctx, a->rs1_3, EXT_NONE);
+    TCGv dat = get_gpr(ctx, a->rs2_3, EXT_NONE);
 
+    tcg_gen_addi_tl(t0, t0, a->zce_b_uimm);
     MemOp memop = MO_UB; // 8u-bit
     tcg_gen_qemu_st_tl(dat, t0, ctx->mem_idx, memop);
-    tcg_temp_free(t0);
-    tcg_temp_free(dat);
+
     return true;
 }
 
 static bool trans_c_sh(DisasContext *ctx, arg_c_sh *a)
 {
     REQUIRE_ZCE;
-    TCGv t0 = tcg_temp_new();
-    TCGv dat = tcg_temp_new();
-    gen_get_gpr(t0, a->rs1_3);
+    TCGv t0 = get_gpr(ctx, a->rs1_3, EXT_NONE);
+    TCGv dat = get_gpr(ctx, a->rs2_3, EXT_NONE);
+
     tcg_gen_addi_tl(t0, t0, a->zce_h_uimm);
-    gen_get_gpr(dat, a->rs2_3);
 
     MemOp memop = MO_UW; // 16u-bit
     tcg_gen_qemu_st_tl(dat, t0, ctx->mem_idx, memop);
@@ -381,15 +350,13 @@ static bool trans_c_popret(DisasContext *ctx, arg_c_popret *a)
         return false;
     }
 
-    TCGv sp = tcg_temp_new();
-    gen_get_gpr(sp, xSP);
+    TCGv sp = get_gpr(ctx, xSP, EXT_NONE);
 
     TCGv ret0_1 = tcg_const_tl(a->zce_ret0_1);
     TCGv rlist3 = tcg_const_tl(a->zce_rlist3);
     TCGv spimm0_5 = tcg_const_tl(a->zce_spimm0_5);
 
     gen_helper_c_popret(cpu_env, sp, spimm0_5, rlist3, ret0_1);
-    tcg_temp_free(sp);
     tcg_temp_free(spimm0_5);
     tcg_temp_free(ret0_1);
     tcg_temp_free(rlist3);
@@ -404,15 +371,14 @@ static bool trans_c_popret_e(DisasContext *ctx, arg_c_popret_e *a)
         return false;
     }
 
-    TCGv sp = tcg_temp_new();
-    gen_get_gpr(sp, xSP);
+    TCGv sp = get_gpr(ctx, xSP, EXT_NONE);
 
     TCGv ret0_2 = tcg_const_tl(a->zce_ret0_2);
     TCGv rlist2 = tcg_const_tl(a->zce_rlist2);
     TCGv spimm0_5 = tcg_const_tl(a->zce_spimm0_5);
 
     gen_helper_c_popret_e(cpu_env, sp, spimm0_5, rlist2, ret0_2);
-    tcg_temp_free(sp);
+
     tcg_temp_free(spimm0_5);
     tcg_temp_free(ret0_2);
     tcg_temp_free(rlist2);
@@ -423,14 +389,12 @@ static bool trans_c_pop(DisasContext *ctx, arg_c_pop *a)
 {
     REQUIRE_ZCE;
 
-    TCGv sp = tcg_temp_new();
-    gen_get_gpr(sp, xSP);
+    TCGv sp = get_gpr(ctx, xSP, EXT_NONE);
 
     TCGv spimm = tcg_const_tl(a->zce_spimm);
     TCGv rlist3 = tcg_const_tl(a->zce_rlist3);
 
     gen_helper_c_pop(cpu_env, sp, spimm, rlist3);
-    tcg_temp_free(sp);
     tcg_temp_free(spimm);
     tcg_temp_free(rlist3);
     return true;
@@ -440,14 +404,13 @@ static bool trans_c_pop_e(DisasContext *ctx, arg_c_pop_e *a)
 {
     REQUIRE_ZCE;
 
-    TCGv sp = tcg_temp_new();
-    gen_get_gpr(sp, xSP);
+    TCGv sp = get_gpr(ctx, xSP, EXT_NONE);
 
     TCGv spimm = tcg_const_tl(a->zce_spimm);
     TCGv rlist2 = tcg_const_tl(a->zce_rlist2);
 
     gen_helper_c_pop_e(cpu_env, sp, spimm, rlist2);
-    tcg_temp_free(sp);
+
     tcg_temp_free(spimm);
     tcg_temp_free(rlist2);
     return true;
@@ -461,14 +424,13 @@ static bool trans_c_push(DisasContext *ctx, arg_c_push *a)
         return false;
     }
 
-    TCGv sp = tcg_temp_new();
-    gen_get_gpr(sp, xSP);
+    TCGv sp = get_gpr(ctx, xSP, EXT_NONE);
 
     TCGv rlist = tcg_const_tl(a->zce_rlist3);
     TCGv spimm = tcg_const_tl(a->zce_spimm0_5);
 
     gen_helper_c_push(cpu_env, sp, spimm, rlist);
-    tcg_temp_free(sp);
+
     tcg_temp_free(rlist);
     tcg_temp_free(spimm);
     return true;
@@ -482,14 +444,13 @@ static bool trans_c_push_e(DisasContext *ctx, arg_c_push_e *a)
         return false;
     }
 
-    TCGv sp = tcg_temp_new();
-    gen_get_gpr(sp, xSP);
+    TCGv sp = get_gpr(ctx, xSP, EXT_NONE);
 
     TCGv rlist = tcg_const_tl(a->zce_rlist2);
     TCGv spimm = tcg_const_tl(a->zce_spimm_pe);
 
     gen_helper_c_push_e(cpu_env, sp, spimm, rlist);
-    tcg_temp_free(sp);
+
     tcg_temp_free(rlist);
     tcg_temp_free(spimm);
     return true;
@@ -498,16 +459,16 @@ static bool trans_c_push_e(DisasContext *ctx, arg_c_push_e *a)
 static bool trans_push(DisasContext *ctx, arg_push *a)
 {
     REQUIRE_ZCE;
-    TCGv sp = tcg_temp_new();
+    TCGv sp = get_gpr(ctx, xSP, EXT_NONE);
     int zce_rlist, zce_alist;
     zce_rlist = a->zce_rlist;
-    gen_get_gpr(sp, xSP);
+
     zce_alist = a->areg? zce_rlist <= 4 ? zce_rlist : 4 : 0;
     TCGv rlist = tcg_const_tl(zce_rlist);
     TCGv spimm = tcg_const_tl(a->zce_spimm);
     TCGv alist = tcg_const_tl(zce_alist);   
     gen_helper_push(cpu_env, sp, spimm, rlist, alist);
-    tcg_temp_free(sp);
+
     tcg_temp_free(rlist);
     tcg_temp_free(spimm);
     tcg_temp_free(alist);
@@ -517,16 +478,15 @@ static bool trans_push(DisasContext *ctx, arg_push *a)
 static bool trans_pop(DisasContext *ctx, arg_pop *a)
 {
     REQUIRE_ZCE;
-    TCGv sp = tcg_temp_new();
+    TCGv sp = get_gpr(ctx, xSP, EXT_NONE);
     int zce_rlist;
     zce_rlist = a->zce_rlist;
-    gen_get_gpr(sp, xSP);
 
     TCGv rlist = tcg_const_tl(zce_rlist);
     TCGv spimm = tcg_const_tl(a->zce_spimm);
     TCGv ret = tcg_const_tl(a->ret_val);   
     gen_helper_pop(cpu_env, sp, spimm, rlist, ret);
-    tcg_temp_free(sp);
+
     tcg_temp_free(rlist);
     tcg_temp_free(spimm);
     tcg_temp_free(ret);
@@ -536,16 +496,15 @@ static bool trans_pop(DisasContext *ctx, arg_pop *a)
 static bool trans_popret(DisasContext *ctx, arg_popret *a)
 {
     REQUIRE_ZCE;
-    TCGv sp = tcg_temp_new();
+    TCGv sp = get_gpr(ctx, xSP, EXT_NONE);
     int zce_rlist;
     zce_rlist = a->zce_rlist;
-    gen_get_gpr(sp, xSP);
 
     TCGv rlist = tcg_const_tl(zce_rlist);
     TCGv spimm = tcg_const_tl(a->zce_spimm);
     TCGv ret = tcg_const_tl(a->ret_val);   
     gen_helper_popret(cpu_env, sp, spimm, rlist, ret);
-    tcg_temp_free(sp);
+
     tcg_temp_free(rlist);
     tcg_temp_free(spimm);
     tcg_temp_free(ret);
@@ -557,22 +516,23 @@ static bool trans_c_zext_w(DisasContext *ctx, arg_c_zext_w *a)
 {
     REQUIRE_64BIT(ctx);
     REQUIRE_ZCE;
-    return gen_unary(ctx, a, tcg_gen_ext32u_tl);
+    return gen_zce_unary(ctx, a, tcg_gen_ext32u_tl);
 }
 
 static bool trans_ldgp(DisasContext *ctx, arg_ldgp *a)
 {
     REQUIRE_64BIT(ctx);
     REQUIRE_ZCE;
-    TCGv t0 = tcg_temp_new();
+    TCGv t0 = get_gpr(ctx, xSP, EXT_NONE);
+    TCGv dest = dest_gpr(ctx, a->rd);
     TCGv t1 = tcg_temp_new();
-    gen_get_gpr(t0, xGP);
-    tcg_gen_addi_tl(t0, t0, a->zce_b_imm_ld);
+
+    tcg_gen_addi_tl(t1, t0, a->zce_b_imm_ld);
 
     MemOp memop = MO_TEQ; // 64s-bit
-    tcg_gen_qemu_ld_tl(t1, t0, ctx->mem_idx, memop);
-    gen_set_gpr(a->rd, t1);
-    tcg_temp_free(t0);
+    tcg_gen_qemu_ld_tl(dest, t1, ctx->mem_idx, memop);
+    gen_set_gpr(ctx, a->rd, dest);
+
     tcg_temp_free(t1);
     return true;
 }
@@ -581,16 +541,14 @@ static bool trans_sdgp(DisasContext *ctx, arg_sdgp *a)
 {
     REQUIRE_64BIT(ctx);
     REQUIRE_ZCE;
-    TCGv t0 = tcg_temp_new();
-    TCGv dat = tcg_temp_new();
-    gen_get_gpr(t0, xGP);
+    TCGv t0 = get_gpr(ctx, xGP, EXT_NONE);
+    TCGv dat = get_gpr(ctx, a->rs2, EXT_NONE);
+
     tcg_gen_addi_tl(t0, t0, a->zce_b_imm_sd);
-    gen_get_gpr(dat, a->rs2);
 
     MemOp memop = MO_TEQ; // 64s-bit
     tcg_gen_qemu_st_tl(dat, t0, ctx->mem_idx, memop);
-    tcg_temp_free(t0);
-    tcg_temp_free(dat);
+
     return true;
 }
 

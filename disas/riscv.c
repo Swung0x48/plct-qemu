@@ -575,7 +575,16 @@ typedef enum {
     rv_op_c_pop = 388,
     rv_op_c_push = 389,
     rv_op_c_popret_e = 390,
-    rv_op_c_push_e = 391,
+    rv_op_c_pop_e = 391,
+    rv_op_c_push_e = 392,
+    rv_op_popret = 393,
+    rv_op_pop = 394,
+    rv_op_push = 395,
+    rv_op_popret_e = 396,
+    rv_op_pop_e = 397,
+    rv_op_push_e = 398,
+    rv_op_c_mva01s07 = 399,
+    rv_op_muli = 400,
 } rv_op;
 
 /* structures */
