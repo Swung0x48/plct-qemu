@@ -297,10 +297,12 @@ struct RISCVCPU {
         bool ext_zbb;
         bool ext_zbc;
         bool ext_zbs;
+        bool ext_zcea;
+        bool ext_zceb;
+        bool ext_zcee;
         bool ext_counters;
         bool ext_ifencei;
         bool ext_icsr;
-        bool ext_zce;
 
         char *priv_spec;
         char *user_spec;

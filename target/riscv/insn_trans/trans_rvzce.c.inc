@@ -18,8 +18,18 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define REQUIRE_ZCE do {\
-    if (ctx->ext_zce == 0) \
+#define REQUIRE_ZCEA do {\
+    if (!RISCV_CPU(ctx->cs)->cfg.ext_zcea) \
+        return false;                       \
+} while (0)
+
+#define REQUIRE_ZCEB do {\
+    if (!RISCV_CPU(ctx->cs)->cfg.ext_zceb) \
+        return false;                       \
+} while (0)
+
+#define REQUIRE_ZCEE do {\
+    if (!RISCV_CPU(ctx->cs)->cfg.ext_zcee) \
         return false;                       \
 } while (0)
 
@@ -35,43 +45,43 @@ static bool gen_zce_unary(DisasContext *ctx, arg_zcea_unary *a, void (*func)(TCG
 
 static bool trans_c_zext_b(DisasContext *ctx, arg_c_zext_b *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEE;
     return gen_zce_unary(ctx, a, tcg_gen_ext8u_tl);
 }
 
 static bool trans_c_zext_h(DisasContext *ctx, arg_c_zext_h *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEE;
     return gen_zce_unary(ctx, a, tcg_gen_ext16u_tl);
 }
 
 static bool trans_c_sext_b(DisasContext *ctx, arg_c_sext_b *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEE;
     return gen_zce_unary(ctx, a, tcg_gen_ext8s_tl);
 }
 
 static bool trans_c_sext_h(DisasContext *ctx, arg_c_sext_h *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEE;
     return gen_zce_unary(ctx, a, tcg_gen_ext16s_tl);
 }
 
 static bool trans_c_not(DisasContext *ctx, arg_c_not *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEA;
     return gen_zce_unary(ctx, a, tcg_gen_not_tl);
 }
 
 static bool trans_c_neg(DisasContext *ctx, arg_c_neg *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEA;
     return gen_zce_unary(ctx, a, tcg_gen_neg_tl);
 }
 
 static bool trans_c_mul(DisasContext *ctx, arg_c_mul *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEA;
     REQUIRE_EXT(ctx, RVM);
     TCGv source1 = get_gpr(ctx, a->rs1_3, EXT_NONE);
     TCGv source2 = get_gpr(ctx, a->rs2_3, EXT_NONE);
@@ -82,7 +92,7 @@ static bool trans_c_mul(DisasContext *ctx, arg_c_mul *a)
 
 static bool trans_c_mva01s07(DisasContext *ctx, arg_c_mva01s07 *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEA;
     TCGv source1 = get_gpr(ctx, a->rs1_3, EXT_NONE);
     TCGv source2 = get_gpr(ctx, a->rs2_3, EXT_NONE);
     gen_set_gpr(ctx, xA0, source1);
@@ -92,7 +102,7 @@ static bool trans_c_mva01s07(DisasContext *ctx, arg_c_mva01s07 *a)
 
 static bool trans_muli(DisasContext *ctx, arg_muli *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEA;
     REQUIRE_EXT(ctx, RVM);
     TCGv dest = dest_gpr(ctx, a->rd);
     TCGv source1 = get_gpr(ctx, a->rs1, EXT_NONE);
@@ -103,6 +113,7 @@ static bool trans_muli(DisasContext *ctx, arg_muli *a)
 
 static bool gen_branch_zce(DisasContext *ctx, arg_zcea_b *a, TCGCond cond)
 {
+    REQUIRE_ZCEA;
     TCGLabel *l = gen_new_label();
     TCGv source = get_gpr(ctx, a->rs2, EXT_NONE);
     TCGv uimm = tcg_const_tl(a->zce_uimm);
@@ -111,7 +122,7 @@ static bool gen_branch_zce(DisasContext *ctx, arg_zcea_b *a, TCGCond cond)
     gen_goto_tb(ctx, 1, ctx->pc_succ_insn);
     gen_set_label(l); /* branch taken */
 
-    if ((ctx->ext_zce == 0) && ((ctx->base.pc_next + a->zce_offset) & 0x3))
+    if ((ctx->base.pc_next + a->zce_offset) & 0x3)
     {
         /* misaligned */
         gen_exception_inst_addr_mis(ctx);
@@ -139,7 +150,7 @@ static bool trans_bnei(DisasContext *ctx, arg_bnei *a)
 
 static bool trans_decbnez(DisasContext *ctx, arg_decbnez *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEB;
     TCGv source = get_gpr(ctx, a->rd, EXT_NONE);
     TCGv scale = tcg_const_tl(1 << a->zce_scale);
     tcg_gen_sub_tl(source, source, scale);
@@ -151,7 +162,7 @@ static bool trans_decbnez(DisasContext *ctx, arg_decbnez *a)
     gen_goto_tb(ctx, 1, ctx->pc_succ_insn);
     gen_set_label(l); /* branch taken */
 
-    if ((ctx->ext_zce == 0) && ((ctx->base.pc_next + a->zce_b_imm_dec) & 0x3))
+    if ((ctx->base.pc_next + a->zce_b_imm_dec) & 0x3)
     {
         /* misaligned */
         gen_exception_inst_addr_mis(ctx);
@@ -169,7 +180,7 @@ static bool trans_decbnez(DisasContext *ctx, arg_decbnez *a)
 
 static bool trans_lwgp(DisasContext *ctx, arg_lwgp *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEB;
     TCGv t0 = get_gpr(ctx, xGP, EXT_NONE);
     TCGv t1 = dest_gpr(ctx, a->rd);
 
@@ -183,7 +194,7 @@ static bool trans_lwgp(DisasContext *ctx, arg_lwgp *a)
 
 static bool trans_swgp(DisasContext *ctx, arg_swgp *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEB;
     TCGv t0 = get_gpr(ctx, xGP, EXT_NONE);
     TCGv dat = get_gpr(ctx, a->rs2, EXT_NONE);
 
@@ -197,7 +208,7 @@ static bool trans_swgp(DisasContext *ctx, arg_swgp *a)
 
 static bool trans_c_tblj_all(DisasContext *ctx, arg_c_tblj_all *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEA;
     TCGLabel *misaligned = NULL;
     TCGv t0 = tcg_temp_new();
     TCGv index = tcg_const_tl(a->zce_table_jump_index);
@@ -227,7 +238,7 @@ static bool trans_c_tblj_all(DisasContext *ctx, arg_c_tblj_all *a)
 
 static bool trans_c_decbnez(DisasContext *ctx, arg_c_decbnez *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEB;
     TCGv source = get_gpr(ctx, a->rs1_3, EXT_NONE);
     TCGv scale = tcg_const_tl(1 << a->zce_scale);
     tcg_gen_sub_tl(source, source, scale);
@@ -239,7 +250,7 @@ static bool trans_c_decbnez(DisasContext *ctx, arg_c_decbnez *a)
     gen_goto_tb(ctx, 1, ctx->pc_succ_insn);
     gen_set_label(l); /* branch taken */
 
-    if ((ctx->ext_zce == 0) && ((ctx->base.pc_next - a->zce_nzuimm) & 0x3))
+    if ((ctx->base.pc_next - a->zce_nzuimm) & 0x3)
     {
         /* misaligned */
         gen_exception_inst_addr_mis(ctx);
@@ -256,7 +267,7 @@ static bool trans_c_decbnez(DisasContext *ctx, arg_c_decbnez *a)
 
 static bool trans_c_lbu(DisasContext *ctx, arg_c_lbu *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEB;
     TCGv t0 = get_gpr(ctx, a->rs1_3, EXT_NONE);
     TCGv dest = dest_gpr(ctx, a->rs2_3);
     TCGv t1 = tcg_temp_new();
@@ -271,7 +282,7 @@ static bool trans_c_lbu(DisasContext *ctx, arg_c_lbu *a)
 
 static bool trans_c_lhu(DisasContext *ctx, arg_c_lhu *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEB;
     TCGv t0 = get_gpr(ctx, a->rs1_3, EXT_NONE);
     TCGv dest = dest_gpr(ctx, a->rs2_3);
     TCGv t1 = tcg_temp_new();
@@ -286,7 +297,7 @@ static bool trans_c_lhu(DisasContext *ctx, arg_c_lhu *a)
 
 static bool trans_c_lb(DisasContext *ctx, arg_c_lb *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEB;
     TCGv t0 = get_gpr(ctx, a->rs1_3, EXT_NONE);
     TCGv dest = dest_gpr(ctx, a->rs2_3);
     TCGv t1 = tcg_temp_new();
@@ -301,7 +312,7 @@ static bool trans_c_lb(DisasContext *ctx, arg_c_lb *a)
 
 static bool trans_c_lh(DisasContext *ctx, arg_c_lh *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEB;
     TCGv t0 = get_gpr(ctx, a->rs1_3, EXT_NONE);
     TCGv dest = dest_gpr(ctx, a->rs2_3);
     TCGv t1 = tcg_temp_new();
@@ -316,7 +327,7 @@ static bool trans_c_lh(DisasContext *ctx, arg_c_lh *a)
 
 static bool trans_c_sb(DisasContext *ctx, arg_c_sb *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEB;
     TCGv t0 = get_gpr(ctx, a->rs1_3, EXT_NONE);
     TCGv dat = get_gpr(ctx, a->rs2_3, EXT_NONE);
 
@@ -329,7 +340,7 @@ static bool trans_c_sb(DisasContext *ctx, arg_c_sb *a)
 
 static bool trans_c_sh(DisasContext *ctx, arg_c_sh *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEB;
     TCGv t0 = get_gpr(ctx, a->rs1_3, EXT_NONE);
     TCGv dat = get_gpr(ctx, a->rs2_3, EXT_NONE);
 
@@ -344,7 +355,7 @@ static bool trans_c_sh(DisasContext *ctx, arg_c_sh *a)
 
 static bool trans_c_popret(DisasContext *ctx, arg_c_popret *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEA;
 
     if (a->zce_spimm0_5 > (5 << 4)) {
         return false;
@@ -365,7 +376,7 @@ static bool trans_c_popret(DisasContext *ctx, arg_c_popret *a)
 
 static bool trans_c_popret_e(DisasContext *ctx, arg_c_popret_e *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEA;
 
     if (a->zce_spimm0_5 > (5 << 4)) {
         return false;
@@ -387,7 +398,7 @@ static bool trans_c_popret_e(DisasContext *ctx, arg_c_popret_e *a)
 
 static bool trans_c_pop(DisasContext *ctx, arg_c_pop *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEA;
 
     TCGv sp = get_gpr(ctx, xSP, EXT_NONE);
 
@@ -402,7 +413,7 @@ static bool trans_c_pop(DisasContext *ctx, arg_c_pop *a)
 
 static bool trans_c_pop_e(DisasContext *ctx, arg_c_pop_e *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEA;
 
     TCGv sp = get_gpr(ctx, xSP, EXT_NONE);
 
@@ -418,7 +429,7 @@ static bool trans_c_pop_e(DisasContext *ctx, arg_c_pop_e *a)
 
 static bool trans_c_push(DisasContext *ctx, arg_c_push *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEA;
 
     if (a->zce_spimm0_5 > (5 << 4)) {
         return false;
@@ -438,7 +449,7 @@ static bool trans_c_push(DisasContext *ctx, arg_c_push *a)
 
 static bool trans_c_push_e(DisasContext *ctx, arg_c_push_e *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEA;
 
     if (a->zce_spimm_pe > (5 << 4)) {
         return false;
@@ -458,7 +469,7 @@ static bool trans_c_push_e(DisasContext *ctx, arg_c_push_e *a)
 
 static bool trans_push(DisasContext *ctx, arg_push *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEA;
     TCGv sp = get_gpr(ctx, xSP, EXT_NONE);
     int zce_rlist, zce_alist;
     zce_rlist = a->zce_rlist;
@@ -477,7 +488,7 @@ static bool trans_push(DisasContext *ctx, arg_push *a)
 
 static bool trans_pop(DisasContext *ctx, arg_pop *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEA;
     TCGv sp = get_gpr(ctx, xSP, EXT_NONE);
     int zce_rlist;
     zce_rlist = a->zce_rlist;
@@ -495,7 +506,7 @@ static bool trans_pop(DisasContext *ctx, arg_pop *a)
 
 static bool trans_popret(DisasContext *ctx, arg_popret *a)
 {
-    REQUIRE_ZCE;
+    REQUIRE_ZCEA;
     TCGv sp = get_gpr(ctx, xSP, EXT_NONE);
     int zce_rlist;
     zce_rlist = a->zce_rlist;
@@ -515,14 +526,14 @@ static bool trans_popret(DisasContext *ctx, arg_popret *a)
 static bool trans_c_zext_w(DisasContext *ctx, arg_c_zext_w *a)
 {
     REQUIRE_64BIT(ctx);
-    REQUIRE_ZCE;
+    REQUIRE_ZCEE;
     return gen_zce_unary(ctx, a, tcg_gen_ext32u_tl);
 }
 
 static bool trans_ldgp(DisasContext *ctx, arg_ldgp *a)
 {
     REQUIRE_64BIT(ctx);
-    REQUIRE_ZCE;
+    REQUIRE_ZCEB;
     TCGv t0 = get_gpr(ctx, xSP, EXT_NONE);
     TCGv dest = dest_gpr(ctx, a->rd);
     TCGv t1 = tcg_temp_new();
@@ -540,7 +551,7 @@ static bool trans_ldgp(DisasContext *ctx, arg_ldgp *a)
 static bool trans_sdgp(DisasContext *ctx, arg_sdgp *a)
 {
     REQUIRE_64BIT(ctx);
-    REQUIRE_ZCE;
+    REQUIRE_ZCEB;
     TCGv t0 = get_gpr(ctx, xGP, EXT_NONE);
     TCGv dat = get_gpr(ctx, a->rs2, EXT_NONE);
 
