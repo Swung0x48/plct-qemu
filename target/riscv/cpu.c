@@ -449,6 +449,7 @@ static void riscv_cpu_realize(DeviceState *dev, Error **errp)
                        return;
        }
 
+        
        if (cpu->cfg.ext_g && !(cpu->cfg.ext_i & cpu->cfg.ext_m &
                                cpu->cfg.ext_a & cpu->cfg.ext_f &
                                cpu->cfg.ext_d)) {
@@ -464,6 +465,12 @@ static void riscv_cpu_realize(DeviceState *dev, Error **errp)
             cpu->cfg.ext_zcee = true;
         }
 
+        if (cpu->cfg.ext_d && cpu->cfg.ext_zceb) {
+            error_setg(errp,
+                       "D and Zceb extensions are incompatible");
+            return;
+        }
+        
         /* Set the ISA extensions, checks should have happened above */
         if (cpu->cfg.ext_i) {
             target_misa |= RVI;
