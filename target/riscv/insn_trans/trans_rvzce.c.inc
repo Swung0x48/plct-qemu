@@ -209,7 +209,7 @@ static bool trans_swgp(DisasContext *ctx, arg_swgp *a)
 static bool trans_c_tblj_all(DisasContext *ctx, arg_c_tblj_all *a)
 {
     REQUIRE_ZCEA;
-    TCGLabel *misaligned = NULL;
+//    TCGLabel *misaligned = NULL;
     TCGv t0 = tcg_temp_new();
     TCGv index = tcg_const_tl(a->zce_table_jump_index);
     TCGv csr_store = tcg_temp_new();
@@ -217,17 +217,17 @@ static bool trans_c_tblj_all(DisasContext *ctx, arg_c_tblj_all *a)
 
     gen_helper_c_tblj_all(cpu_pc, cpu_env, csr_store, index, next_pc);
 
-    if (!has_ext(ctx, RVC)) {
-        misaligned = gen_new_label();
-        tcg_gen_andi_tl(t0, cpu_pc, 0x2);
-        tcg_gen_brcondi_tl(TCG_COND_NE, t0, 0x0, misaligned);
-    }
+//    if (!has_ext(ctx, RVC)) {
+//        misaligned = gen_new_label();
+//        tcg_gen_andi_tl(t0, cpu_pc, 0x2);
+//        tcg_gen_brcondi_tl(TCG_COND_NE, t0, 0x0, misaligned);
+//    }
     tcg_gen_lookup_and_goto_ptr();
 
-    if (misaligned) {
-        gen_set_label(misaligned);
-        gen_exception_inst_addr_mis(ctx);
-    }
+//    if (misaligned) {
+//        gen_set_label(misaligned);
+//        gen_exception_inst_addr_mis(ctx);
+//    }
     ctx->base.is_jmp = DISAS_NORETURN;
     tcg_temp_free(index);
     tcg_temp_free(csr_store);
@@ -250,15 +250,15 @@ static bool trans_c_decbnez(DisasContext *ctx, arg_c_decbnez *a)
     gen_goto_tb(ctx, 1, ctx->pc_succ_insn);
     gen_set_label(l); /* branch taken */
 
-    if ((ctx->base.pc_next - a->zce_nzuimm) & 0x3)
-    {
-        /* misaligned */
-        gen_exception_inst_addr_mis(ctx);
-    }
-    else
-    {
+//    if ((ctx->base.pc_next - a->zce_nzuimm) & 0x3)
+//    {
+//        /* misaligned */
+//        gen_exception_inst_addr_mis(ctx);
+//    }
+//    else
+//    {
         gen_goto_tb(ctx, 0, ctx->base.pc_next - a->zce_nzuimm);
-    }
+//    }
     ctx->base.is_jmp = DISAS_NORETURN;
 
     tcg_temp_free(scale);
