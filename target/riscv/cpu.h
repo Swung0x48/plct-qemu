@@ -314,6 +314,7 @@ struct RISCVCPU {
         bool ext_icsr;
         bool ext_svnapot;
         bool ext_svinval;
+        bool ext_svpbmt;
 
         char *priv_spec;
         char *user_spec;
