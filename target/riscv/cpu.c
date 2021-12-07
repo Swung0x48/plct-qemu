@@ -124,6 +124,11 @@ static void set_vext_version(CPURISCVState *env, int vext_ver)
     env->vext_ver = vext_ver;
 }
 
+static void set_pext_version(CPURISCVState *env, int pext_ver)
+{
+    env->pext_ver = pext_ver;
+}
+
 static void set_feature(CPURISCVState *env, int feature)
 {
     env->features |= (1ULL << feature);
@@ -588,6 +593,31 @@ static void riscv_cpu_realize(DeviceState *dev, Error **errp)
         if (cpu->cfg.ext_j) {
             ext |= RVJ;
         }
+        if (cpu->cfg.ext_p) {
+            int pext_version = PEXT_VERSION_0_09_4;
+            ext |= RVP;
+            if (cpu->cfg.pext_spec) {
+                if (!g_strcmp0(cpu->cfg.pext_spec, "v0.9.4")) {
+                    pext_version = PEXT_VERSION_0_09_4;
+                } else {
+                    error_setg(errp,
+                               "Unsupported packed spec version '%s'",
+                               cpu->cfg.pext_spec);
+                    return;
+                }
+            } else {
+                qemu_log("packed verison is not specified, "
+                         "use the default value v0.9.4\n");
+            }
+            if (env->misa_mxl_max == MXL_RV64) {
+                if (!cpu->cfg.ext_psfoperand) {
+                    error_setg(errp, "The Zpsfoperand"
+                                     "sub-extensions is required for RV64P.");
+                    return;
+                }
+            }
+            set_pext_version(env, pext_version);
+        }
 
         set_misa(env, env->misa_mxl, ext);
     }
@@ -683,6 +713,12 @@ static Property riscv_cpu_properties[] = {
     DEFINE_PROP_BOOL("x-zkt", RISCVCPU, cfg.ext_zkt, false),
     DEFINE_PROP_BOOL("x-h", RISCVCPU, cfg.ext_h, false),
     DEFINE_PROP_BOOL("x-j", RISCVCPU, cfg.ext_j, false),
+    DEFINE_PROP_BOOL("x-p", RISCVCPU, cfg.ext_p, false),
+    DEFINE_PROP_BOOL("x-v", RISCVCPU, cfg.ext_v, false),
+    DEFINE_PROP_STRING("vext_spec", RISCVCPU, cfg.vext_spec),
+    DEFINE_PROP_UINT16("vlen", RISCVCPU, cfg.vlen, 128),
+    DEFINE_PROP_UINT16("elen", RISCVCPU, cfg.elen, 64),
+    DEFINE_PROP_BOOL("Zpsfoperand", RISCVCPU, cfg.ext_psfoperand, true),
     /* ePMP 0.9.3 */
     DEFINE_PROP_BOOL("x-epmp", RISCVCPU, cfg.epmp, false),
 
