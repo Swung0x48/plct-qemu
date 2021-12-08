@@ -1148,6 +1148,7 @@ DEF_HELPER_1(sm3p1, tl, tl)
 /* Crypto Extension - sm4 */
 DEF_HELPER_3(sm4ed, tl, tl, tl, tl)
 DEF_HELPER_3(sm4ks, tl, tl, tl, tl)
+
 /* P extension function */
 DEF_HELPER_3(radd16, tl, env, tl, tl)
 DEF_HELPER_3(uradd16, tl, env, tl, tl)
