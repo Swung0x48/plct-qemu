@@ -10082,9 +10082,12 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
     case TARGET_NR_fstat:
         {
             ret = get_errno(fstat(arg1, &st));
+        }
+#endif
 #if defined(TARGET_NR_stat) || defined(TARGET_NR_lstat)
         do_stat:
 #endif
+        {
             if (!is_error(ret)) {
                 struct target_stat *target_st;
 
@@ -10116,7 +10119,6 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
             }
         }
         return ret;
-#endif
     case TARGET_NR_vhangup:
         return get_errno(vhangup());
 #ifdef TARGET_NR_syscall

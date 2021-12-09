@@ -81,3 +81,18 @@ config SPIKE
     select MSI_NONBROKEN
     select RISCV_ACLINT
     select SIFIVE_PLIC
+
+config PLCT_STONE
+    bool
+    imply PCI_DEVICES
+    imply TEST_DEVICES
+    select GOLDFISH_RTC
+    select MSI_NONBROKEN
+    select PCI
+    select PCI_EXPRESS_GENERIC_BRIDGE
+    select SERIAL
+    select RISCV_ACLINT
+    select SIFIVE_PLIC
+    select SIFIVE_TEST
+    select VIRTIO_MMIO
+
