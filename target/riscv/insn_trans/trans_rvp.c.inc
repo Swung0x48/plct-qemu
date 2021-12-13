@@ -884,6 +884,7 @@ r_64_ool(DisasContext *ctx, arg_r *a, DisasExtend ext,
     TCGv t1, t2;
     TCGv_i64 src1, src2, dst;
 
+    TCGv dest = dest_gpr(ctx, a->rd);
     src1 = tcg_temp_new_i64();
     src2 = tcg_temp_new_i64();
     dst = tcg_temp_new_i64();
@@ -894,8 +895,8 @@ r_64_ool(DisasContext *ctx, arg_r *a, DisasExtend ext,
     tcg_gen_ext_tl_i64(src2, t2);
 
     fn(dst, cpu_env, src1, src2);
-    tcg_gen_trunc_i64_tl(t1, dst);
-    gen_set_gpr(ctx, a->rd, t1);
+    tcg_gen_trunc_i64_tl(dest, dst);
+    gen_set_gpr(ctx, a->rd, dest);
 
     tcg_temp_free_i64(src1);
     tcg_temp_free_i64(src2);
