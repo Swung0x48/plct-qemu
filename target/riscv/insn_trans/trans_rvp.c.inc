@@ -946,19 +946,19 @@ rvp64_shifti(DisasContext *ctx, arg_shift *a, DisasExtend ext,
 {
     REQUIRE_EXT(ctx, RVP);
     TCGv t1;
+    TCGv dest = dest_gpr(ctx, a->rd);
     TCGv_i64 src1, dst, shift;
 
     src1 = tcg_temp_new_i64();
     dst = tcg_temp_new_i64();
-    t1 = tcg_temp_new();
+    t1  = get_gpr(ctx, a->rs1, ext);
 
-    t1 = get_gpr(ctx, a->rs1, ext);
     tcg_gen_ext_tl_i64(src1, t1);
     shift = tcg_const_i64(a->shamt);
 
     fn(dst, cpu_env, src1, shift);
-    tcg_gen_trunc_i64_tl(t1, dst);
-    gen_set_gpr(ctx, a->rd, t1);
+    tcg_gen_trunc_i64_tl(dest, dst);
+    gen_set_gpr(ctx, a->rd, dest);
 
     tcg_temp_free_i64(src1);
     tcg_temp_free_i64(dst);
