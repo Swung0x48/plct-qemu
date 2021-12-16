@@ -2301,6 +2301,7 @@ static inline void do_kmar64(CPURISCVState *env, void *vd, void *va,
     int32_t *a = va, *b = vb;
     int64_t *d = vd, *c = vc;
     int64_t m0 =  (int64_t)a[H4(i)] * b[H4(i)];
+#ifdef TARGET_RISCV64
     if (env->misa_mxl != MXL_RV32) {
         int64_t m1 =  (int64_t)a[H4(i + 1)] * b[H4(i + 1)];
         if (a[H4(i)] == INT32_MIN && b[H4(i)] == INT32_MIN &&
@@ -2317,6 +2318,9 @@ static inline void do_kmar64(CPURISCVState *env, void *vd, void *va,
     } else {
         *d = sadd64(env, 0, *c, m0);
     }
+#else
+     *d = sadd64(env, 0, *c, m0);
+#endif
 }
 
 RVPR64_ACC(kmar64, 1, sizeof(target_ulong));
@@ -2328,6 +2332,7 @@ static inline void do_kmsr64(CPURISCVState *env, void *vd, void *va,
     int64_t *d = vd, *c = vc;
 
     int64_t m0 =  (int64_t)a[H4(i)] * b[H4(i)];
+#ifdef TARGET_RISCV64
     if (env->misa_mxl != MXL_RV32) {
         int64_t m1 =  (int64_t)a[H4(i + 1)] * b[H4(i + 1)];
         if (a[H4(i)] == INT32_MIN && b[H4(i)] == INT32_MIN &&
@@ -2344,6 +2349,9 @@ static inline void do_kmsr64(CPURISCVState *env, void *vd, void *va,
     } else {
         *d = ssub64(env, 0, *c, m0);
     }
+#else
+    *d = ssub64(env, 0, *c, m0);
+#endif
 }
 
 RVPR64_ACC(kmsr64, 1, sizeof(target_ulong));
@@ -3604,6 +3612,7 @@ static inline void do_kmabt32(CPURISCVState *env, void *vd, void *va,
 
 RVPR_ACC(kmabt32, 1, 8);
 
+//TODO: May out of bound
 static inline void do_kmatt32(CPURISCVState *env, void *vd, void *va,
                               void *vb, void *vc, uint8_t i)
 {
@@ -3649,6 +3658,7 @@ static inline void do_kmxda32(CPURISCVState *env, void *vd, void *va,
 
 RVPR64_64_64(kmxda32, 1, 8);
 
+//TODO: May out of bound
 static inline void do_kmaxda32(CPURISCVState *env, void *vd, void *va,
                                void *vb, void *vc, uint8_t i)
 {
@@ -3673,6 +3683,7 @@ static inline void do_kmaxda32(CPURISCVState *env, void *vd, void *va,
 
 RVPR_ACC(kmaxda32, 1, 8);
 
+//TODO: May out of bound
 static inline void do_kmads32(CPURISCVState *env, void *vd, void *va,
                               void *vb, void *vc, uint8_t i)
 {
@@ -3687,6 +3698,7 @@ static inline void do_kmads32(CPURISCVState *env, void *vd, void *va,
 
 RVPR_ACC(kmads32, 1, 8);
 
+//TODO: May out of bound
 static inline void do_kmadrs32(CPURISCVState *env, void *vd, void *va,
                                void *vb, void *vc, uint8_t i)
 {
@@ -3701,6 +3713,7 @@ static inline void do_kmadrs32(CPURISCVState *env, void *vd, void *va,
 
 RVPR_ACC(kmadrs32, 1, 8);
 
+//TODO: May out of bound
 static inline void do_kmaxds32(CPURISCVState *env, void *vd, void *va,
                                void *vb, void *vc, uint8_t i)
 {
@@ -3715,6 +3728,7 @@ static inline void do_kmaxds32(CPURISCVState *env, void *vd, void *va,
 
 RVPR_ACC(kmaxds32, 1, 8);
 
+//TODO: May out of bound
 static inline void do_kmsda32(CPURISCVState *env, void *vd, void *va,
                               void *vb, void *vc, uint8_t i)
 {
@@ -3739,6 +3753,7 @@ static inline void do_kmsda32(CPURISCVState *env, void *vd, void *va,
 
 RVPR_ACC(kmsda32, 1, 8);
 
+//TODO: May out of bound
 static inline void do_kmsxda32(CPURISCVState *env, void *vd, void *va,
                                void *vb, void *vc, uint8_t i)
 {
