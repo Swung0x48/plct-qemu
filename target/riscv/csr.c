@@ -487,6 +487,13 @@ static const target_ulong hip_writable_mask = MIP_VSSIP;
 static const target_ulong hvip_writable_mask = MIP_VSSIP | MIP_VSTIP | MIP_VSEIP;
 static const target_ulong vsip_writable_mask = MIP_VSSIP;
 
+static const uint64_t menvcfg_v1_12_mask = MENVCFG_FIOM | MENVCFG_CBIE |
+    MENVCFG_CBCFE | MENVCFG_CBZE | MENVCFG_PBMTE | MENVCFG_STCE;
+static const target_ulong senvcfg_v1_12_mask = SENVCFG_FIOM | SENVCFG_CBIE |
+    SENVCFG_CBCFE | SENVCFG_CBZE;
+static const uint64_t henvcfg_v1_12_mask = HENVCFG_FIOM | HENVCFG_CBIE |
+    HENVCFG_CBCFE | HENVCFG_CBZE | HENVCFG_PBMTE | HENVCFG_STCE;
+
 static const char valid_vm_1_10_32[16] = {
     [VM_1_10_MBARE] = 1,
     [VM_1_10_SV32] = 1
@@ -875,6 +882,37 @@ static RISCVException rmw_mip(CPURISCVState *env, int csrno,
     return RISCV_EXCP_NONE;
 }
 
+/* Machine Environment Configuration */
+static RISCVException read_menvcfg(CPURISCVState *env, int csrno,
+                                   target_ulong *val)
+{
+    *val = env->menvcfg & menvcfg_v1_12_mask;
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException write_menvcfg(CPURISCVState *env, int csrno,
+                                  target_ulong val)
+{
+    env->senvcfg = (env->menvcfg & ~menvcfg_v1_12_mask) |
+                   (val & menvcfg_v1_12_mask);
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException read_menvcfgh(CPURISCVState *env, int csrno,
+                                    target_ulong *val)
+{
+    *val = (env->menvcfg & menvcfg_v1_12_mask) >> 32;
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException write_menvcfgh(CPURISCVState *env, int csrno,
+                                     target_ulong val)
+{
+    env->menvcfg = deposit64(env->menvcfg, 32, 32, (uint64_t)val) &
+                   menvcfg_v1_12_mask;
+    return RISCV_EXCP_NONE;
+}
+
 /* Supervisor Trap Setup */
 static RISCVException read_sstatus_i128(CPURISCVState *env, int csrno,
                                         Int128 *val)
@@ -1135,6 +1173,21 @@ static RISCVException write_satp(CPURISCVState *env, int csrno,
     return RISCV_EXCP_NONE;
 }
 
+/* Supervisor Environment Configuration */
+static RISCVException read_senvcfg(CPURISCVState *env, int csrno,
+                                   target_ulong *val)
+{
+    *val = env->senvcfg & senvcfg_v1_12_mask;
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException write_senvcfg(CPURISCVState *env, int csrno,
+                                  target_ulong val)
+{
+    env->senvcfg = val & senvcfg_v1_12_mask;
+    return RISCV_EXCP_NONE;
+}
+
 /* Hypervisor Extensions */
 static RISCVException read_hstatus(CPURISCVState *env, int csrno,
                                    target_ulong *val)
@@ -1348,6 +1401,36 @@ static RISCVException write_htimedeltah(CPURISCVState *env, int csrno,
     }
 
     env->htimedelta = deposit64(env->htimedelta, 32, 32, (uint64_t)val);
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException read_henvcfg(CPURISCVState *env, int csrno,
+                                   target_ulong *val)
+{
+    *val = env->henvcfg & henvcfg_v1_12_mask;
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException write_henvcfg(CPURISCVState *env, int csrno,
+                                    target_ulong val)
+{
+    env->henvcfg = (env->henvcfg & ~henvcfg_v1_12_mask) |
+                   (val & henvcfg_v1_12_mask);
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException read_henvcfgh(CPURISCVState *env, int csrno,
+                                    target_ulong *val)
+{
+    *val = (env->henvcfg & henvcfg_v1_12_mask) >> 32;
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException write_henvcfgh(CPURISCVState *env, int csrno,
+                                     target_ulong val)
+{
+    env->henvcfg = deposit64(env->henvcfg, 32, 32, (uint64_t)val) &
+                   henvcfg_v1_12_mask;
     return RISCV_EXCP_NONE;
 }
 
@@ -2045,6 +2128,10 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_MTVAL]    = { "mtval",    any,  read_mtval,    write_mtval    },
     [CSR_MIP]      = { "mip",      any,  NULL,    NULL, rmw_mip        },
 
+    /* Machine Environment Configuration */
+    [CSR_MENVCFG]  = { "menvcfg",  any,   read_menvcfg,  write_menvcfg  },
+    [CSR_MENVCFGH] = { "menvcfgh", any32, read_menvcfgh, write_menvcfgh },
+
     /* Supervisor Trap Setup */
     [CSR_SSTATUS]    = { "sstatus",    smode, read_sstatus,    write_sstatus, NULL,
                                               read_sstatus_i128                 },
@@ -2063,6 +2150,9 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     /* Supervisor Protection and Translation */
     [CSR_SATP]     = { "satp",     smode, read_satp,    write_satp      },
 
+    /* Supervisor Environment Configuration */
+    [CSR_SENVCFG]  = { "senvcfg",  smode, read_senvcfg, write_senvcfg   },
+
     [CSR_HSTATUS]     = { "hstatus",     hmode,   read_hstatus,     write_hstatus     },
     [CSR_HEDELEG]     = { "hedeleg",     hmode,   read_hedeleg,     write_hedeleg     },
     [CSR_HIDELEG]     = { "hideleg",     hmode,   read_hideleg,     write_hideleg     },
@@ -2077,6 +2167,8 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_HGATP]       = { "hgatp",       hmode,   read_hgatp,       write_hgatp       },
     [CSR_HTIMEDELTA]  = { "htimedelta",  hmode,   read_htimedelta,  write_htimedelta  },
     [CSR_HTIMEDELTAH] = { "htimedeltah", hmode32, read_htimedeltah, write_htimedeltah },
+    [CSR_HENVCFG]     = { "henvcfg",     hmode,   read_henvcfg,     write_henvcfg     },
+    [CSR_HENVCFGH]    = { "henvcfgh",    hmode32, read_henvcfgh,    write_henvcfgh    },
 
     [CSR_VSSTATUS]    = { "vsstatus",    hmode,   read_vsstatus,    write_vsstatus    },
     [CSR_VSIP]        = { "vsip",        hmode,   NULL,    NULL,    rmw_vsip          },

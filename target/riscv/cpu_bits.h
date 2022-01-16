@@ -158,6 +158,10 @@
 #define CSR_MTVEC           0x305
 #define CSR_MCOUNTEREN      0x306
 
+/* Machine Environment Configuration */
+#define CSR_MENVCFG         0x30a
+#define CSR_MENVCFGH        0x31a
+
 /* 32-bit only */
 #define CSR_MSTATUSH        0x310
 
@@ -175,6 +179,9 @@
 #define CSR_SIE             0x104
 #define CSR_STVEC           0x105
 #define CSR_SCOUNTEREN      0x106
+
+/* Supervisor Environment Configuration */
+#define CSR_SENVCFG         0x10a
 
 /* Supervisor Trap Handling */
 #define CSR_SSCRATCH        0x140
@@ -202,6 +209,8 @@
 #define CSR_HGATP           0x680
 #define CSR_HTIMEDELTA      0x605
 #define CSR_HTIMEDELTAH     0x615
+#define CSR_HENVCFG         0x60a
+#define CSR_HENVCFGH        0x61a
 
 /* Virtual CSRs */
 #define CSR_VSSTATUS        0x200
@@ -448,6 +457,28 @@ typedef enum {
 #define COUNTEREN_TM         (1 << 1)
 #define COUNTEREN_IR         (1 << 2)
 #define COUNTEREN_HPM3       (1 << 3)
+
+/* menvcfg CSR bits */
+#define MENVCFG_FIOM  0x00000001
+#define MENVCFG_CBIE  0x00000030
+#define MENVCFG_CBCFE 0x00000040
+#define MENVCFG_CBZE  0x00000080
+#define MENVCFG_PBMTE 0x4000000000000000
+#define MENVCFG_STCE  0x8000000000000000
+
+/* senvcfg CSR bits */
+#define SENVCFG_FIOM  0x00000001
+#define SENVCFG_CBIE  0x00000030
+#define SENVCFG_CBCFE 0x00000040
+#define SENVCFG_CBZE  0x00000080
+
+/* henvcfg CSR bits */
+#define HENVCFG_FIOM  0x00000001
+#define HENVCFG_CBIE  0x00000030
+#define HENVCFG_CBCFE 0x00000040
+#define HENVCFG_CBZE  0x00000080
+#define HENVCFG_PBMTE 0x4000000000000000
+#define HENVCFG_STCE  0x8000000000000000
 
 /* Privilege modes */
 #define PRV_U 0

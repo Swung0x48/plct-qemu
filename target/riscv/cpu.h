@@ -188,6 +188,9 @@ struct CPURISCVState {
     target_ulong mcause;
     target_ulong mtval;  /* since: priv-1.10.0 */
 
+    target_ulong senvcfg;
+    uint64_t menvcfg;
+
     /* Hypervisor CSRs */
     target_ulong hstatus;
     target_ulong hedeleg;
@@ -197,6 +200,7 @@ struct CPURISCVState {
     target_ulong htinst;
     target_ulong hgatp;
     uint64_t htimedelta;
+    uint64_t henvcfg;
 
     /* Upper 64-bits of 128-bit CSRs */
     uint64_t mscratchh;
@@ -265,6 +269,9 @@ struct CPURISCVState {
     target_ulong upmbase;
 #endif
 
+    /* cache block size */
+    target_ulong blocksz;
+
     float_status fp_status;
 
     /* Fields from here on are preserved across CPU reset. */
@@ -324,6 +331,9 @@ struct RISCVCPU {
         bool ext_zbb;
         bool ext_zbc;
         bool ext_zbs;
+        bool ext_zicbom;
+        bool ext_zicbop;
+        bool ext_zicboz;
         bool ext_counters;
         bool ext_ifencei;
         bool ext_icsr;
@@ -336,6 +346,7 @@ struct RISCVCPU {
         char *vext_spec;
         uint16_t vlen;
         uint16_t elen;
+        uint16_t blocksz;
         bool mmu;
         bool pmp;
         bool epmp;
@@ -377,6 +388,10 @@ hwaddr riscv_cpu_get_phys_page_debug(CPUState *cpu, vaddr addr);
 void  riscv_cpu_do_unaligned_access(CPUState *cs, vaddr addr,
                                     MMUAccessType access_type, int mmu_idx,
                                     uintptr_t retaddr) QEMU_NORETURN;
+bool riscv_cpu_tlb_fill_internal(CPUState *cs, vaddr address, int size,
+                                 MMUAccessType access_type,
+                                 MMUAccessType trap_type,
+                                 int mmu_idx, bool probe, uintptr_t retaddr);
 bool riscv_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
                         MMUAccessType access_type, int mmu_idx,
                         bool probe, uintptr_t retaddr);

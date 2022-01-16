@@ -145,6 +145,11 @@ static void set_resetvec(CPURISCVState *env, target_ulong resetvec)
 #endif
 }
 
+static void set_blocksz(CPURISCVState *env, uint16_t blocksz)
+{
+    env->blocksz = blocksz;
+}
+
 static void riscv_any_cpu_init(Object *obj)
 {
     CPURISCVState *env = &RISCV_CPU(obj)->env;
@@ -475,6 +480,10 @@ static void riscv_cpu_realize(DeviceState *dev, Error **errp)
 
     set_resetvec(env, cpu->cfg.resetvec);
 
+    if (cpu->cfg.ext_zicbom || cpu->cfg.ext_zicboz) {
+        set_blocksz(env, cpu->cfg.blocksz);
+    }
+
     /* Validate that MISA_MXL is set properly. */
     switch (env->misa_mxl_max) {
 #ifdef TARGET_RISCV64
@@ -672,6 +681,12 @@ static Property riscv_cpu_properties[] = {
     DEFINE_PROP_BOOL("zbb", RISCVCPU, cfg.ext_zbb, true),
     DEFINE_PROP_BOOL("zbc", RISCVCPU, cfg.ext_zbc, true),
     DEFINE_PROP_BOOL("zbs", RISCVCPU, cfg.ext_zbs, true),
+
+    DEFINE_PROP_BOOL("zicbom", RISCVCPU, cfg.ext_zicbom, false),
+    DEFINE_PROP_BOOL("zicbop", RISCVCPU, cfg.ext_zicbop, false),
+    DEFINE_PROP_BOOL("zicboz", RISCVCPU, cfg.ext_zicboz, false),
+    
+    DEFINE_PROP_UINT16("blocksz", RISCVCPU, cfg.blocksz, 64),
 
     /* These are experimental so mark with 'x-' */
     DEFINE_PROP_BOOL("x-j", RISCVCPU, cfg.ext_j, false),

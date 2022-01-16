@@ -1110,3 +1110,11 @@ DEF_HELPER_5(divu_i128, tl, env, tl, tl, tl, tl)
 DEF_HELPER_5(divs_i128, tl, env, tl, tl, tl, tl)
 DEF_HELPER_5(remu_i128, tl, env, tl, tl, tl, tl)
 DEF_HELPER_5(rems_i128, tl, env, tl, tl, tl, tl)
+
+/* cache-block management and zero operation */
+#ifndef CONFIG_USER_ONLY
+DEF_HELPER_2(cbo_clean, void, env, tl)
+DEF_HELPER_2(cbo_flush, void, env, tl)
+DEF_HELPER_2(cbo_inval, void, env, tl)
+DEF_HELPER_2(cbo_zero, void, env, tl)
+#endif
