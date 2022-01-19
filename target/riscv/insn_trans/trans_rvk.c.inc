@@ -29,6 +29,12 @@
     }                                           \
 } while (0)
 
+#define REQUIRE_ZKNH(ctx) do {                  \
+    if (!ctx->cfg_ptr->ext_zknh) {              \
+        return false;                           \
+    }                                           \
+} while (0)
+
 static bool gen_aes32_sm4(DisasContext *ctx, arg_k_aes *a,
                           void (*func)(TCGv, TCGv, TCGv, TCGv))
 {
@@ -112,3 +118,34 @@ static bool trans_aes64im(DisasContext *ctx, arg_aes64im *a)
     REQUIRE_ZKND(ctx);
     return gen_unary(ctx, a, EXT_NONE, gen_helper_aes64im);
 }
+
+#define GEN_SHA256(NAME, OP, NUM1, NUM2, NUM3) \
+static void gen_##NAME(TCGv dest, TCGv src1) \
+{ \
+    TCGv_i32 t0 = tcg_temp_new_i32(); \
+    TCGv_i32 t1 = tcg_temp_new_i32(); \
+    TCGv_i32 t2 = tcg_temp_new_i32(); \
+    \
+    tcg_gen_trunc_tl_i32(t0, src1); \
+    tcg_gen_rotri_i32(t1, t0, NUM1); \
+    tcg_gen_rotri_i32(t2, t0, NUM2); \
+    tcg_gen_xor_i32(t1, t1, t2); \
+    tcg_gen_##OP##_i32(t2, t0, NUM3); \
+    tcg_gen_xor_i32(t1, t1, t2); \
+    tcg_gen_ext_i32_tl(dest, t1); \
+    \
+    tcg_temp_free_i32(t0); \
+    tcg_temp_free_i32(t1); \
+    tcg_temp_free_i32(t2); \
+} \
+\
+static bool trans_##NAME(DisasContext *ctx, arg_##NAME *a) \
+{ \
+    REQUIRE_ZKNH(ctx); \
+    return gen_unary(ctx, a, EXT_NONE, gen_##NAME); \
+}
+
+GEN_SHA256(sha256sig0, shri, 7, 18, 3)
+GEN_SHA256(sha256sig1, shri, 17, 19, 10)
+GEN_SHA256(sha256sum0, rotri, 2, 13, 22)
+GEN_SHA256(sha256sum1, rotri, 6, 11, 25)
