@@ -149,3 +149,66 @@ GEN_SHA256(sha256sig0, shri, 7, 18, 3)
 GEN_SHA256(sha256sig1, shri, 17, 19, 10)
 GEN_SHA256(sha256sum0, rotri, 2, 13, 22)
 GEN_SHA256(sha256sum1, rotri, 6, 11, 25)
+
+#define GEN_SHA512_RV32(NAME, OP1, NUM1, OP2, NUM2, NUM3) \
+static void gen_##NAME(TCGv dest, TCGv src1, TCGv src2) \
+{ \
+    TCGv_i64 t0 = tcg_temp_new_i64(); \
+    TCGv_i64 t1 = tcg_temp_new_i64(); \
+    TCGv_i64 t2 = tcg_temp_new_i64(); \
+    \
+    tcg_gen_concat_tl_i64(t0, src1, src2); \
+    tcg_gen_##OP1##_i64(t1, t0, NUM1); \
+    tcg_gen_##OP2##_i64(t2, t0, NUM2); \
+    tcg_gen_xor_i64(t1, t1, t2); \
+    tcg_gen_rotri_i64(t2, t0, NUM3); \
+    tcg_gen_xor_i64(t1, t1, t2); \
+    tcg_gen_trunc_i64_tl(dest, t1); \
+    \
+    tcg_temp_free_i64(t0); \
+    tcg_temp_free_i64(t1); \
+    tcg_temp_free_i64(t2); \
+} \
+\
+static bool trans_##NAME(DisasContext *ctx, arg_##NAME *a) \
+{ \
+    REQUIRE_32BIT(ctx); \
+    REQUIRE_ZKNH(ctx); \
+    return gen_arith(ctx, a, EXT_NONE, gen_##NAME, NULL); \
+}
+
+GEN_SHA512_RV32(sha512sum0r, rotli, 25, rotli, 30, 28)
+GEN_SHA512_RV32(sha512sum1r, rotli, 23, rotri, 14, 18)
+GEN_SHA512_RV32(sha512sig0l, rotri, 1, rotri, 7, 8)
+GEN_SHA512_RV32(sha512sig1l, rotli, 3, rotri, 6, 19)
+
+#define GEN_SHA512H_RV32(NAME, OP, NUM1, NUM2, NUM3) \
+static void gen_##NAME(TCGv dest, TCGv src1, TCGv src2) \
+{ \
+    TCGv_i64 t0 = tcg_temp_new_i64(); \
+    TCGv_i64 t1 = tcg_temp_new_i64(); \
+    TCGv_i64 t2 = tcg_temp_new_i64(); \
+    \
+    tcg_gen_concat_tl_i64(t0, src1, src2); \
+    tcg_gen_##OP##_i64(t1, t0, NUM1); \
+    tcg_gen_concat_tl_i64(t2, src1, tcg_const_tl(0)); \
+    tcg_gen_shri_i64(t2, t2, NUM2); \
+    tcg_gen_xor_i64(t1, t1, t2); \
+    tcg_gen_rotri_i64(t2, t0, NUM3); \
+    tcg_gen_xor_i64(t1, t1, t2); \
+    tcg_gen_trunc_i64_tl(dest, t1); \
+    \
+    tcg_temp_free_i64(t0); \
+    tcg_temp_free_i64(t1); \
+    tcg_temp_free_i64(t2); \
+} \
+\
+static bool trans_##NAME(DisasContext *ctx, arg_##NAME *a) \
+{ \
+    REQUIRE_32BIT(ctx); \
+    REQUIRE_ZKNH(ctx); \
+    return gen_arith(ctx, a, EXT_NONE, gen_##NAME, NULL); \
+}
+
+GEN_SHA512H_RV32(sha512sig0h, rotri, 1, 7, 8)
+GEN_SHA512H_RV32(sha512sig1h, rotli, 3, 6, 19)
