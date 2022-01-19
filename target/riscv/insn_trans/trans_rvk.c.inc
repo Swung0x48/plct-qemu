@@ -212,3 +212,35 @@ static bool trans_##NAME(DisasContext *ctx, arg_##NAME *a) \
 
 GEN_SHA512H_RV32(sha512sig0h, rotri, 1, 7, 8)
 GEN_SHA512H_RV32(sha512sig1h, rotli, 3, 6, 19)
+
+#define GEN_SHA512_RV64(NAME, OP, NUM1, NUM2, NUM3) \
+static void gen_##NAME(TCGv dest, TCGv src1) \
+{ \
+    TCGv_i64 t0 = tcg_temp_new_i64(); \
+    TCGv_i64 t1 = tcg_temp_new_i64(); \
+    TCGv_i64 t2 = tcg_temp_new_i64(); \
+    \
+    tcg_gen_extu_tl_i64(t0, src1); \
+    tcg_gen_rotri_i64(t1, t0, NUM1); \
+    tcg_gen_rotri_i64(t2, t0, NUM2); \
+    tcg_gen_xor_i64(t1, t1, t2); \
+    tcg_gen_##OP##_i64(t2, t0, NUM3); \
+    tcg_gen_xor_i64(t1, t1, t2); \
+    tcg_gen_trunc_i64_tl(dest, t1); \
+    \
+    tcg_temp_free_i64(t0); \
+    tcg_temp_free_i64(t1); \
+    tcg_temp_free_i64(t2); \
+} \
+\
+static bool trans_##NAME(DisasContext *ctx, arg_##NAME *a) \
+{ \
+    REQUIRE_64BIT(ctx); \
+    REQUIRE_ZKNH(ctx); \
+    return gen_unary(ctx, a, EXT_NONE, gen_##NAME); \
+}
+
+GEN_SHA512_RV64(sha512sig0, shri, 1, 8, 7)
+GEN_SHA512_RV64(sha512sig1, shri, 19, 61, 6)
+GEN_SHA512_RV64(sha512sum0, rotri, 28, 34, 39)
+GEN_SHA512_RV64(sha512sum1, rotri, 14, 18, 41)
