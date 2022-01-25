@@ -157,32 +157,17 @@ typedef enum {
     rv_codec_css_sdsp,
     rv_codec_css_sqsp,
     rv_codec_k_bs,
-    rv_codec_k_rnum,
-    rv_codec_zceb_lb,
-    rv_codec_zceb_lh,
-    rv_codec_zcea_b,
-    rv_codec_zceb_d,
-    rv_codec_zceb_lw,
-    rv_codec_zceb_ld,    
-    rv_codec_zceb_sw,
-    rv_codec_zceb_sd,
-    rv_codec_zceb_c_d,
-    rv_codec_zcea_zext,
-    rv_codec_zcea_mul,
-    rv_codec_zcea_mva,
-    rv_codec_zcea_tbl,
-    rv_codec_zcea_c_popret,  
-    rv_codec_zcea_c_pop,
-    rv_codec_zcea_c_pop_e,
-    rv_codec_zcea_c_push,
-    rv_codec_zcea_c_popret_e,
-    rv_codec_zcea_c_push_e,
-    rv_codec_zcea_popret,  
-    rv_codec_zcea_pop,
-    rv_codec_zcea_pop_e,
-    rv_codec_zcea_push,
-    rv_codec_zcea_popret_e,
-    rv_codec_zcea_push_e,    
+    rv_codec_k_rnum,    
+    rv_codec_zcb_ext,
+    rv_codec_zcb_mul,
+    rv_codec_zcb_lb,
+    rv_codec_zcb_lh,
+    rv_codec_zcmb_lb,
+    rv_codec_zcmb_lh,
+    rv_codec_zcmp_cm_pushpop,
+    rv_codec_zcmp_cm_mv,
+    rv_codec_zcmt_jt,
+    rv_codec_zcmt_jalt,
 } rv_codec;
 
 typedef enum {
@@ -587,43 +572,32 @@ typedef enum {
     rv_op_xperm8 = 398,
     rv_op_beqi = 362,
     rv_op_bnei = 363,
-    rv_op_c_lbu = 364,
-    rv_op_c_lhu = 365,
-    rv_op_c_lb = 366,
-    rv_op_c_lh = 367,
-    rv_op_c_sb = 368,
-    rv_op_c_sh = 369,
-    rv_op_decbnez = 370,
-    rv_op_lwgp = 371,
-    rv_op_ldgp = 372,
-    rv_op_swgp = 373,
-    rv_op_sdgp = 374,
-    rv_op_c_decbnez = 375,
-    rv_op_c_zext_b = 376,
-    rv_op_c_sext_b = 377,
-    rv_op_c_zext_h = 378,
-    rv_op_c_sext_h = 379,
-    rv_op_c_zext_w = 380,
-    rv_op_c_neg = 381,
-    rv_op_c_not = 382,
-    rv_op_c_mul = 383,
-    rv_op_c_tblj = 384,
-    rv_op_c_tbljal = 385,
-    rv_op_c_tbljalm = 386,
-    rv_op_c_popret = 387,
-    rv_op_c_pop = 388,
-    rv_op_c_push = 389,
-    rv_op_c_popret_e = 390,
-    rv_op_c_pop_e = 391,
-    rv_op_c_push_e = 392,
-    rv_op_popret = 393,
-    rv_op_pop = 394,
-    rv_op_push = 395,
-    rv_op_popret_e = 396,
-    rv_op_pop_e = 397,
-    rv_op_push_e = 398,
-    rv_op_c_mva01s07 = 399,
-    rv_op_muli = 400,
+    rv_op_c_zext_b,
+    rv_op_c_sext_b,
+    rv_op_c_zext_h,
+    rv_op_c_sext_h,
+    rv_op_c_zext_w,
+    rv_op_c_not,
+    rv_op_c_mul,
+    rv_op_c_lbu,
+    rv_op_c_lhu,
+    rv_op_c_lh,
+    rv_op_c_sb,
+    rv_op_c_sh,
+    rv_op_cm_lbu,
+    rv_op_cm_lhu,
+    rv_op_cm_lb,
+    rv_op_cm_lh,
+    rv_op_cm_sb,
+    rv_op_cm_sh,
+    rv_op_cm_push,
+    rv_op_cm_pop,
+    rv_op_cm_popret,
+    rv_op_cm_popretz,
+    rv_op_cm_mva01s,
+    rv_op_cm_mvsa01,
+    rv_op_cm_jt,
+    rv_op_cm_jalt
 } rv_op;
 
 /* structures */
@@ -645,13 +619,7 @@ typedef struct {
     uint8_t   rl;
     uint8_t   bs;
     uint8_t   rnum;
-    uint8_t   zceimm;
-    int16_t   offset;
-    uint8_t   scale;
-    uint8_t   ret;
     uint8_t   rlist;
-    uint8_t   areg;
-    uint8_t   rlist_flag;
 } rv_decode;
 
 typedef struct {
@@ -729,14 +697,10 @@ static const char rv_freg_name_sym[32][5] = {
 #define rv_fmt_rs2_offset             "O\t2,o"
 #define rv_fmt_rs1_rs2_bs             "O\t1,2,b"
 #define rv_fmt_rd_rs1_rnum            "O\t0,1,n"
-#define rv_fmt_rs2_zceimm_offset      "O\t2,z,f"
-#define rv_fmt_rs1_rs2_zceimm         "O\t1,2,z"
-#define rv_fmt_imm_scale_rd           "O\ti,S,0"
-#define rv_fmt_imm_rd                 "O\ti,0" 
-#define rv_fmt_imm_rs2                "O\ti,2" 
-#define rv_fmt_zceimm_rd_scale        "O\tz,0,S" 
-#define rv_fmt_zceimm                 "O\tz" 
-#define rv_fmt_zceimm_rlist            "O\tl" 
+#define rv_fmt_rs1_rs2_zce_ldst       "O\t1,i(2)"
+#define rv_fmt_push_rlist             "O\tl,-i"
+#define rv_fmt_pop_rlist              "O\tl,i"
+#define rv_fmt_zcmt_index             "0\ti"
 
 /* pseudo-instruction constraints */
 
@@ -1363,45 +1327,32 @@ const rv_opcode_data opcode_data[] = {
     { "zip", rv_codec_r, rv_fmt_rd_rs1, NULL, 0, 0, 0 },
     { "xperm4", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
     { "xperm8", rv_codec_r, rv_fmt_rd_rs1, NULL, 0, 0, 0 },
-    { "beqi", rv_codec_zcea_b, rv_fmt_rs2_zceimm_offset, NULL, 0, 0, 0 },
-    { "bnei", rv_codec_zcea_b, rv_fmt_rs2_zceimm_offset, NULL, 0, 0, 0 },
-    { "decbnez", rv_codec_zceb_d, rv_fmt_imm_scale_rd, NULL, 0, 0, 0 },
-    { "lwgp", rv_codec_zceb_lw, rv_fmt_imm_rd, NULL, 0, 0 },
-    { "ldgp", rv_codec_zceb_ld, rv_fmt_imm_rd, NULL, 0, 0 },
-    { "swgp", rv_codec_zceb_sw, rv_fmt_imm_rs2, NULL, 0, 0 },
-    { "sdgp", rv_codec_zceb_sd, rv_fmt_imm_rs2, NULL, 0, 0 },
-    { "c.lbu", rv_codec_zceb_lb, rv_fmt_rs1_rs2_zceimm, NULL, 0, 0, 0 },
-    { "c.lhu", rv_codec_zceb_lh, rv_fmt_rs1_rs2_zceimm, NULL, 0, 0, 0 },
-    { "c.lb", rv_codec_zceb_lb, rv_fmt_rs1_rs2_zceimm, NULL, 0, 0, 0 },
-    { "c.lh", rv_codec_zceb_lh, rv_fmt_rs1_rs2_zceimm, NULL, 0, 0, 0 },
-    { "c.sb", rv_codec_zceb_lb, rv_fmt_rs1_rs2_zceimm, NULL, 0, 0, 0 },
-    { "c.sh", rv_codec_zceb_lh, rv_fmt_rs1_rs2_zceimm, NULL, 0, 0, 0 },
-    { "c.decbnez", rv_codec_zceb_c_d, rv_fmt_zceimm_rd_scale, NULL, 0, 0, 0 },
-    { "c.zext_b", rv_codec_zcea_zext, rv_fmt_rd, NULL, 0 },
-    { "c.sext_b", rv_codec_zcea_zext, rv_fmt_rd, NULL, 0 },
-    { "c.zext_h", rv_codec_zcea_zext, rv_fmt_rd, NULL, 0 },
-    { "c.sext_h", rv_codec_zcea_zext, rv_fmt_rd, NULL, 0 },
-    { "c.zext_w", rv_codec_zcea_zext, rv_fmt_rd, NULL, 0 },
-    { "c.neg", rv_codec_zcea_zext, rv_fmt_rd, NULL, 0 },
-    { "c.not", rv_codec_zcea_zext, rv_fmt_rd, NULL, 0 },
-    { "c.mul", rv_codec_zcea_mul, rv_fmt_rd_rs2, NULL, 0, 0 },
-    { "c.tblj", rv_codec_zcea_tbl, rv_fmt_zceimm, NULL, 0 },
-    { "c.tbljal", rv_codec_zcea_tbl, rv_fmt_zceimm, NULL, 0 },
-    { "c.tbljalm", rv_codec_zcea_tbl, rv_fmt_zceimm, NULL, 0 },
-    { "c.popret", rv_codec_zcea_c_popret, rv_fmt_zceimm_rlist, NULL, 0, 0, 0 },
-    { "c.pop", rv_codec_zcea_c_pop, rv_fmt_zceimm_rlist, NULL, 0, 0 },
-    { "c.push", rv_codec_zcea_c_push, rv_fmt_zceimm_rlist, NULL, 0, 0 },
-    { "c.popret_e", rv_codec_zcea_c_popret_e, rv_fmt_zceimm_rlist, NULL, 0, 0, 0 },
-    { "c.pop_e", rv_codec_zcea_c_pop_e, rv_fmt_zceimm_rlist, NULL, 0, 0 },
-    { "c.push_e", rv_codec_zcea_c_push_e, rv_fmt_zceimm_rlist, NULL, 0, 0 },
-    { "popret", rv_codec_zcea_popret, rv_fmt_zceimm_rlist, NULL, 0, 0, 0 },
-    { "pop", rv_codec_zcea_pop, rv_fmt_zceimm_rlist, NULL, 0, 0 },
-    { "push", rv_codec_zcea_push, rv_fmt_zceimm_rlist, NULL, 0, 0 },
-    { "popret_e", rv_codec_zcea_popret_e, rv_fmt_zceimm_rlist, NULL, 0, 0, 0 },
-    { "pop_e", rv_codec_zcea_pop_e, rv_fmt_zceimm_rlist, NULL, 0, 0 },
-    { "push_e", rv_codec_zcea_push_e, rv_fmt_zceimm_rlist, NULL, 0, 0 },
-    { "c.mva01s07", rv_codec_zcea_mva, rv_fmt_rd_rs2, NULL, 0, 0, 0 },
-    { "muli", rv_codec_i, rv_fmt_rd_rs1_imm, NULL, 0, 0, 0 },
+    { "c.zext_b", rv_codec_zcb_ext, rv_fmt_rd, NULL, 0 },
+    { "c.sext_b", rv_codec_zcb_ext, rv_fmt_rd, NULL, 0 },
+    { "c.zext_h", rv_codec_zcb_ext, rv_fmt_rd, NULL, 0 },
+    { "c.sext_h", rv_codec_zcb_ext, rv_fmt_rd, NULL, 0 },
+    { "c.zext_w", rv_codec_zcb_ext, rv_fmt_rd, NULL, 0 },
+    { "c.not", rv_codec_zcb_ext, rv_fmt_rd, NULL, 0 },
+    { "c.mul", rv_codec_zcb_mul, rv_fmt_rd_rs2, NULL, 0, 0 },
+    { "c.lbu", rv_codec_zcb_lb, rv_fmt_rs1_rs2_zce_ldst, NULL, 0, 0, 0 },
+    { "c.lhu", rv_codec_zcb_lh, rv_fmt_rs1_rs2_zce_ldst, NULL, 0, 0, 0 },
+    { "c.lh", rv_codec_zcb_lh, rv_fmt_rs1_rs2_zce_ldst, NULL, 0, 0, 0 },
+    { "c.sb", rv_codec_zcb_lb, rv_fmt_rs1_rs2_zce_ldst, NULL, 0, 0, 0 },
+    { "c.sh", rv_codec_zcb_lh, rv_fmt_rs1_rs2_zce_ldst, NULL, 0, 0, 0 },
+    { "cm.lbu", rv_codec_zcmb_lb, rv_fmt_rs1_rs2_zce_ldst, NULL, 0, 0, 0 },
+    { "cm.lhu", rv_codec_zcmb_lh, rv_fmt_rs1_rs2_zce_ldst, NULL, 0, 0, 0 },
+    { "cm.lb", rv_codec_zcmb_lb, rv_fmt_rs1_rs2_zce_ldst, NULL, 0, 0, 0 },
+    { "cm.lh", rv_codec_zcmb_lh, rv_fmt_rs1_rs2_zce_ldst, NULL, 0, 0, 0 },
+    { "cm.sb", rv_codec_zcmb_lb, rv_fmt_rs1_rs2_zce_ldst, NULL, 0, 0, 0 },
+    { "cm.sh", rv_codec_zcmb_lh, rv_fmt_rs1_rs2_zce_ldst, NULL, 0, 0, 0 },
+    { "cm.push", rv_codec_zcmp_cm_pushpop, rv_fmt_push_rlist, NULL, 0, 0 },
+    { "cm.pop", rv_codec_zcmp_cm_pushpop, rv_fmt_pop_rlist, NULL, 0, 0 },
+    { "cm.popret", rv_codec_zcmp_cm_pushpop, rv_fmt_pop_rlist, NULL, 0, 0, 0 },
+    { "cm.popretz", rv_codec_zcmp_cm_pushpop, rv_fmt_pop_rlist, NULL, 0, 0 },
+    { "cm.mva01s", rv_codec_zcmp_cm_mv, rv_fmt_rd_rs2, NULL, 0, 0, 0 },
+    { "cm.mvsa01", rv_codec_zcmp_cm_mv, rv_fmt_rd_rs2, NULL, 0, 0, 0 },
+    { "cm.jt", rv_codec_zcmt_jt, rv_fmt_zcmt_index, NULL, 0 },
+    { "cm.jalt", rv_codec_zcmt_jalt, rv_fmt_zcmt_index, NULL, 0 },
 };
 
 /* CSR names */
@@ -1522,7 +1473,7 @@ static const char *csr_name(int csrno)
     case 0x07b0: return "dcsr";
     case 0x07b1: return "dpc";
     case 0x07b2: return "dscratch";
-    case 0x0800: return "tbljalvec";
+    case 0x0800: return "jvt";  //to fix
     case 0x0b00: return "mcycle";
     case 0x0b01: return "mtime";
     case 0x0b02: return "minstret";
@@ -1624,9 +1575,10 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
         switch (((inst >> 13) & 0b111)) {
         case 0: op = rv_op_c_addi4spn; break;
         case 1:
-            switch((inst >> 12) & 0b1) {
-                case 0: op = rv_op_c_lbu; break;
-                case 1: op = rv_op_c_lhu; break;                
+            if ((inst >> 12) & 0b01) {
+                op = rv_op_cm_lh;
+            } else {
+                op = rv_op_cm_lb;
             }
             if (isa == rv128) {
                 op = rv_op_c_lq;
@@ -1643,58 +1595,28 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
             }
             break;
         case 4:
-            switch((inst >> 10) & 0b111) {
-            case 0:
-                switch((inst >> 2) & 0b11111) {
-                    case 0: op = rv_op_c_zext_b; break;
-                    case 1: op = rv_op_c_sext_b; break;
-                    case 2: op = rv_op_c_zext_h; break;
-                    case 3: op = rv_op_c_sext_h; break;
-                    case 4: op = rv_op_c_zext_w; break;
-                    case 6: op = rv_op_c_neg; break;
-                    case 7: op = rv_op_c_not; break;
-                }
-                break;
-            case 2:
-                if(((inst >> 2) & 0b11111111) < 8) {
-                    op = rv_op_c_tbljalm;
-                } else if(((inst >> 2) & 0b11111111) >= 64) {
-                    op = rv_op_c_tbljal;
+            switch ((inst >> 10) & 0b111) {
+            case 0: op = rv_op_c_lbu; break;
+            case 1:
+                if (((inst >> 6) & 1) == 0) {
+                    op = rv_op_c_lhu;
                 } else {
-                    op = rv_op_c_tblj;
+                    op = rv_op_c_lh;
                 }
                 break;
-            case 3:
-                switch((inst >> 6) & 0b1) {
-                case 0:
-                    switch((inst >> 8) & 0b11) {
-                        case 3:
-                            switch((inst >> 5) & 0b1) {
-                                case 0: op = rv_op_c_pop; break;
-                                case 1: op = rv_op_c_pop_e; break;
-                            }
-                            break;
-                        default: op = rv_op_c_popret; break;
-                    }
-                    break;
-                case 1:
-                    switch((inst >> 8) & 0b11) {
-                        case 3: op = rv_op_c_push_e; break;
-                        default:
-                            switch((inst >> 5) & 0b1) {
-                                case 0: op = rv_op_c_push; break;
-                                case 1: op = rv_op_c_popret_e; break;                                
-                            }
-                    }
-                    break;
+            case 2: op = rv_op_c_sb; break;
+            case 3: 
+                if (((inst >> 6) & 1) == 0) {
+                    op = rv_op_c_sh;
                 }
                 break;
             }
             break;
         case 5:
-            switch((inst >> 12) & 0b1) {
-                case 0: op = rv_op_c_sb; break;
-                case 1: op = rv_op_c_sh; break;                
+            if ((inst >> 12) & 0b01) {
+                op = rv_op_cm_sh;
+            } else {
+                op = rv_op_cm_sb;
             }
             if (isa == rv128) {
                 op = rv_op_c_sq;
@@ -1752,9 +1674,17 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
                 case 4: op = rv_op_c_subw; break;
                 case 5: op = rv_op_c_addw; break;
                 case 6: op = rv_op_c_mul; break;
-                case 7: op = rv_op_c_mva01s07; break;
+                case 7: 
+                    switch ((inst >> 2) & 0b111) {
+                    case 0: op = rv_op_c_zext_b; break;
+                    case 1: op = rv_op_c_sext_b; break;
+                    case 2: op = rv_op_c_zext_h; break;
+                    case 3: op = rv_op_c_sext_h; break;
+                    case 4: op = rv_op_c_zext_w; break;
+                    case 5: op = rv_op_c_not; break;
+                    }
+                    break;
                 }
-                break;
             }
             break;
         case 5: op = rv_op_c_j; break;
@@ -1768,9 +1698,10 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
             op = rv_op_c_slli;
             break;
         case 1:
-            switch((inst >> 12) & 0b1) {
-            case 0: op = rv_op_c_lb; break;
-            case 1: op = rv_op_c_lh; break;                
+            if ((inst >> 12) & 0b01) {
+                op = rv_op_cm_lhu;
+            } else {
+                op = rv_op_cm_lbu;
             }
             if (isa == rv128) {
                 op = rv_op_c_lqsp;
@@ -1808,7 +1739,30 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
             }
             break;
         case 5:
-            op = rv_op_c_decbnez;
+            if (((inst >> 12) & 0b01)) {
+                switch ((inst >> 8) & 0b01111) {
+                case 6: op = rv_op_cm_push; break;
+                case 10: op = rv_op_cm_pop; break;
+                case 12: op = rv_op_cm_popretz; break;
+                case 14: op = rv_op_cm_popret; break;
+                }
+            } else {
+                switch ((inst >> 10) & 0b011) {
+                case 1:
+                    if (((inst << 54) >> 56) >= 64) {
+                        op = rv_op_cm_jalt;
+                    } else {
+                        op = rv_op_cm_jt;
+                    }
+                    break;
+                case 3:
+                    switch ((inst >> 5) & 0b011) {
+                    case 1: op = rv_op_cm_mvsa01; break;
+                    case 3: op = rv_op_cm_mva01s; break;
+                    }
+                    break;
+                }
+            }
             if (isa == rv128) {
                 op = rv_op_c_sqsp;
             } else {
@@ -1843,20 +1797,7 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
             switch (((inst >> 12) & 0b111)) {
             case 2: op = rv_op_flw; break;
             case 3: op = rv_op_fld; break;
-                // TODO
-                // switch((inst >> 29) & 0b111) {
-                // case 0: op = rv_op_lwgp; break;
-                // case 2: op = rv_op_ldgp; break;
-                // case 4: op = rv_op_decbnez; break;
-                // default: op = rv_op_fld; break;
-                // }
-            break;
             case 4: op = rv_op_flq; break;
-            }
-            break;
-        case 2:
-            switch (((inst >> 12) & 0b111)) {
-            case 1: op = rv_op_muli; break;
             }
             break;
         case 3:
@@ -1983,35 +1924,7 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
             switch (((inst >> 12) & 0b111)) {
             case 2: op = rv_op_fsw; break;
             case 3: op = rv_op_fsd; break;
-            // TODO
-            // switch((inst >> 29) & 0b111) {
-            // case 0: op = rv_op_swgp; break;
-            // case 2: op = rv_op_sdgp; break;
-            // default: op = rv_op_fsd; break;
-            // }
             case 4: op = rv_op_fsq; break;
-            }
-            break;
-        case 10:
-            switch (((inst >> 12) & 0b1111)) {
-            case 4: 
-                if (((inst >> 16) & 0xf) <= 12) 
-                    op = rv_op_push;
-                else
-                    op = rv_op_push_e;
-                break;
-            case 5:
-                if (((inst >> 16) & 0xf) <= 12) 
-                    op = rv_op_pop;
-                else
-                    op = rv_op_pop_e;
-                break;
-            case 6:
-                if (((inst >> 16) & 0xf) <= 12) 
-                    op = rv_op_popret;
-                else
-                    op = rv_op_popret_e;
-                break;
             }
             break;
         case 11:
@@ -2763,84 +2676,103 @@ static uint32_t operand_rnum(rv_inst inst)
     return (inst << 40) >> 60;
 }
 
-static uint32_t operand_uimm(rv_inst inst)
+static uint32_t operand_uimm_cm_lb(rv_inst inst)
 {
-    return ((inst << 44) >> 59);
+    return (((inst << 53) >> 63) << 3) |
+        (((inst << 57) >> 62) << 1) |
+        ((inst << 52) >> 63);
+}
+
+static uint32_t operand_uimm_cm_lh(rv_inst inst)
+{
+    return (((inst << 52) >> 62) << 3) |
+        (((inst << 57) >> 62) << 1);
 }
 
 static uint32_t operand_uimm_c_lb(rv_inst inst)
 {
-    return (((inst << 53) >> 63) << 3) |
-        (((inst << 57) >> 50) << 1) | 
-        ((inst << 52) >> 63);
+    return (((inst << 58) >> 63) << 1) | 
+        ((inst << 57) >> 63);
 }
 
 static uint32_t operand_uimm_c_lh(rv_inst inst)
 {
-    return (((inst << 52) >> 62) << 3)  | (((inst << 57) >> 62) << 1);
+    return (((inst << 58) >> 63) << 1);
 }
 
-static uint32_t operand_offset(rv_inst inst)
+static uint32_t operand_zcmp_spimm(rv_inst inst)
 {
-    return (((inst << 32) >> 62) << 12) |
-        (((inst << 56) >> 62) << 11) |
-        (((inst << 33) >> 58) << 5) |
-        (((inst << 52) >> 60) << 1);
+    return ((inst << 60) >> 62) << 4;
 }
 
-static uint32_t operand_scale(rv_inst inst)
+static uint32_t operand_zcmp_rlist(rv_inst inst)
 {
-    return ((inst << 44) >> 62);
+    return ((inst << 56) >> 60);
 }
 
-static uint32_t operand_zce_dec_imm(rv_inst inst)
+static uint32_t caculate_stack_adj(rv_isa isa, uint32_t rlist, uint32_t spimm)
 {
-    return (((inst << 47) >> 62) << 11) |
-        (((inst << 42) >> 62) << 9) |
-        (((inst << 35) >> 57) << 2) |
-        (((inst << 46) >> 63) << 1);
+    uint32_t stack_adj_base = 0;
+    if (isa == rv32) {
+        switch (rlist) {
+        case 15:
+            stack_adj_base = 112;
+            break;
+        case 14:
+            stack_adj_base = 96;
+            break;
+        case 13:
+        case 12:
+            stack_adj_base = 80;
+            break;
+        case 11:
+        case 10:
+            stack_adj_base = 64;
+            break;
+        case 9:
+        case 8:
+            stack_adj_base = 48;
+            break;
+        case 7:
+        case 6:
+            stack_adj_base = 32;
+            break;
+        case 5:
+        case 4:
+            stack_adj_base = 16;
+            break;
+        }
+    } else {
+        switch (rlist) {
+        case 15:
+            stack_adj_base = 64;
+            break;
+        case 14:
+        case 13:
+        case 12:
+            stack_adj_base = 48;
+            break;
+        case 11:
+        case 10:
+        case 9:
+        case 8:
+            stack_adj_base = 32;
+            break;
+        case 7:
+        case 6:
+        case 5:
+        case 4:
+            stack_adj_base = 16;
+            break;
+        }
+    }
+    return stack_adj_base + spimm;
 }
 
-static uint32_t operand_zce_lwgp_imm(rv_inst inst)
+static uint32_t operand_zcmp_stack_adj(rv_inst inst, rv_isa isa)
 {
-    return (((inst << 44) >> 59) << 11) |
-        (((inst << 42) >> 62) << 9) |
-        (((inst << 35) >> 57) << 2);
-}
-
-static uint32_t operand_zce_ldgp_imm(rv_inst inst)
-{
-    return (((inst << 41) >> 63) << 16) |
-        (((inst << 44) >> 59) << 11) |
-        (((inst << 42) >> 62) << 9) |
-        (((inst << 35) >> 58) << 3);
-}
-
-static uint32_t operand_zce_swgp_imm(rv_inst inst)
-{
-    return (((inst << 44) >> 59) << 11) |
-        (((inst << 55) >> 62) << 9) |
-        (((inst << 35) >> 60) << 5)| 
-        (((inst << 52) >> 61) << 2);
-}
-
-static uint32_t operand_zce_sdgp_imm(rv_inst inst)
-{
-    return (((inst << 53) >> 63) << 16)|
-        (((inst << 44) >> 59) << 11) |
-        (((inst << 55) >> 62) << 9) |
-        (((inst << 35) >> 60) << 5) |
-        (((inst << 52) >> 62) << 3);
-}
-
-static uint32_t operand_c_decbnez_scale(rv_inst inst)
-{
-    return ((inst << 60) >> 62);
-}
-
-static uint32_t operand_c_decbenz_uimm(rv_inst inst)
-{
-    return (((inst << 48) >> 61) << 4) | (((inst << 57) >> 61) << 1);
+    return caculate_stack_adj(isa, operand_zcmp_rlist(inst),
+                              operand_zcmp_spimm(inst));
 }
 
 static uint32_t operand_tbl_index(rv_inst inst)
@@ -2848,65 +2780,9 @@ static uint32_t operand_tbl_index(rv_inst inst)
     return ((inst << 54) >> 56);
 }
 
-static uint32_t operand_zce_spimm(rv_inst inst)
-{
-    return ((inst << 52) >> 59) << 4;
-}
-
-static uint32_t operand_zce_rlist(rv_inst inst)
-{
-    return ((inst << 44) >> 59);
-}
-
-static uint32_t operand_zce_ret_val(rv_inst inst)
-{
-    return ((inst << 42) >> 62);
-}
-
-static uint32_t operand_zce_areg(rv_inst inst)
-{
-    return ((inst << 43) >> 63);
-}
-
-static uint32_t operand_zce_spimm_1(rv_inst inst)
-{
-    return (((inst << 54) >> 61)) << 4;
-}
-
-static uint32_t operand_zce_spimm_2(rv_inst inst)
-{
-    return (((inst << 56) >> 63)) << 4;
-}
-
-static uint32_t operand_zce_spimm_3(rv_inst inst)
-{
-    return  (((inst << 58) >> 62) << 5) |
-        (((inst << 56) >> 63) << 4);
-}
-
-static uint32_t operand_zce_ret_1(rv_inst inst)
-{
-    return  ((inst << 58) >> 63);
-}
-
-static uint32_t operand_zce_ret_2(rv_inst inst)
-{
-    return  ((inst << 59) >> 63);
-}
-
-static uint32_t operand_zce_rlist_1(rv_inst inst)
-{
-    return  ((inst << 59) >> 61);
-}
-
-static uint32_t operand_zce_rlist_2(rv_inst inst)
-{
-    return  ((inst << 60) >> 62);
-}
-
 /* decode operands */
 
-static void decode_inst_operands(rv_decode *dec)
+static void decode_inst_operands(rv_decode *dec, rv_isa isa)
 {
     rv_inst inst = dec->inst;
     dec->codec = opcode_data[dec->op].codec;
@@ -3193,135 +3069,46 @@ static void decode_inst_operands(rv_decode *dec)
         dec->rs1 = operand_rs1(inst);
         dec->rnum = operand_rnum(inst);
         break;
-    case rv_codec_zcea_b:
-        dec->rs2 = operand_rs2(inst);
-        dec->zceimm = operand_uimm(inst);
-        dec->offset = operand_offset(inst);
-        break;
-    case rv_codec_zceb_lb:
+    case rv_codec_zcb_lb:
         dec->rs1 = operand_crs1(inst);
         dec->rs2 = operand_crs2(inst);
-        dec->zceimm = operand_uimm_c_lb(inst);
+        dec->imm = operand_uimm_c_lb(inst);
         break;
-    case rv_codec_zceb_lh:
+    case rv_codec_zcb_lh:
         dec->rs1 = operand_crs1(inst);
         dec->rs2 = operand_crs2(inst);
-        dec->zceimm = operand_uimm_c_lh(inst);
+        dec->imm = operand_uimm_c_lh(inst);
         break;
-    case rv_codec_zceb_d:
-        dec->rd = operand_rd(inst);
-        dec->scale = operand_scale(inst);
-        dec->imm = operand_zce_dec_imm(inst);
+    case rv_codec_zcmb_lb:
+        dec->rs1 = operand_crs1(inst);
+        dec->rs2 = operand_crs2(inst);
+        dec->imm = operand_uimm_cm_lb(inst);
         break;
-    case rv_codec_zceb_lw:  
-        dec->rd = operand_rd(inst);
-        dec->imm = operand_zce_lwgp_imm(inst);
+    case rv_codec_zcmb_lh:
+        dec->rs1 = operand_crs1(inst);
+        dec->rs2 = operand_crs2(inst);
+        dec->imm = operand_uimm_cm_lh(inst);
         break;
-    case rv_codec_zceb_ld:
-        dec->rd = operand_rd(inst);
-        dec->imm = operand_zce_ldgp_imm(inst);
-        break;
-    case rv_codec_zceb_sw:
-        dec->rs2 = operand_rs2(inst);
-        dec->imm = operand_zce_swgp_imm(inst);
-        break;
-    case rv_codec_zceb_sd:
-        dec->rs2 = operand_rs2(inst);
-        dec->imm = operand_zce_sdgp_imm(inst);
-        break;
-    case rv_codec_zceb_c_d:
-        dec->rd = operand_crd(inst);
-        dec->scale = operand_c_decbnez_scale(inst);
-        dec->zceimm = operand_c_decbenz_uimm(inst);
-        break;
-    case rv_codec_zcea_zext:
+    case rv_codec_zcb_ext:
         dec->rd = operand_crd(inst);
         break;        
-    case rv_codec_zcea_mul:
+    case rv_codec_zcb_mul:
         dec->rd = operand_crd(inst);
         dec->rs2 = operand_crs2(inst);
         break;
-    case rv_codec_zcea_mva:
+    case rv_codec_zcmp_cm_pushpop:
+        dec->imm = operand_zcmp_stack_adj(inst, isa);
+        dec->rlist = operand_zcmp_rlist(inst);
+        break;
+    case rv_codec_zcmp_cm_mv:
         dec->rd = operand_sreg1(inst);
         dec->rs2 = operand_sreg2(inst);
         break;
-    case rv_codec_zcea_tbl:
-        dec->zceimm = operand_tbl_index(inst);
+    case rv_codec_zcmt_jt:
+        dec->imm = operand_tbl_index(inst);
         break;
-    case rv_codec_zcea_c_popret:
-        dec->zceimm = operand_zce_spimm_1(inst);
-        dec->ret = operand_zce_ret_1(inst);
-        dec->rlist = operand_zce_rlist_1(inst);
-        dec->rlist_flag = 3;
-        break;
-    case rv_codec_zcea_c_pop:
-        dec->zceimm = operand_zce_spimm_2(inst);
-        dec->rlist = operand_zce_rlist_1(inst);
-        dec->rlist_flag = 3;
-        dec->areg = 0;
-        break;
-    case rv_codec_zcea_c_pop_e:
-        dec->zceimm = operand_zce_spimm_2(inst);
-        dec->rlist = operand_zce_rlist_2(inst);
-        dec->rlist_flag = 2;
-        dec->areg = 0;
-        break;
-    case rv_codec_zcea_c_push:
-        dec->zceimm = operand_zce_spimm_1(inst);
-        dec->rlist = operand_zce_rlist_1(inst);
-        dec->areg = 1;
-        dec->rlist_flag = 3;
-        break;
-    case rv_codec_zcea_c_popret_e:
-        dec->zceimm = operand_zce_spimm_1(inst);
-        dec->ret = operand_zce_ret_2(inst);
-        dec->rlist = operand_zce_rlist_2(inst);
-        dec->areg = 3;
-        dec->rlist_flag = 2;
-        break;
-    case rv_codec_zcea_c_push_e:
-        dec->zceimm = operand_zce_spimm_3(inst);
-        dec->rlist = operand_zce_rlist(inst);
-        dec->areg = 2;
-        dec->rlist_flag = 2;
-        break;
-    case rv_codec_zcea_popret:
-        dec->zceimm = operand_zce_spimm(inst);
-        dec->rlist = operand_zce_rlist(inst);
-        dec->ret = operand_zce_ret_val(inst);
-        dec->rlist_flag = 3;
-        dec->areg = 3;
-        break;
-    case rv_codec_zcea_pop:
-        dec->zceimm = operand_zce_spimm(inst);
-        dec->rlist = operand_zce_rlist(inst);
-        dec->rlist_flag = 4;
-        dec->areg = 3;
-        break;
-    case rv_codec_zcea_pop_e:
-        dec->zceimm = operand_zce_spimm(inst);
-        dec->rlist = operand_zce_rlist(inst) - 10;
-        dec->rlist_flag = 4;
-        dec->areg = 3;
-        break;
-    case rv_codec_zcea_push:
-        dec->zceimm = operand_zce_spimm(inst);
-        dec->rlist = operand_zce_rlist(inst);
-        dec->areg = operand_zce_areg(inst);
-        dec->rlist_flag = 4;
-        break;
-    case rv_codec_zcea_popret_e:
-        dec->zceimm = operand_zce_spimm(inst);
-        dec->rlist = operand_zce_rlist(inst) - 10;
-        dec->ret = operand_zce_ret_val(inst);
-        dec->areg = 3;
-        dec->rlist_flag = 4;
-        break;
-    case rv_codec_zcea_push_e:
-        dec->zceimm = operand_zce_spimm(inst);
-        dec->rlist = operand_zce_rlist(inst) - 10;
-        dec->areg = operand_zce_areg(inst);
-        dec->rlist_flag = 4;
+    case rv_codec_zcmt_jalt:
+        dec->imm = operand_tbl_index(inst) - 64;
         break;
     };
 }
@@ -3607,81 +3394,24 @@ static void format_inst(char *buf, size_t buflen, size_t tab, rv_decode *dec)
                 append(buf, ".rl", buflen);
             }
             break;
-        case 'z':
-            snprintf(tmp, sizeof(tmp), "%d", dec->zceimm);
-            append(buf, tmp, buflen);
-            break;
         case 'l': {
-            int32_t stack_adjustment;
-            uint8_t number_of_registers_in_reg_list = 0;
-            if(dec->rlist_flag == 3) {
-                switch(dec->rlist) {
-                    case 0:snprintf(tmp, sizeof(tmp), "{ra}");number_of_registers_in_reg_list=1;break;
-                    case 1:snprintf(tmp, sizeof(tmp), "{ra, s0}");number_of_registers_in_reg_list=2;break;
-                    case 2:snprintf(tmp, sizeof(tmp), "{ra, s0-s1}");number_of_registers_in_reg_list=3;break;
-                    case 3:snprintf(tmp, sizeof(tmp), "{ra, s0-s2}");number_of_registers_in_reg_list=4;break;
-                    case 4:snprintf(tmp, sizeof(tmp), "{ra, s0-s3}");number_of_registers_in_reg_list=5;break;
-                    case 5:snprintf(tmp, sizeof(tmp), "{ra, s0-s5}");number_of_registers_in_reg_list=7;break;
-                    case 6:snprintf(tmp, sizeof(tmp), "{ra, s0-s7}");number_of_registers_in_reg_list=9;break;
-                    case 7:snprintf(tmp, sizeof(tmp), "{ra, s0-s11}");number_of_registers_in_reg_list=13;break;
-                }
-            } else if(dec->rlist_flag == 2) {
-                switch(dec->rlist) {
-                    case 0:snprintf(tmp, sizeof(tmp), "{ra, s0-s2}");number_of_registers_in_reg_list=4;break;
-                    case 1:snprintf(tmp, sizeof(tmp), "{ra, s0-s3}");number_of_registers_in_reg_list=5;break;
-                    case 2:snprintf(tmp, sizeof(tmp), "{ra, s0-s4}");number_of_registers_in_reg_list=6;break;
-                }
-            } else {
-                switch(dec->rlist) {
-                    case 0:snprintf(tmp, sizeof(tmp), "{ra}");number_of_registers_in_reg_list=1;break;
-                    case 1:snprintf(tmp, sizeof(tmp), "{ra, s0}");number_of_registers_in_reg_list=2;break;
-                    case 2:snprintf(tmp, sizeof(tmp), "{ra, s0-s%d}", dec->rlist - 1);number_of_registers_in_reg_list=dec->rlist + 1;break;
-                }
+            switch(dec->rlist) {
+            case 4:snprintf(tmp, sizeof(tmp), "{ra}");break;
+            case 5:snprintf(tmp, sizeof(tmp), "{ra, s0}");break;
+            case 6:snprintf(tmp, sizeof(tmp), "{ra, s0-s1}");break;
+            case 7:snprintf(tmp, sizeof(tmp), "{ra, s0-s2}");break;
+            case 8:snprintf(tmp, sizeof(tmp), "{ra, s0-s3}");break;
+            case 9:snprintf(tmp, sizeof(tmp), "{ra, s0-s4}");break;
+            case 10:snprintf(tmp, sizeof(tmp), "{ra, s0-s5}");break;
+            case 11:snprintf(tmp, sizeof(tmp), "{ra, s0-s6}");break;
+            case 12:snprintf(tmp, sizeof(tmp), "{ra, s0-s7}");break;
+            case 13:snprintf(tmp, sizeof(tmp), "{ra, s0-s8}");break;
+            case 14:snprintf(tmp, sizeof(tmp), "{ra, s0-s9}");break;
+            case 15:snprintf(tmp, sizeof(tmp), "{ra, s0-s11}");break;
             }
-
-            stack_adjustment = ((number_of_registers_in_reg_list * sizeof(long) + 15) &~0xf ) + dec->zceimm;
-            if(dec->areg == 1) { // push, push.e, c.push 
-                switch(dec->rlist) {
-                    case 0:snprintf(tmp, sizeof(tmp), ", {}");break;
-                    case 1:snprintf(tmp, sizeof(tmp), ", {a0}");break;
-                    case 2:snprintf(tmp, sizeof(tmp), ", {a0-a1}");break;
-                    case 3:snprintf(tmp, sizeof(tmp), ", {a0-a2}");break;
-                    default:snprintf(tmp, sizeof(tmp), ", {a0-a3}");break;
-                }
-                stack_adjustment = -stack_adjustment;
-            } else if(dec->areg == 2) { // c.push_e
-                switch(dec->rlist) {
-                    case 1:snprintf(tmp, sizeof(tmp), ", {a0-a2}");break;
-                    case 2:snprintf(tmp, sizeof(tmp), ", {a0-a3}");break;
-                    case 3:snprintf(tmp, sizeof(tmp), ", {a0-a3}");break;
-                }   
-                stack_adjustment = -stack_adjustment;
-            } else if(dec->areg == 0) { // c.pop, c.pop_e
-                snprintf(tmp, sizeof(tmp), ", {}");break;
-            } else { //dec->areg == 3  //pop, pop.e, popret, popret.e, c.popret, c.popret_e
-                switch (dec->ret) {
-                    case 0: snprintf(tmp, sizeof(tmp), ", {}");break;
-                    case 1: snprintf(tmp, sizeof(tmp), ", {0}");break;
-                    case 2: snprintf(tmp, sizeof(tmp), ", {1}");break;
-                    case 3: snprintf(tmp, sizeof(tmp), ", {-1}");break;
-                }
-            }
-            snprintf(tmp, sizeof(tmp), ", %d", stack_adjustment);
             append(buf, tmp, buflen);
             break;
         }
-        case 'f':
-            snprintf(tmp, sizeof(tmp), "%d", dec->offset);
-            append(buf, tmp, buflen);
-            break;            
-        case 'S':
-            snprintf(tmp, sizeof(tmp), "%d", dec->scale);
-            append(buf, tmp, buflen);
-            break;
-        case 'e':
-            snprintf(tmp, sizeof(tmp), "%d", dec->ret);
-            append(buf, tmp, buflen);
-            break;
         default:
             break;
         }
@@ -3775,7 +3505,7 @@ disasm_inst(char *buf, size_t buflen, rv_isa isa, uint64_t pc, rv_inst inst)
     dec.pc = pc;
     dec.inst = inst;
     decode_inst_opcode(&dec, isa);
-    decode_inst_operands(&dec);
+    decode_inst_operands(&dec, isa);
     decode_inst_decompress(&dec, isa);
     decode_inst_lift_pseudo(&dec);
     format_inst(buf, buflen, 16, &dec);
