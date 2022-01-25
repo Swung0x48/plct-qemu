@@ -42,18 +42,13 @@
 %imm_addi16sp  12:s1 3:2 5:1 2:1 6:1 !function=ex_shift_4
 %imm_lui       12:s1 2:5             !function=ex_shift_12
 
-%zce_table_jump_index 2:8
-%zce_nzuimm 10:3 4:3 !function=ex_shift_1
-%zce_scale 2:2
-%zce_b_uimm 10:1 5:2 11:1
-%zce_h_uimm 10:2 5:2 !function=ex_shift_1
-%zce_spimm0_5 7:3     !function=ex_shift_4
-%zce_spimm    7:1     !function=ex_shift_4
-%zce_spimm_pe 4:2 7:1 !function=ex_shift_4
-%zce_rlist2   2:2
-%zce_rlist3   2:3
-%zce_ret0_1   5:1
-%zce_ret0_2   4:1
+%zcmt_index  2:8
+%zcb_b_uimm  5:1 6:1
+%zcb_h_uimm  5:1             !function=ex_shift_1
+%zcmb_b_uimm 10:1 5:2 11:1
+%zcmb_h_uimm 10:2 5:2        !function=ex_shift_1
+%zcmp_spimm  2:2             !function=ex_shift_4
+%zcmp_rlist  4:4
 
 # Argument sets imported from insn32.decode:
 &empty                  !extern
@@ -64,8 +59,12 @@
 &b         imm rs2 rs1  !extern
 &u         imm rd       !extern
 &shift     shamt rs1 rd !extern
+&r2         rd rs1      !extern
 
-&zcea_unary rs1_3
+# Zce Specific Argument sets
+&zcmp        zcmp_rlist zcmp_spimm
+&zcmt        zcmt_index
+
 
 # Formats 16:
 @cr        ....  ..... .....  .. &r      rs2=%rs2_5       rs1=%rd     %rd
@@ -101,12 +100,14 @@
 
 @c_andi         ... . .. ... ..... .. &i imm=%imm_ci rs1=%rs1_3 rd=%rs1_3
 
-@zcea_unary    ... ... ... .. ... ..  &zcea_unary rs1_3=%rs1_3
-@zce_binary     ... ... ... .. ... .. %rs1_3 %rs2_3
-@zce_table_jump ... ... ........ ..   %zce_table_jump_index
-@zce_b ... . .. ... .. ... ..         %zce_b_uimm %rs1_3 %rs2_3
-@zce_h ... . .. ... .. ... ..         %zce_h_uimm %rs1_3 %rs2_3
-
+@zca_unary    ... ... ... .. ... ..   &r2     rd=%rs1_3 rs1=%rs1_3
+@zce_binary     ... ... ... .. ... .. &r      rd=%rs1_3 rs1=%rs1_3 rs2=%rs2_3
+@zcb_b  ... . .. ... .. ... ..        &i      imm=%zcb_b_uimm rs1=%rs1_3 rd=%rs2_3
+@zcb_h  ... . .. ... .. ... ..        &i      imm=%zcb_h_uimm rs1=%rs1_3 rd=%rs2_3
+@zcmb_b ... . .. ... .. ... ..        &i      imm=%zcmb_b_uimm rs1=%rs1_3 rd=%rs2_3
+@zcmb_h ... . .. ... .. ... ..        &i      imm=%zcmb_h_uimm rs1=%rs1_3 rd=%rs2_3
+@zcmp ... ... ........ ..             &zcmp   %zcmp_rlist %zcmp_spimm
+@zcmt ... ... ........ ..             &zcmt   %zcmt_index
 
 # *** RV32/64C Standard Extension (Quadrant 0) ***
 {
@@ -117,15 +118,15 @@
 {
   lq              001  ... ... .. ... 00 @cl_q
   fld             001  ... ... .. ... 00 @cl_d
-  c_lbu           001 0 .. ... .. ... 00 @zce_b
-  c_lhu           001 1 .. ... .. ... 00 @zce_h
+  cm_lb           001  0.. ... .. ... 00 @zcmb_b
+  cm_lh           001  1.. ... .. ... 00 @zcmb_h
 }
 lw                010  ... ... .. ... 00 @cl_w
 {
   sq              101  ... ... .. ... 00 @cs_q
   fsd             101  ... ... .. ... 00 @cs_d
-  c_sb            101 0 .. ... .. ... 00 @zce_b
-  c_sh            101 1 .. ... .. ... 00 @zce_h
+  cm_sb           101  0.. ... .. ... 00 @zcmb_b
+  cm_sh           101  1.. ... .. ... 00 @zcmb_h
 }
 sw                110  ... ... .. ... 00 @cs_w
 
@@ -172,8 +173,8 @@ slli              000 .  .....  ..... 10 @c_shift2
 {
   lq              001  ... ... .. ... 10 @c_lqsp
   fld             001 .  .....  ..... 10 @c_ldsp
-  c_lb            001 0 .. ... .. ... 10 @zce_b
-  c_lh            001 1 .. ... .. ... 10 @zce_h
+  cm_lbu          001  0.. ... .. ... 10 @zcmb_b
+  cm_lhu          001  1.. ... .. ... 10 @zcmb_h
 }
 {
   illegal         010 -  00000  ----- 10 # c.lwsp, RES rd=0
@@ -192,7 +193,18 @@ slli              000 .  .....  ..... 10 @c_shift2
 {
   sq                101  ... ... .. ... 10 @c_sqsp
   fsd               101   ......  ..... 10 @c_sdsp
-  c_decbnez         101  ... ... ... .. 10  %zce_nzuimm %rs1_3 %zce_scale
+
+  # *** RV64C and RV32C Zcmp Extension ***
+  cm_push           101  10110  .... .. 10 @zcmp
+  cm_pop            101  11010  .... .. 10 @zcmp
+  cm_popret         101  11110  .... .. 10 @zcmp
+  cm_popretz        101  11100  .... .. 10 @zcmp
+  cm_mva01s         101  011 ... 11 ... 10 @zce_binary
+  cm_mvsa01         101  011 ... 01 ... 10 @zce_binary
+
+  # *** RV64C and RV32C Zcmt Extension ***
+  cm_jt             101  001   ........ 10 @zcmt
+  cm_jalt           101  001   ........ 10 @zcmt
 }
 sw                110 .  .....  ..... 10 @c_swsp
 
@@ -207,25 +219,16 @@ sw                110 .  .....  ..... 10 @c_swsp
   fsw             111 .  .....  ..... 10 @c_swsp
 }
 
-# *** RV16 Zcea Extension ***
-c_zext_b          100 000 ... 00 000 00 @zcea_unary
-c_sext_b          100 000 ... 00 001 00 @zcea_unary
-c_zext_h          100 000 ... 00 010 00 @zcea_unary
-c_sext_h          100 000 ... 00 011 00 @zcea_unary
-c_zext_w          100 000 ... 00 100 00 @zcea_unary
-c_neg             100 000 ... 00 110 00 @zcea_unary
-c_not             100 000 ... 00 111 00 @zcea_unary
+# *** RV64C and RV32C Zcb Extension ***
+c_zext_b          100 111 ... 11 000 01 @zca_unary
+c_sext_b          100 111 ... 11 001 01 @zca_unary
+c_zext_h          100 111 ... 11 010 01 @zca_unary
+c_sext_h          100 111 ... 11 011 01 @zca_unary
+c_zext_w          100 111 ... 11 100 01 @zca_unary
+c_not             100 111 ... 11 101 01 @zca_unary
 c_mul             100 111 ... 10 ... 01 @zce_binary
-c_mva01s07        100 111 ... 11 ... 01 @zce_binary
-
-# c_tblj, c_tbljal, c_tbljalm
-c_tblj_all    100 010 ........ 00 @zce_table_jump
-
-{
-  c_popret    100 011 ... 0 .  ...  00 %zce_spimm0_5  %zce_ret0_1  %zce_rlist3
-  c_pop       100 011 11. 0 0  ...  00 %zce_spimm     %zce_rlist3
-  c_pop_e     100 011 11. 0 1  0..  00 %zce_spimm     %zce_rlist2
-  c_push      100 011 ... 1 0  ...  00 %zce_spimm0_5  %zce_rlist3
-  c_popret_e  100 011 ... 1 1  . .. 00 %zce_spimm0_5  %zce_ret0_2  %zce_rlist2
-  c_push_e    100 011 11. 1 .. ..   00 %zce_spimm_pe  %zce_rlist2
-}
+c_lbu             100 000 ... .. ... 00 @zcb_b
+c_lhu             100 001 ... 0. ... 00 @zcb_h
+c_lh              100 001 ... 1. ... 00 @zcb_h
+c_sb              100 010 ... .. ... 00 @zcb_b
+c_sh              100 011 ... 0. ... 00 @zcb_h

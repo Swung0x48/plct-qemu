@@ -1035,7 +1035,23 @@ static void decode_opc(CPURISCVState *env, DisasContext *ctx, uint16_t opcode)
 
     /* Check for compressed insn */
     if (extract16(opcode, 0, 2) != 3) {
-        if (!has_ext(ctx, RVC)) {
+        /* zcf support c.flw, c.flwsp, c.fsw, c.fswsp
+         * zca support ll of the existing C extension, excluding all 16-bit
+         * floating point loads and stores
+         */
+        if(!has_ext(ctx, RVC) &&
+           (((opcode & 0xe003) == 0x2000) ||     //c.fld
+            ((opcode & 0xe003) == 0x2002) ||     //c.fldsp
+            ((opcode & 0xe003) == 0xa000) ||     //c.fsd
+            ((opcode & 0xe003) == 0xa002))) {    //c.fsdsp
+            gen_exception_illegal(ctx);
+        } else if (!(has_ext(ctx, RVC) || RISCV_CPU(ctx->cs)->cfg.ext_zcf) &&
+                   (((opcode & 0xe003) == 0x6000) ||   //c.flw
+                    ((opcode & 0xe003) == 0x6002) ||   //c.flwsp
+                    ((opcode & 0xe003) == 0xe000) ||   //c.fsw
+                    ((opcode & 0xe003) == 0xe002))) {  //c.fswsp
+            gen_exception_illegal(ctx);
+        } else if (!(has_ext(ctx, RVC) ||RISCV_CPU(ctx->cs)->cfg.ext_zca)) {
             gen_exception_illegal(ctx);
         } else {
             ctx->opcode = opcode;

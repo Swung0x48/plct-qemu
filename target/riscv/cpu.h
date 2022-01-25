@@ -161,7 +161,7 @@ struct CPUArchState {
     uint32_t features;
 
     /* Zce Extension */
-    target_ulong tbljalvec;
+    target_ulong jvl;
 
 #ifdef CONFIG_USER_ONLY
     uint32_t elf_flags;
@@ -394,6 +394,13 @@ struct RISCVCPUConfig {
     bool ext_zksed;
     bool ext_zksh;
     bool ext_zkt;
+    bool ext_zca;
+    bool ext_zcb;
+    bool ext_zcf;
+    bool ext_zcmb;
+    bool ext_zcmp;
+    bool ext_zcmpe;
+    bool ext_zcmt;
     bool ext_counters;
     bool ext_ifencei;
     bool ext_icsr;

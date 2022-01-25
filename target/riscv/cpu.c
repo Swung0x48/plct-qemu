@@ -676,13 +676,10 @@ static void riscv_cpu_realize(DeviceState *dev, Error **errp)
             cpu->cfg.ext_zksh = true;
         }
 
-        if (cpu->cfg.ext_zcea) {
-            cpu->cfg.ext_zcee = true;
-        }
-
-        if (cpu->cfg.ext_d && cpu->cfg.ext_zceb) {
+        if (cpu->cfg.ext_d && (cpu->cfg.ext_zcmb || cpu->cfg.ext_zcmp ||
+                               cpu->cfg.ext_zcmpe)) {
             error_setg(errp,
-                       "D and Zceb extensions are incompatible");
+                       "D and Zcmb/zcmp/zcmpe extensions are incompatible");
             return;
         }
 
@@ -914,6 +911,13 @@ static Property riscv_cpu_properties[] = {
     /* These are experimental so mark with 'x-' */
     DEFINE_PROP_BOOL("x-j", RISCVCPU, cfg.ext_j, false),
     DEFINE_PROP_BOOL("x-zmmul", RISCVCPU, cfg.ext_zmmul, false),
+    DEFINE_PROP_BOOL("x-zca", RISCVCPU, cfg.ext_zca, false),
+    DEFINE_PROP_BOOL("x-zcb", RISCVCPU, cfg.ext_zcb, false),
+    DEFINE_PROP_BOOL("x-zcf", RISCVCPU, cfg.ext_zcf, false),
+    DEFINE_PROP_BOOL("x-zcmb", RISCVCPU, cfg.ext_zcmb, false),
+    DEFINE_PROP_BOOL("x-zcmp", RISCVCPU, cfg.ext_zcmp, false),
+    DEFINE_PROP_BOOL("x-zcmpe", RISCVCPU, cfg.ext_zcmpe, false),
+    DEFINE_PROP_BOOL("x-zcmt", RISCVCPU, cfg.ext_zcmt, false),
     /* ePMP 0.9.3 */
     DEFINE_PROP_BOOL("x-epmp", RISCVCPU, cfg.epmp, false),
     DEFINE_PROP_BOOL("x-aia", RISCVCPU, cfg.aia, false),
