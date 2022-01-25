@@ -241,7 +241,7 @@ target_ulong HELPER(cm_jt_all)(CPURISCVState *env, target_ulong index, target_ul
 {
     target_ulong target = next_pc;
     target_ulong val = 0;
-    val = env->jvl;
+    val = env->jvt;
 
     uint8_t config = get_field(val, JVL_CONFIG);
     target_ulong base = get_field(val, JVL_BASE);

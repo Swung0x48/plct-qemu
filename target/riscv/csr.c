@@ -3332,13 +3332,13 @@ RISCVException riscv_csrrw_debug(CPURISCVState *env, int csrno,
 
 static RISCVException read_zce_tblj_csr(CPURISCVState *env, int csrno, target_ulong *val)
 {
-    *val = env->jvl;
+    *val = env->jvt;
     return RISCV_EXCP_NONE;
 }
 
 static RISCVException write_zce_tblj_csr(CPURISCVState *env, int csrno, target_ulong val)
 {
-    env->jvl = val;
+    env->jvt = val;
     return RISCV_EXCP_NONE;
 }
 

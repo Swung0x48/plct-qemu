@@ -161,7 +161,7 @@ struct CPUArchState {
     uint32_t features;
 
     /* Zce Extension */
-    target_ulong jvl;
+    target_ulong jvt;
 
 #ifdef CONFIG_USER_ONLY
     uint32_t elf_flags;
