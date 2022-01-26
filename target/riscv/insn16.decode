@@ -42,7 +42,8 @@
 %imm_addi16sp  12:s1 3:2 5:1 2:1 6:1 !function=ex_shift_4
 %imm_lui       12:s1 2:5             !function=ex_shift_12
 
-%zcmt_index  2:8
+%zcmt_index6 2:6
+%zcmt_index8 2:8
 %zcb_b_uimm  5:1 6:1
 %zcb_h_uimm  5:1             !function=ex_shift_1
 %zcmb_b_uimm 10:1 5:2 11:1
@@ -107,7 +108,8 @@
 @zcmb_b ... . .. ... .. ... ..        &i      imm=%zcmb_b_uimm rs1=%rs1_3 rd=%rs2_3
 @zcmb_h ... . .. ... .. ... ..        &i      imm=%zcmb_h_uimm rs1=%rs1_3 rd=%rs2_3
 @zcmp ... ... ........ ..             &zcmp   %zcmp_rlist %zcmp_spimm
-@zcmt ... ... ........ ..             &zcmt   %zcmt_index
+@zcmt_jt ... ... ........ ..          &zcmt   zcmt_index=%zcmt_index6
+@zcmt_jalt ... ... ........ ..        &zcmt   zcmt_index=%zcmt_index8
 
 # *** RV32/64C Standard Extension (Quadrant 0) ***
 {
@@ -203,8 +205,8 @@ slli              000 .  .....  ..... 10 @c_shift2
   cm_mvsa01         101  011 ... 01 ... 10 @zce_binary
 
   # *** RV64C and RV32C Zcmt Extension ***
-  cm_jt             101  001   ........ 10 @zcmt
-  cm_jalt           101  001   ........ 10 @zcmt
+  cm_jt             101  001   00...... 10 @zcmt_jt
+  cm_jalt           101  001   ........ 10 @zcmt_jalt
 }
 sw                110 .  .....  ..... 10 @c_swsp
 
