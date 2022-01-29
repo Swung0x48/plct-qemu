@@ -147,7 +147,7 @@ static RISCVException ctr32(CPURISCVState *env, int csrno)
     return ctr(env, csrno);
 }
 
-static RISCVException zcemode(CPURISCVState *env, int csrno)
+static RISCVException zcmt(CPURISCVState *env, int csrno)
 {
     return -!env_archcpu(env)->cfg.ext_zcmt;
 }
@@ -3330,13 +3330,13 @@ RISCVException riscv_csrrw_debug(CPURISCVState *env, int csrno,
     return ret;
 }
 
-static RISCVException read_zce_tblj_csr(CPURISCVState *env, int csrno, target_ulong *val)
+static RISCVException read_jvt(CPURISCVState *env, int csrno, target_ulong *val)
 {
     *val = env->jvt;
     return RISCV_EXCP_NONE;
 }
 
-static RISCVException write_zce_tblj_csr(CPURISCVState *env, int csrno, target_ulong val)
+static RISCVException write_jvt(CPURISCVState *env, int csrno, target_ulong val)
 {
     env->jvt = val;
     return RISCV_EXCP_NONE;
@@ -3380,7 +3380,7 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_SEED] = { "seed", seed, NULL, NULL, rmw_seed },
 
     /* Zce Extension */
-    [CSR_JVL] = {"tbljalvec", zcemode, read_zce_tblj_csr, write_zce_tblj_csr},
+    [CSR_JVT] = {"jvt", zcmt, read_jvt, write_jvt},
 
 #if !defined(CONFIG_USER_ONLY)
     /* Machine Timers and Counters */

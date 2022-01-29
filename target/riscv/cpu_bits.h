@@ -803,9 +803,9 @@ typedef enum RISCVException {
 #define HVICTL_VALID_MASK                  \
     (HVICTL_VTI | HVICTL_IID | HVICTL_IPRIOM | HVICTL_IPRIO)
 /* Zce Extension */
-#define CSR_JVL                     0x800  // to fix
-#define JVL_CONFIG                  0x3f
-#define JVL_BASE                    (~0x3F)
+#define CSR_JVT                   0x800  // to fix
+#define JVT_MODE                  0x3f
+#define JVT_BASE                  (~0x3F)
 
 
 /* seed CSR bits */

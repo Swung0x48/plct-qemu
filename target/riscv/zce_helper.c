@@ -243,12 +243,12 @@ target_ulong HELPER(cm_jt_all)(CPURISCVState *env, target_ulong index, target_ul
     target_ulong val = 0;
     val = env->jvt;
 
-    uint8_t config = get_field(val, JVL_CONFIG);
-    target_ulong base = get_field(val, JVL_BASE);
+    uint8_t mode = get_field(val, JVT_MODE);
+    target_ulong base = get_field(val, JVT_BASE);
     target_ulong t0;
     bool link = false;
 
-    if (config != 0) {
+    if (mode != 0) {
         riscv_raise_exception(env, RISCV_EXCP_ILLEGAL_INST, GETPC());
     }
 
