@@ -131,6 +131,7 @@ static bool always_true_p(DisasContext *ctx  __attribute__((__unused__)))
     }
 
 MATERIALISE_EXT_PREDICATE(XVentanaCondOps);
+MATERIALISE_EXT_PREDICATE(XPulp);
 
 #ifdef TARGET_RISCV32
 #define get_xl(ctx)    MXL_RV32
@@ -546,6 +547,25 @@ static TCGv get_address(DisasContext *ctx, int rs1, int imm)
     tcg_gen_addi_tl(addr, src1, imm);
     if (ctx->pm_mask_enabled) {
         tcg_gen_andc_tl(addr, addr, pm_mask);
+    } else if (get_xl(ctx) == MXL_RV32) {
+        tcg_gen_ext32u_tl(addr, addr);
+    }
+    if (ctx->pm_base_enabled) {
+        tcg_gen_or_tl(addr, addr, pm_base);
+    }
+    return addr;
+}
+
+/* Compute a canonical address from a register plus register. */
+static TCGv get_address_rr(DisasContext *ctx, int rs1, int rs2)
+{
+    TCGv addr = temp_new(ctx);
+    TCGv src1 = get_gpr(ctx, rs1, EXT_NONE);
+    TCGv src2 = get_gpr(ctx, rs2, EXT_NONE);
+
+    tcg_gen_add_tl(addr, src1, src2);
+    if (ctx->pm_mask_enabled) {
+        tcg_gen_and_tl(addr, addr, pm_mask);
     } else if (get_xl(ctx) == MXL_RV32) {
         tcg_gen_ext32u_tl(addr, addr);
     }
@@ -1034,6 +1054,10 @@ static uint32_t opcode_at(DisasContextBase *dcbase, target_ulong pc)
 #include "insn_trans/trans_svinval.c.inc"
 #include "insn_trans/trans_xventanacondops.c.inc"
 
+/* Include decoders for Xpulp extensions */
+#include "decode-XPulp.c.inc"
+#include "insn_trans/trans_xpulp.c.inc"
+
 /* Include the auto-generated decoder for 16 bit insn */
 #include "decode-insn16.c.inc"
 /* Include decoders for factored-out extensions */
@@ -1051,6 +1075,7 @@ static void decode_opc(CPURISCVState *env, DisasContext *ctx, uint16_t opcode)
     } decoders[] = {
         { always_true_p,  decode_insn32 },
         { has_XVentanaCondOps_p,  decode_XVentanaCodeOps },
+        { has_XPulp_p,  decode_XPulp },
     };
 
     /* Check for compressed insn */
