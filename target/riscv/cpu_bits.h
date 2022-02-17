@@ -455,6 +455,17 @@
 /* Crypto Extension */
 #define CSR_SEED            0x015
 
+/*
+ * Hardware Loop registers
+ * User Custom CSRs
+ */
+#define CSR_LPSTART0        0x800
+#define CSR_LPEND0          0x801
+#define CSR_LPCOUNT0        0x802
+#define CSR_LPSTART1        0x804
+#define CSR_LPEND1          0x805
+#define CSR_LPCOUNT1        0x806
+
 /* mstatus CSR bits */
 #define MSTATUS_UIE         0x00000001
 #define MSTATUS_SIE         0x00000002

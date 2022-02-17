@@ -44,12 +44,14 @@ static bool trans_auipc(DisasContext *ctx, arg_auipc *a)
 
 static bool trans_jal(DisasContext *ctx, arg_jal *a)
 {
+    check_hwlp_body(ctx);
     gen_jal(ctx, a->rd, a->imm);
     return true;
 }
 
 static bool trans_jalr(DisasContext *ctx, arg_jalr *a)
 {
+    check_hwlp_body(ctx);
     TCGLabel *misaligned = NULL;
 
     tcg_gen_addi_tl(cpu_pc, get_gpr(ctx, a->rs1, EXT_NONE), a->imm);
@@ -157,6 +159,7 @@ static void gen_setcond_i128(TCGv rl, TCGv rh,
 
 static bool gen_branch(DisasContext *ctx, arg_b *a, TCGCond cond)
 {
+    check_hwlp_body(ctx);
     TCGLabel *l = gen_new_label();
     TCGv src1 = get_gpr(ctx, a->rs1, EXT_SIGN);
     TCGv src2 = get_gpr(ctx, a->rs2, EXT_SIGN);
@@ -837,12 +840,15 @@ static bool trans_pause(DisasContext *ctx, arg_pause *a)
 static bool trans_fence(DisasContext *ctx, arg_fence *a)
 {
     /* FENCE is a full memory barrier. */
+    check_hwlp_body(ctx);
     tcg_gen_mb(TCG_MO_ALL | TCG_BAR_SC);
     return true;
 }
 
 static bool trans_fence_i(DisasContext *ctx, arg_fence_i *a)
 {
+    check_hwlp_body(ctx);
+
     if (!ctx->cfg_ptr->ext_ifencei) {
         return false;
     }

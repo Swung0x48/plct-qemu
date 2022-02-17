@@ -139,6 +139,15 @@ typedef struct PMUCTRState {
     bool started;
 } PMUCTRState;
 
+struct RISCVHwlp {
+    target_ulong lpstart;
+    target_ulong lpend;
+    target_ulong lpcount;
+    bool valid;
+};
+
+typedef struct RISCVHwlp RISCVHwlp;
+
 struct CPUArchState {
     target_ulong gpr[32];
     target_ulong gprh[32]; /* 64 top bits of the 128-bit registers */
@@ -361,6 +370,9 @@ struct CPUArchState {
     target_ulong senvcfg;
     uint64_t henvcfg;
 #endif
+
+    RISCVHwlp hwlp[2];
+
     target_ulong cur_pmmask;
     target_ulong cur_pmbase;
 
