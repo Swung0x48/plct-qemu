@@ -33,7 +33,7 @@
 #include "internals.h"
 
 /* global register indices */
-static TCGv cpu_gpr[32], cpu_gprh[32], cpu_pc, cpu_vl, cpu_vstart;
+static TCGv cpu_gpr[32], cpu_gprh[32], cpu_pc, cpu_vl, cpu_vstart, lpcount[2];
 static TCGv_i64 cpu_fpr[32]; /* assume F and D extensions */
 static TCGv load_res;
 static TCGv load_val;
@@ -77,6 +77,7 @@ typedef struct DisasContext {
     RISCVMXL ol;
     bool virt_enabled;
     const RISCVCPUConfig *cfg_ptr;
+    RISCVHwlp *hwlp_ptr;
     bool hlsx;
     /* vector extension */
     bool vill;
@@ -1030,6 +1031,13 @@ static bool gen_unary_per_ol(DisasContext *ctx, arg_r2 *a, DisasExtend ext,
     return gen_unary(ctx, a, ext, f_tl);
 }
 
+static void check_hwlp_body(DisasContext *ctx)
+{
+    if (ctx->cfg_ptr->ext_XPulp) {
+        gen_helper_check_hwlp_body(cpu_env, cpu_pc);
+    }
+}
+
 static uint32_t opcode_at(DisasContextBase *dcbase, target_ulong pc)
 {
     DisasContext *ctx = container_of(dcbase, DisasContext, base);
@@ -1080,6 +1088,7 @@ static void decode_opc(CPURISCVState *env, DisasContext *ctx, uint16_t opcode)
 
     /* Check for compressed insn */
     if (extract16(opcode, 0, 2) != 3) {
+        check_hwlp_body(ctx);
         if (!has_ext(ctx, RVC)) {
             gen_exception_illegal(ctx);
         } else {
@@ -1100,6 +1109,22 @@ static void decode_opc(CPURISCVState *env, DisasContext *ctx, uint16_t opcode)
         for (size_t i = 0; i < ARRAY_SIZE(decoders); ++i) {
             if (decoders[i].guard_func(ctx) &&
                 decoders[i].decode_func(ctx, opcode32)) {
+                if (ctx->cfg_ptr->ext_XPulp) {
+                    for (size_t j = 0; j < 2; j++) {
+                        if (ctx->hwlp_ptr[j].valid &&
+                            (ctx->hwlp_ptr[j].lpcount > 1) &&
+                            (ctx->base.pc_next == ctx->hwlp_ptr[j].lpend)) {
+                            TCGLabel *l = gen_new_label();
+                            tcg_gen_brcond_tl(TCG_COND_GT, lpcount[j],
+                                              tcg_constant_tl(1), l);
+                            gen_goto_tb(ctx, 1, ctx->pc_succ_insn);
+                            gen_set_label(l); /* branch taken */
+                            tcg_gen_subi_tl(lpcount[j], lpcount[j], 1);
+                            gen_goto_tb(ctx, 0, ctx->hwlp_ptr[j].lpstart);
+                            ctx->base.is_jmp = DISAS_NORETURN;
+                        }
+                    }
+                }
                 return;
             }
         }
@@ -1132,6 +1157,8 @@ static void riscv_tr_init_disas_context(DisasContextBase *dcbase, CPUState *cs)
     ctx->misa_ext = env->misa_ext;
     ctx->frm = -1;  /* unknown rounding mode */
     ctx->cfg_ptr = &(cpu->cfg);
+    ctx->hwlp_ptr = env->hwlp;
+
     ctx->mstatus_hs_fs = FIELD_EX32(tb_flags, TB_FLAGS, MSTATUS_HS_FS);
     ctx->mstatus_hs_vs = FIELD_EX32(tb_flags, TB_FLAGS, MSTATUS_HS_VS);
     ctx->hlsx = FIELD_EX32(tb_flags, TB_FLAGS, HLSX);
@@ -1283,4 +1310,11 @@ void riscv_translate_init(void)
                                  "pmmask");
     pm_base = tcg_global_mem_new(cpu_env, offsetof(CPURISCVState, cur_pmbase),
                                  "pmbase");
+
+    lpcount[0] = tcg_global_mem_new(cpu_env, offsetof(CPURISCVState,
+                                                      hwlp[0].lpcount),
+                                    "lpcount0");
+    lpcount[1] = tcg_global_mem_new(cpu_env, offsetof(CPURISCVState,
+                                                      hwlp[1].lpcount),
+                                    "lpcount1");
 }

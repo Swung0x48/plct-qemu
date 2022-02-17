@@ -443,6 +443,15 @@ static RISCVException seed(CPURISCVState *env, int csrno)
 #endif
 }
 
+static RISCVException hwlp(CPURISCVState *env, int csrno)
+{
+    if (env_archcpu(env)->cfg.ext_XPulp) {
+        return RISCV_EXCP_NONE;
+    }
+
+    return RISCV_EXCP_ILLEGAL_INST;
+}
+
 /* User Floating-Point CSRs */
 static RISCVException read_fflags(CPURISCVState *env, int csrno,
                                   target_ulong *val)
@@ -3407,7 +3416,108 @@ static RISCVException rmw_seed(CPURISCVState *env, int csrno,
     if (ret_value) {
         *ret_value = rval;
     }
+    return RISCV_EXCP_NONE;
+}
 
+static inline RISCVException check_hwlp_valid(CPURISCVState *env)
+{
+    if ((env->hwlp[0].valid && (env->hwlp[0].lpcount > 1) &&
+         (env->hwlp[0].lpend - env->hwlp[0].lpstart < 8)) ||
+        (env->hwlp[1].valid && (env->hwlp[1].lpcount > 1) &&
+         (env->hwlp[1].lpend - env->hwlp[1].lpstart < 8)) ||
+        (env->hwlp[0].valid && env->hwlp[1].valid &&
+         (env->hwlp[0].lpcount > 1) && (env->hwlp[1].lpcount > 1) &&
+         (env->hwlp[1].lpend - env->hwlp[0].lpend < 4))) {
+        return RISCV_EXCP_ILLEGAL_INST;
+    }
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException read_lpstart0(CPURISCVState *env, int csrno,
+                                    target_ulong *val)
+{
+    *val = env->hwlp[0].lpstart;
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException write_lpstart0(CPURISCVState *env, int csrno,
+                                     target_ulong val)
+{
+    env->hwlp[0].lpstart = val & (~0x3);
+    env->hwlp[0].valid = true;
+    return check_hwlp_valid(env);
+}
+
+static RISCVException read_lpend0(CPURISCVState *env, int csrno,
+                                  target_ulong *val)
+{
+    *val = env->hwlp[0].lpend;
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException write_lpend0(CPURISCVState *env, int csrno,
+                                   target_ulong val)
+{
+    env->hwlp[0].lpend = val & (~0x3);
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException read_lpcount0(CPURISCVState *env, int csrno,
+                                    target_ulong *val)
+{
+    *val = env->hwlp[0].lpcount;
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException write_lpcount0(CPURISCVState *env, int csrno,
+                                     target_ulong val)
+{
+    env->hwlp[0].lpcount = val;
+    env->hwlp[0].valid = false;
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException read_lpstart1(CPURISCVState *env, int csrno,
+                                    target_ulong *val)
+{
+    *val = env->hwlp[1].lpstart;
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException write_lpstart1(CPURISCVState *env, int csrno,
+                                     target_ulong val)
+{
+    env->hwlp[1].lpstart = val & (~0x3);
+    env->hwlp[1].valid = true;
+    return check_hwlp_valid(env);
+}
+
+static RISCVException read_lpend1(CPURISCVState *env, int csrno,
+                                  target_ulong *val)
+{
+    *val = env->hwlp[1].lpend;
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException write_lpend1(CPURISCVState *env, int csrno,
+                                   target_ulong val)
+{
+    env->hwlp[1].lpend = val & (~0x3);
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException read_lpcount1(CPURISCVState *env, int csrno,
+                                    target_ulong *val)
+{
+    *val = env->hwlp[1].lpcount;
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException write_lpcount1(CPURISCVState *env, int csrno,
+                                     target_ulong val)
+{
+    env->hwlp[1].lpcount = val;
+    env->hwlp[1].valid = false;
     return RISCV_EXCP_NONE;
 }
 
@@ -4156,4 +4266,10 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_MHPMCOUNTER31H] = { "mhpmcounter31h", mctr32,  read_hpmcounterh,
                              write_mhpmcounterh                         },
 #endif /* !CONFIG_USER_ONLY */
+    [CSR_LPSTART0] =  { "lpstart0", hwlp, read_lpstart0, write_lpstart0 },
+    [CSR_LPEND0] =    { "lpend0",   hwlp, read_lpend0,   write_lpend0   },
+    [CSR_LPCOUNT0] =  { "lpcount0", hwlp, read_lpcount0, write_lpcount0 },
+    [CSR_LPSTART1] =  { "lpstart1", hwlp, read_lpstart1, write_lpstart1 },
+    [CSR_LPEND1] =    { "lpend1",   hwlp, read_lpend1,   write_lpend1   },
+    [CSR_LPCOUNT1] =  { "lpcount1", hwlp, read_lpcount1, write_lpcount1 },
 };
