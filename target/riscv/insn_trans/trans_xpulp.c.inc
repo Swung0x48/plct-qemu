@@ -1620,3 +1620,187 @@ GEN_CPLXMUL_TRANS(cv_cplxmul_i, cplxmul_i, EXT_NONE, 0)
 GEN_CPLXMUL_TRANS(cv_cplxmul_i_div2, cplxmul_i, EXT_NONE, 1)
 GEN_CPLXMUL_TRANS(cv_cplxmul_i_div4, cplxmul_i, EXT_NONE, 2)
 GEN_CPLXMUL_TRANS(cv_cplxmul_i_div8, cplxmul_i, EXT_NONE, 3)
+
+static bool trans_cv_mac(DisasContext *ctx, arg_cv_mac *a)
+{
+    TCGv dest = tcg_temp_new();
+    TCGv src1 = get_gpr(ctx, a->rs1, EXT_NONE);
+    TCGv src2 = get_gpr(ctx, a->rs2, EXT_NONE);
+    TCGv src3 = get_gpr(ctx, a->rd, EXT_NONE);
+
+    tcg_gen_mul_tl(dest, src1, src2);
+    tcg_gen_add_tl(dest, dest, src3);
+    gen_set_gpr(ctx, a->rd, dest);
+    return true;
+}
+
+static bool trans_cv_msu(DisasContext *ctx, arg_cv_msu *a)
+{
+    TCGv dest = tcg_temp_new();
+    TCGv src1 = get_gpr(ctx, a->rs1, EXT_NONE);
+    TCGv src2 = get_gpr(ctx, a->rs2, EXT_NONE);
+    TCGv src3 = get_gpr(ctx, a->rd, EXT_NONE);
+
+    tcg_gen_mul_tl(dest, src1, src2);
+    tcg_gen_sub_tl(dest, src3, dest);
+    gen_set_gpr(ctx, a->rd, dest);
+    return true;
+}
+
+static inline bool gen_mul(DisasContext *ctx, arg_mac *a,
+                           DisasExtend ext, int extra,
+                           void (*fn)(TCGv, TCGv, TCGv,
+                                       TCGv, TCGv))
+{
+    TCGv dest = dest_gpr(ctx, a->rd);
+    TCGv src1 = get_gpr(ctx, a->rs1, ext);
+    TCGv src2 = get_gpr(ctx, a->rs2, ext);
+    TCGv src3 = tcg_constant_tl(a->imm);
+    fn(dest, src1, src2, src3, tcg_constant_tl(extra));
+    gen_set_gpr(ctx, a->rd, dest);
+    return true;
+}
+
+#define GEN_MUL16X16_TRANS(NAME, FUNC, EXT, HIGH)        \
+static bool trans_##NAME(DisasContext *s, arg_mac *a)    \
+{                                                        \
+    return gen_mul(s, a, EXT, HIGH, gen_helper_##FUNC);  \
+}
+
+GEN_MUL16X16_TRANS(cv_muluN, muluN, EXT_NONE, 0)
+GEN_MUL16X16_TRANS(cv_mulhhuN, muluN, EXT_NONE, 1)
+GEN_MUL16X16_TRANS(cv_mulsN, mulsN, EXT_NONE, 0)
+GEN_MUL16X16_TRANS(cv_mulhhsN, mulsN, EXT_NONE, 1)
+GEN_MUL16X16_TRANS(cv_muluRN, muluRN, EXT_NONE, 0)
+GEN_MUL16X16_TRANS(cv_mulhhuRN, muluRN, EXT_NONE, 1)
+GEN_MUL16X16_TRANS(cv_mulsRN, mulsRN, EXT_NONE, 0)
+GEN_MUL16X16_TRANS(cv_mulhhsRN, mulsRN, EXT_NONE, 1)
+
+static inline bool gen_mac(DisasContext *ctx, arg_mac *a,
+                           DisasExtend ext, int extra,
+                           void (*fn)(TCGv, TCGv, TCGv,
+                                       TCGv, TCGv, TCGv))
+{
+    TCGv dest = tcg_temp_new();
+    TCGv src1 = get_gpr(ctx, a->rs1, ext);
+    TCGv src2 = get_gpr(ctx, a->rs2, ext);
+    TCGv src3 = get_gpr(ctx, a->rd, ext);
+    TCGv src4 = tcg_constant_tl(a->imm);
+    fn(dest, src1, src2, src3, src4, tcg_constant_tl(extra));
+    gen_set_gpr(ctx, a->rd, dest);
+    return true;
+}
+
+#define GEN_MAC16X16_TRANS(NAME, FUNC, EXT, HIGH)        \
+static bool trans_##NAME(DisasContext *s, arg_mac *a)    \
+{                                                        \
+    return gen_mac(s, a, EXT, HIGH, gen_helper_##FUNC);  \
+}
+
+GEN_MAC16X16_TRANS(cv_macuN, macuN, EXT_NONE, 0)
+GEN_MAC16X16_TRANS(cv_machhuN, macuN, EXT_NONE, 1)
+GEN_MAC16X16_TRANS(cv_macsN, macsN, EXT_NONE, 0)
+GEN_MAC16X16_TRANS(cv_machhsN, macsN, EXT_NONE, 1)
+GEN_MAC16X16_TRANS(cv_macuRN, macuRN, EXT_NONE, 0)
+GEN_MAC16X16_TRANS(cv_machhuRN, macuRN, EXT_NONE, 1)
+GEN_MAC16X16_TRANS(cv_macsRN, macsRN, EXT_NONE, 0)
+GEN_MAC16X16_TRANS(cv_machhsRN, macsRN, EXT_NONE, 1)
+
+static bool trans_cv_extract(DisasContext *ctx, arg_cv_extract *a)
+{
+    return gen_arith_imm_tl(ctx, a, EXT_NONE, gen_helper_extract, NULL);
+}
+
+static bool trans_cv_extractu(DisasContext *ctx, arg_cv_extractu *a)
+{
+    return gen_arith_imm_tl(ctx, a, EXT_NONE, gen_helper_extractu, NULL);
+}
+
+static bool trans_cv_insert(DisasContext *ctx, arg_cv_insert *a)
+{
+    TCGv result = tcg_temp_new();
+    TCGv dest = get_gpr(ctx, a->rd, EXT_NONE);
+    TCGv src1 = get_gpr(ctx, a->rs1, EXT_NONE);
+
+    gen_helper_insert(result, src1, tcg_constant_tl(a->imm), dest);
+    gen_set_gpr(ctx, a->rd, result);
+    return true;
+}
+
+static bool trans_cv_bclr(DisasContext *ctx, arg_cv_bclr *a)
+{
+    return gen_arith_imm_tl(ctx, a, EXT_NONE, gen_helper_bclr, NULL);
+}
+
+static bool trans_cv_bset(DisasContext *ctx, arg_cv_bset *a)
+{
+    return gen_arith_imm_tl(ctx, a, EXT_NONE, gen_helper_bset, NULL);
+}
+
+static bool trans_cv_extractr(DisasContext *ctx, arg_cv_extractr *a)
+{
+    return gen_arith(ctx, a, EXT_NONE, gen_helper_extract, NULL);
+}
+
+static bool trans_cv_extractur(DisasContext *ctx, arg_cv_extractur *a)
+{
+    return gen_arith(ctx, a, EXT_NONE, gen_helper_extractu, NULL);
+}
+
+static bool trans_cv_insertr(DisasContext *ctx, arg_cv_insertr *a)
+{
+    TCGv result = tcg_temp_new();
+    TCGv dest = get_gpr(ctx, a->rd, EXT_NONE);
+    TCGv src1 = get_gpr(ctx, a->rs1, EXT_NONE);
+    TCGv src2 = get_gpr(ctx, a->rs2, EXT_NONE);
+
+    gen_helper_insert(result, src1, src2, dest);
+    gen_set_gpr(ctx, a->rd, result);
+    return true;
+}
+
+static bool trans_cv_bclrr(DisasContext *ctx, arg_cv_bclrr *a)
+{
+    return gen_arith(ctx, a, EXT_NONE, gen_helper_bclr, NULL);
+}
+
+static bool trans_cv_bsetr(DisasContext *ctx, arg_cv_bsetr *a)
+{
+    return gen_arith(ctx, a, EXT_NONE, gen_helper_bset, NULL);
+}
+
+static bool trans_cv_bitrev(DisasContext *ctx, arg_cv_bitrev *a)
+{
+    /* Is3 can be either 0 (radix-2), 1 (radix-4) or 2 (radix-8) */
+    target_ulong is3 = (a->imm >> 5) & 0x3;
+
+    if (is3 == 3) {
+        return false;
+    }
+    return gen_arith_imm_tl(ctx, a, EXT_NONE, gen_helper_bitrev, NULL);
+}
+
+static bool trans_cv_ff1(DisasContext *ctx, arg_cv_ff1 *a)
+{
+    return gen_unary(ctx, a, EXT_NONE, gen_ctz);
+}
+
+static bool trans_cv_fl1(DisasContext *ctx, arg_cv_fl1 *a)
+{
+    return gen_unary(ctx, a, EXT_NONE, gen_helper_fl1);
+}
+
+static bool trans_cv_clb(DisasContext *ctx, arg_cv_clb *a)
+{
+    return gen_unary(ctx, a, EXT_ZERO, gen_helper_clb);
+}
+
+static bool trans_cv_cnt(DisasContext *ctx, arg_cv_cnt *a)
+{
+    return gen_unary(ctx, a, EXT_ZERO, tcg_gen_ctpop_tl);
+}
+
+static bool trans_cv_ror(DisasContext *ctx, arg_cv_ror *a)
+{
+    return gen_arith(ctx, a, EXT_ZERO, tcg_gen_rotr_tl, NULL);
+}
