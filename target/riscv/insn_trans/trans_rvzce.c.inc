@@ -17,31 +17,37 @@
  */
 
 #define REQUIRE_ZCA(ctx) do { \
-    if (!RISCV_CPU(ctx->cs)->cfg.ext_zca) \
+    if (!ctx->cfg_ptr->ext_zca) \
         return false;                     \
 } while (0)
 
 #define REQUIRE_ZCB(ctx) do { \
     REQUIRE_ZCA(ctx); \
-    if (!RISCV_CPU(ctx->cs)->cfg.ext_zcb) \
+    if (!ctx->cfg_ptr->ext_zcb) \
         return false;                     \
 } while (0)
 
 #define REQUIRE_ZCMB(ctx) do { \
     REQUIRE_ZCB(ctx); \
-    if (!RISCV_CPU(ctx->cs)->cfg.ext_zcmb) \
+    if (!ctx->cfg_ptr->ext_zcmb) \
         return false;                      \
 } while (0)
 
 #define REQUIRE_ZCMP(ctx) do { \
     REQUIRE_ZCA(ctx); \
-    if (!RISCV_CPU(ctx->cs)->cfg.ext_zcmp) \
+    if (!ctx->cfg_ptr->ext_zcmp) \
+        return false;                      \
+} while (0)
+
+#define REQUIRE_ZCMP_OR_ZCMPE(ctx) do { \
+    REQUIRE_ZCA(ctx); \
+    if (!ctx->cfg_ptr->ext_zcmp && !ctx->cfg_ptr->ext_zcmpe) \
         return false;                      \
 } while (0)
 
 #define REQUIRE_ZCMT(ctx) do { \
     REQUIRE_ZCA(ctx); \
-    if (!RISCV_CPU(ctx->cs)->cfg.ext_zcmt) \
+    if (!ctx->cfg_ptr->ext_zcmt) \
         return false;                      \
 } while (0)
 
@@ -201,10 +207,13 @@ static bool trans_cm_sh(DisasContext *ctx, arg_cm_sh *a)
 
 static bool gen_zcmp(DisasContext *ctx, arg_zcmp *a, void (*func)(TCGv_env, TCGv, TCGv, TCGv))
 {
-    REQUIRE_ZCMP(ctx);
-
     /* rlist 0 to 3 are reserved for a future EABI variant called cm.popret.e */
-    if (a->zcmp_rlist >= 4) {
+    if (a->zcmp_rlist < 4) {
+        return false;
+    }
+
+    /* rlist <= 6 when RV32E/RV64E */
+    if (ctx->cfg_ptr->ext_e && a->zcmp_rlist > 6) {
         return false;
     }
 
@@ -221,21 +230,25 @@ static bool gen_zcmp(DisasContext *ctx, arg_zcmp *a, void (*func)(TCGv_env, TCGv
 
 static bool trans_cm_push(DisasContext *ctx, arg_cm_push *a)
 {
+    REQUIRE_ZCMP_OR_ZCMPE(ctx);
     return gen_zcmp(ctx, a, gen_helper_cm_push);
 }
 
 static bool trans_cm_pop(DisasContext *ctx, arg_cm_pop *a)
 {
+    REQUIRE_ZCMP_OR_ZCMPE(ctx);
     return gen_zcmp(ctx, a, gen_helper_cm_pop);
 }
 
 static bool trans_cm_popret(DisasContext *ctx, arg_cm_popret *a)
 {
+    REQUIRE_ZCMP_OR_ZCMPE(ctx);
     return gen_zcmp(ctx, a, gen_helper_cm_popret);
 }
 
 static bool trans_cm_popretz(DisasContext *ctx, arg_cm_popret *a)
 {
+    REQUIRE_ZCMP_OR_ZCMPE(ctx);
     return gen_zcmp(ctx, a, gen_helper_cm_popretz);
 }
 
