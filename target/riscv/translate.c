@@ -1051,7 +1051,7 @@ static void decode_opc(CPURISCVState *env, DisasContext *ctx, uint16_t opcode)
                     ((opcode & 0xe003) == 0xe000) ||   //c.fsw
                     ((opcode & 0xe003) == 0xe002))) {  //c.fswsp
             gen_exception_illegal(ctx);
-        } else if (!(has_ext(ctx, RVC) ||RISCV_CPU(ctx->cs)->cfg.ext_zca)) {
+        } else if (!(has_ext(ctx, RVC) || RISCV_CPU(ctx->cs)->cfg.ext_zca)) {
             gen_exception_illegal(ctx);
         } else {
             ctx->opcode = opcode;

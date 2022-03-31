@@ -16,39 +16,34 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define REQUIRE_ZCA(ctx) do { \
+#define REQUIRE_ZCA(ctx) do {   \
     if (!ctx->cfg_ptr->ext_zca) \
-        return false;                     \
+        return false;           \
 } while (0)
 
-#define REQUIRE_ZCB(ctx) do { \
-    REQUIRE_ZCA(ctx); \
+#define REQUIRE_ZCB(ctx) do {   \
     if (!ctx->cfg_ptr->ext_zcb) \
-        return false;                     \
+        return false;           \
 } while (0)
 
-#define REQUIRE_ZCMB(ctx) do { \
-    REQUIRE_ZCB(ctx); \
+#define REQUIRE_ZCMB(ctx) do {   \
     if (!ctx->cfg_ptr->ext_zcmb) \
-        return false;                      \
+        return false;            \
 } while (0)
 
-#define REQUIRE_ZCMP(ctx) do { \
-    REQUIRE_ZCA(ctx); \
+#define REQUIRE_ZCMP(ctx) do {   \
     if (!ctx->cfg_ptr->ext_zcmp) \
-        return false;                      \
+        return false;            \
 } while (0)
 
-#define REQUIRE_ZCMP_OR_ZCMPE(ctx) do { \
-    REQUIRE_ZCA(ctx); \
+#define REQUIRE_ZCMP_OR_ZCMPE(ctx) do {                      \
     if (!ctx->cfg_ptr->ext_zcmp && !ctx->cfg_ptr->ext_zcmpe) \
-        return false;                      \
+        return false;                                        \
 } while (0)
 
-#define REQUIRE_ZCMT(ctx) do { \
-    REQUIRE_ZCA(ctx); \
+#define REQUIRE_ZCMT(ctx) do {   \
     if (!ctx->cfg_ptr->ext_zcmt) \
-        return false;                      \
+        return false;            \
 } while (0)
 
 static bool trans_c_zext_b(DisasContext *ctx, arg_c_zext_b *a)

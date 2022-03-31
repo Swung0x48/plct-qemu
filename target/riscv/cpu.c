@@ -676,13 +676,7 @@ static void riscv_cpu_realize(DeviceState *dev, Error **errp)
             cpu->cfg.ext_zksh = true;
         }
 
-        if (cpu->cfg.ext_d && (cpu->cfg.ext_zcmb || cpu->cfg.ext_zcmp ||
-                               cpu->cfg.ext_zcmpe)) {
-            error_setg(errp,
-                       "D and Zcmb/zcmp/zcmpe extensions are incompatible");
-            return;
-        }
-
+        /* Set the ISA extensions, checks should have happened above */
         if (cpu->cfg.ext_i) {
             ext |= RVI;
         }
@@ -758,6 +752,31 @@ static void riscv_cpu_realize(DeviceState *dev, Error **errp)
         }
 
         set_misa(env, env->misa_mxl, ext);
+    }
+
+    if (env->misa_mxl_max != MXL_RV32 && cpu->cfg.ext_zcf) {
+        error_setg(errp,
+                   "Zcf is only relevant to RV32, it cannot be specified \
+                    for RV64");
+        return;
+    }
+
+    if ((cpu->cfg.ext_zcf || cpu->cfg.ext_zcb || cpu->cfg.ext_zcmp ||
+            cpu->cfg.ext_zcmpe || cpu->cfg.ext_zcmt) && !cpu->cfg.ext_zca) {
+        error_setg(errp, "Zcf/Zcb/Zcmp{e}/Zcmt requires the Zca extension");
+        return;
+    }
+
+    if (cpu->cfg.ext_zcmb && !cpu->cfg.ext_zcb) {
+        error_setg(errp, "Zcmb requires the Zcb extension");
+        return;
+    }
+
+    if ((env->misa_ext & RVD) && (cpu->cfg.ext_zcmb || cpu->cfg.ext_zcmp ||
+                                  cpu->cfg.ext_zcmpe)) {
+        error_setg(errp,
+                    "D and Zcmb/zcmp/zcmpe extensions are incompatible");
+        return;
     }
 
     riscv_cpu_register_gdb_regs_for_features(cs);
