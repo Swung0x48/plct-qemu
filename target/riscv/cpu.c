@@ -762,7 +762,7 @@ static void riscv_cpu_realize(DeviceState *dev, Error **errp)
     }
 
     if ((cpu->cfg.ext_zcf || cpu->cfg.ext_zcb || cpu->cfg.ext_zcmp ||
-            cpu->cfg.ext_zcmpe || cpu->cfg.ext_zcmt) && !cpu->cfg.ext_zca) {
+         cpu->cfg.ext_zcmpe || cpu->cfg.ext_zcmt) && !cpu->cfg.ext_zca) {
         error_setg(errp, "Zcf/Zcb/Zcmp{e}/Zcmt requires the Zca extension");
         return;
     }
@@ -772,10 +772,12 @@ static void riscv_cpu_realize(DeviceState *dev, Error **errp)
         return;
     }
 
-    if ((env->misa_ext & RVD) && (cpu->cfg.ext_zcmb || cpu->cfg.ext_zcmp ||
-                                  cpu->cfg.ext_zcmpe)) {
+    if ((env->misa_ext & RVD) && (env->misa_ext & RVC) &&
+        (cpu->cfg.ext_zcmb || cpu->cfg.ext_zcmp || cpu->cfg.ext_zcmpe ||
+         cpu->cfg.ext_zcmt)) {
         error_setg(errp,
-                    "D and Zcmb/zcmp/zcmpe extensions are incompatible");
+                   "Zcmb/Zcmp{e}/Zcmt extensions are incompatible with full \
+                    C and D extensions");
         return;
     }
 
