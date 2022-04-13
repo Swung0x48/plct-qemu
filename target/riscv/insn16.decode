@@ -197,7 +197,7 @@ slli              000 .  .....  ..... 10 @c_shift2
   fsd               101   ......  ..... 10 @c_sdsp
 
   # *** RV64C and RV32C Zcmp Extension ***
-  cm_push           101  10110  .... .. 10 @zcmp
+  cm_push           101  11000  .... .. 10 @zcmp
   cm_pop            101  11010  .... .. 10 @zcmp
   cm_popret         101  11110  .... .. 10 @zcmp
   cm_popretz        101  11100  .... .. 10 @zcmp
@@ -205,8 +205,8 @@ slli              000 .  .....  ..... 10 @c_shift2
   cm_mvsa01         101  011 ... 01 ... 10 @zce_binary
 
   # *** RV64C and RV32C Zcmt Extension ***
-  cm_jt             101  001   00...... 10 @zcmt_jt
-  cm_jalt           101  001   ........ 10 @zcmt_jalt
+  cm_jt             101  000   00...... 10 @zcmt_jt
+  cm_jalt           101  000   ........ 10 @zcmt_jalt
 }
 sw                110 .  .....  ..... 10 @c_swsp
 
