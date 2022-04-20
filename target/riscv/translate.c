@@ -521,7 +521,7 @@ static void gen_jal(DisasContext *ctx, int rd, target_ulong imm)
 
     /* check misaligned: */
     next_pc = ctx->base.pc_next + imm;
-    if (!has_ext(ctx, RVC)) {
+    if (!has_ext(ctx, RVC) && !ctx->cfg_ptr->ext_zca) {
         if ((next_pc & 0x3) != 0) {
             gen_exception_inst_addr_mis(ctx);
             return;
@@ -698,6 +698,11 @@ EX_SH(12)
 static int ex_rvc_register(DisasContext *ctx, int reg)
 {
     return 8 + reg;
+}
+
+static int ex_sreg_register(DisasContext *ctx, int reg)
+{
+    return reg < 2 ? reg + 8 : reg + 16;
 }
 
 static int ex_rvc_shifti(DisasContext *ctx, int imm)
@@ -997,6 +1002,9 @@ static uint32_t opcode_at(DisasContextBase *dcbase, target_ulong pc)
     return cpu_ldl_code(env, pc);
 }
 
+/* Include the auto-generated decoder for 16 bit insn */
+#include "decode-insn16.c.inc"
+
 /* Include insn module translation function */
 #include "insn_trans/trans_rvi.c.inc"
 #include "insn_trans/trans_rvm.c.inc"
@@ -1011,9 +1019,6 @@ static uint32_t opcode_at(DisasContextBase *dcbase, target_ulong pc)
 #include "insn_trans/trans_privileged.c.inc"
 #include "insn_trans/trans_svinval.c.inc"
 #include "insn_trans/trans_xventanacondops.c.inc"
-
-/* Include the auto-generated decoder for 16 bit insn */
-#include "decode-insn16.c.inc"
 #include "insn_trans/trans_rvzce.c.inc"
 
 /* Include decoders for factored-out extensions */
@@ -1039,19 +1044,13 @@ static void decode_opc(CPURISCVState *env, DisasContext *ctx, uint16_t opcode)
          * zca support ll of the existing C extension, excluding all 16-bit
          * floating point loads and stores
          */
-        if(!has_ext(ctx, RVC) &&
-           (((opcode & 0xe003) == 0x2000) ||     //c.fld
-            ((opcode & 0xe003) == 0x2002) ||     //c.fldsp
-            ((opcode & 0xe003) == 0xa000) ||     //c.fsd
-            ((opcode & 0xe003) == 0xa002))) {    //c.fsdsp
+        if (!(has_ext(ctx, RVC) || ctx->cfg_ptr->ext_zcf) &&
+            (((opcode & 0xe003) == 0x6000) ||   //c.flw
+            ((opcode & 0xe003) == 0x6002) ||   //c.flwsp
+            ((opcode & 0xe003) == 0xe000) ||   //c.fsw
+            ((opcode & 0xe003) == 0xe002))) {  //c.fswsp
             gen_exception_illegal(ctx);
-        } else if (!(has_ext(ctx, RVC) || RISCV_CPU(ctx->cs)->cfg.ext_zcf) &&
-                   (((opcode & 0xe003) == 0x6000) ||   //c.flw
-                    ((opcode & 0xe003) == 0x6002) ||   //c.flwsp
-                    ((opcode & 0xe003) == 0xe000) ||   //c.fsw
-                    ((opcode & 0xe003) == 0xe002))) {  //c.fswsp
-            gen_exception_illegal(ctx);
-        } else if (!(has_ext(ctx, RVC) || RISCV_CPU(ctx->cs)->cfg.ext_zca)) {
+        } else if (!(has_ext(ctx, RVC) || ctx->cfg_ptr->ext_zca)) {
             gen_exception_illegal(ctx);
         } else {
             ctx->opcode = opcode;

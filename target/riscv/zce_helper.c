@@ -54,7 +54,7 @@
             /* FALL THROUGH */                                             \
     case 10: xreg_list[X_Sn + 5] = 1;                                      \
             /* FALL THROUGH */                                             \
-    case 9: xreg_list[X_Sn + 5] = 1;                                       \
+    case 9: xreg_list[X_Sn + 4] = 1;                                       \
             /* FALL THROUGH */                                             \
     case 8: xreg_list[X_Sn + 3] = 1;                                       \
             /* FALL THROUGH */                                             \
@@ -72,7 +72,7 @@
     stack_adj = caculate_stack_adj(rlist, spimm);                          \
     addr = sp + stack_adj - bytes;                                         \
     for(int i = 31; i >= 0; i--) {                                         \
-        if (xreg_list[i] == 0) {                                           \
+        if (xreg_list[i]) {                                           \
             switch (bytes) {                                               \
             case 4:                                                        \
                 env->gpr[i] = cpu_ldl_le_data(env, addr);                  \
@@ -93,7 +93,9 @@
     \
     env->gpr[xSP] = sp + stack_adj;                                        \
     if (ret) {                                                             \
-        env->pc = env->gpr[xRA];                                           \
+        return env->gpr[xRA];                                              \
+    } else {                                                               \
+        return env->pc;                                                    \
     }                                                                      \
 }
 
@@ -116,7 +118,7 @@
             /* FALL THROUGH */                                             \
     case 10: xreg_list[X_Sn + 5] = 1;                                      \
             /* FALL THROUGH */                                             \
-    case 9: xreg_list[X_Sn + 5] = 1;                                       \
+    case 9: xreg_list[X_Sn + 4] = 1;                                       \
             /* FALL THROUGH */                                             \
     case 8: xreg_list[X_Sn + 3] = 1;                                       \
             /* FALL THROUGH */                                             \
@@ -138,10 +140,10 @@
         if (xreg_list[i]) {                                                \
             switch (bytes) {                                               \
             case 4:                                                        \
-                cpu_stw_be_data(env, addr, env->gpr[i]);                   \
+                cpu_stl_le_data(env, addr, env->gpr[i]);                   \
                 break;                                                     \
             case 8:                                                        \
-                cpu_stq_be_data(env, addr, env->gpr[i]);                   \
+                cpu_stq_le_data(env, addr, env->gpr[i]);                   \
                 break;                                                     \
             default:                                                       \
                 break;                                                     \
@@ -211,27 +213,31 @@ static target_ulong caculate_stack_adj(target_ulong rlist, target_ulong spimm)
     return stack_adj_base + spimm;
 }
 
-void HELPER(cm_push)(CPURISCVState *env, target_ulong sp, target_ulong spimm, target_ulong rlist)
+void HELPER(cm_push)(CPURISCVState *env, target_ulong sp, target_ulong spimm,
+                     target_ulong rlist)
 {
     target_ulong bytes = XLEN >> 3;
     ZCE_PUSH(env, sp, bytes, rlist, spimm);
 }
 
 
-void HELPER(cm_pop)(CPURISCVState *env, target_ulong sp, target_ulong spimm, target_ulong rlist)
+target_ulong HELPER(cm_pop)(CPURISCVState *env, target_ulong sp,
+                            target_ulong spimm, target_ulong rlist)
 {
     target_ulong bytes = XLEN >> 3;
     ZCE_POP(env, sp, bytes, rlist, spimm, false, false);
 }
 
 
-void HELPER(cm_popret)(CPURISCVState *env, target_ulong sp, target_ulong spimm, target_ulong rlist)
+target_ulong HELPER(cm_popret)(CPURISCVState *env, target_ulong sp,
+                               target_ulong spimm, target_ulong rlist)
 {
     target_ulong bytes = XLEN >> 3;
     ZCE_POP(env, sp, bytes, rlist, spimm, false, true);
 }
 
-void HELPER(cm_popretz)(CPURISCVState *env, target_ulong sp, target_ulong spimm, target_ulong rlist)
+target_ulong HELPER(cm_popretz)(CPURISCVState *env, target_ulong sp,
+                                target_ulong spimm, target_ulong rlist)
 {
     target_ulong bytes = XLEN >> 3;
     ZCE_POP(env, sp, bytes, rlist, spimm, true, true);

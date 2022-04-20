@@ -21,6 +21,8 @@
 %rs1_3     7:3                !function=ex_rvc_register
 %rs2_3     2:3                !function=ex_rvc_register
 %rs2_5     2:5
+%sreg1     7:3                !function=ex_sreg_register
+%sreg2     2:3                !function=ex_sreg_register
 
 # Immediates:
 %imm_ci        12:s1 2:5
@@ -110,6 +112,7 @@
 @zcmp ... ... ........ ..             &zcmp   %zcmp_rlist %zcmp_spimm
 @zcmt_jt ... ... ........ ..          &zcmt   zcmt_index=%zcmt_index6
 @zcmt_jalt ... ... ........ ..        &zcmt   zcmt_index=%zcmt_index8
+@cm_mv    ... ... ... .. ... ..       &r      rd=%sreg1 rs1=%sreg1 rs2=%sreg2
 
 # *** RV32/64C Standard Extension (Quadrant 0) ***
 {
@@ -119,14 +122,14 @@
 }
 {
   lq              001  ... ... .. ... 00 @cl_q
-  fld             001  ... ... .. ... 00 @cl_d
+  c_fld           001  ... ... .. ... 00 @cl_d
   cm_lb           001  0.. ... .. ... 00 @zcmb_b
   cm_lh           001  1.. ... .. ... 00 @zcmb_h
 }
 lw                010  ... ... .. ... 00 @cl_w
 {
   sq              101  ... ... .. ... 00 @cs_q
-  fsd             101  ... ... .. ... 00 @cs_d
+  c_fsd           101  ... ... .. ... 00 @cs_d
   cm_sb           101  0.. ... .. ... 00 @zcmb_b
   cm_sh           101  1.. ... .. ... 00 @zcmb_h
 }
@@ -174,7 +177,7 @@ addw              100 1 11 ... 01 ... 01 @cs_2
 slli              000 .  .....  ..... 10 @c_shift2
 {
   lq              001  ... ... .. ... 10 @c_lqsp
-  fld             001 .  .....  ..... 10 @c_ldsp
+  c_fld           001 .  .....  ..... 10 @c_ldsp
   cm_lbu          001  0.. ... .. ... 10 @zcmb_b
   cm_lhu          001  1.. ... .. ... 10 @zcmb_h
 }
@@ -194,15 +197,15 @@ slli              000 .  .....  ..... 10 @c_shift2
 }
 {
   sq                101  ... ... .. ... 10 @c_sqsp
-  fsd               101   ......  ..... 10 @c_sdsp
+  c_fsd             101   ......  ..... 10 @c_sdsp
 
   # *** RV64C and RV32C Zcmp Extension ***
   cm_push           101  11000  .... .. 10 @zcmp
   cm_pop            101  11010  .... .. 10 @zcmp
   cm_popret         101  11110  .... .. 10 @zcmp
   cm_popretz        101  11100  .... .. 10 @zcmp
-  cm_mva01s         101  011 ... 11 ... 10 @zce_binary
-  cm_mvsa01         101  011 ... 01 ... 10 @zce_binary
+  cm_mva01s         101  011 ... 11 ... 10 @cm_mv
+  cm_mvsa01         101  011 ... 01 ... 10 @cm_mv
 
   # *** RV64C and RV32C Zcmt Extension ***
   cm_jt             101  000   00...... 10 @zcmt_jt

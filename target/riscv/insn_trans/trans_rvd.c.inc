@@ -45,6 +45,12 @@ static bool trans_fld(DisasContext *ctx, arg_fld *a)
     return true;
 }
 
+static bool trans_c_fld(DisasContext *ctx, arg_c_fld *a)
+{
+    REQUIRE_EXT(ctx, RVC);
+    return trans_fld(ctx, a);
+}
+
 static bool trans_fsd(DisasContext *ctx, arg_fsd *a)
 {
     TCGv addr;
@@ -55,6 +61,12 @@ static bool trans_fsd(DisasContext *ctx, arg_fsd *a)
     addr = get_address(ctx, a->rs1, a->imm);
     tcg_gen_qemu_st_i64(cpu_fpr[a->rs2], addr, ctx->mem_idx, MO_TEUQ);
     return true;
+}
+
+static bool trans_c_fsd(DisasContext *ctx, arg_c_fsd *a)
+{
+    REQUIRE_EXT(ctx, RVC);
+    return trans_fsd(ctx, a);
 }
 
 static bool trans_fmadd_d(DisasContext *ctx, arg_fmadd_d *a)
