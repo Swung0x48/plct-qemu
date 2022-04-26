@@ -1040,11 +1040,13 @@ static void decode_opc(CPURISCVState *env, DisasContext *ctx, uint16_t opcode)
 
     /* Check for compressed insn */
     if (extract16(opcode, 0, 2) != 3) {
-        /* zcf support c.flw, c.flwsp, c.fsw, c.fswsp
+        /* 
+         * zcf(RV32) support c.flw, c.flwsp, c.fsw, c.fswsp
          * zca support ll of the existing C extension, excluding all 16-bit
          * floating point loads and stores
          */
         if (!(has_ext(ctx, RVC) || ctx->cfg_ptr->ext_zcf) &&
+            (get_xl(ctx) == MXL_RV32) &&
             (((opcode & 0xe003) == 0x6000) ||   //c.flw
             ((opcode & 0xe003) == 0x6002) ||   //c.flwsp
             ((opcode & 0xe003) == 0xe000) ||   //c.fsw
