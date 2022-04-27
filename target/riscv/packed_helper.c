@@ -2223,8 +2223,8 @@ RVPR64_64_64(uksub64, 1, 8);
 
 /* 32-bit Multiply with 64-bit Add/Subtract Instructions */
 static inline uint64_t
-rvpr64_acc(CPURISCVState *env, target_ulong a,
-           target_ulong b, uint64_t c,
+rvpr64_acc(CPURISCVState *env, uint64_t a,
+           uint64_t b, uint64_t c,
            uint8_t step, uint8_t size, PackedFn4i *fn)
 {
     int i, passes = sizeof(target_ulong) / size;
