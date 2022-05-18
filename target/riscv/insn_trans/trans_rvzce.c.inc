@@ -91,7 +91,7 @@ static bool trans_c_not(DisasContext *ctx, arg_c_not *a)
 static bool trans_c_mul(DisasContext *ctx, arg_c_mul *a)
 {
     REQUIRE_ZCB(ctx);
-    REQUIRE_EXT(ctx, RVM);
+    REQUIRE_M_OR_ZMMUL(ctx);
     return gen_arith(ctx, a, EXT_NONE, tcg_gen_mul_tl, NULL);
 }
 
