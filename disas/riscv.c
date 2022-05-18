@@ -570,8 +570,6 @@ typedef enum {
     rv_op_zip = 396,
     rv_op_xperm4 = 397,
     rv_op_xperm8 = 398,
-    rv_op_beqi = 362,
-    rv_op_bnei = 363,
     rv_op_c_zext_b,
     rv_op_c_sext_b,
     rv_op_c_zext_h,
@@ -2311,8 +2309,6 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
             switch (((inst >> 12) & 0b111)) {
             case 0: op = rv_op_beq; break;
             case 1: op = rv_op_bne; break;
-            case 2: op = rv_op_beqi; break;
-            case 3: op = rv_op_bnei; break;
             case 4: op = rv_op_blt; break;
             case 5: op = rv_op_bge; break;
             case 6: op = rv_op_bltu; break;
