@@ -252,15 +252,9 @@ target_ulong HELPER(cm_jt_all)(CPURISCVState *env, target_ulong index, target_ul
     uint8_t mode = get_field(val, JVT_MODE);
     target_ulong base = get_field(val, JVT_BASE);
     target_ulong t0;
-    bool link = false;
 
     if (mode != 0) {
         riscv_raise_exception(env, RISCV_EXCP_ILLEGAL_INST, GETPC());
-    }
-
-    if (index >= 64) {
-        index -= 64;
-        link = true;
     }
 
     if (XLEN == 32) {  // to fix
@@ -271,7 +265,7 @@ target_ulong HELPER(cm_jt_all)(CPURISCVState *env, target_ulong index, target_ul
         target = cpu_ldq_le_data(env, t0);
     }
 
-    if (link) {  // ra for cm.jalt
+    if (index >= 64) {  // ra for cm.jalt
         env->gpr[1] = next_pc;
     }
 
