@@ -557,7 +557,7 @@ static void gen_jal(DisasContext *ctx, int rd, target_ulong imm)
 
     /* check misaligned: */
     next_pc = ctx->base.pc_next + imm;
-    if (!has_ext(ctx, RVC)) {
+    if (!ctx->cfg_ptr->ext_zca) {
         if ((next_pc & 0x3) != 0) {
             gen_exception_inst_addr_mis(ctx);
             return;
@@ -1097,7 +1097,19 @@ static void decode_opc(CPURISCVState *env, DisasContext *ctx, uint16_t opcode)
     ctx->virt_inst_excp = false;
     /* Check for compressed insn */
     if (insn_len(opcode) == 2) {
-        if (!has_ext(ctx, RVC)) {
+        /*
+         * Zca support all of the existing C extension, excluding all
+         * compressed floating point loads and stores
+         * Zcf(RV32 only) support c.flw, c.flwsp, c.fsw, c.fswsp
+         */
+        if (!ctx->cfg_ptr->ext_zca) {
+            gen_exception_illegal(ctx);
+        } else if ((get_xl_max(ctx) == MXL_RV32) &&
+            !ctx->cfg_ptr->ext_zcf &&
+            (((opcode & 0xe003) == 0x6000) ||
+             ((opcode & 0xe003) == 0x6002) ||
+             ((opcode & 0xe003) == 0xe000) ||
+             ((opcode & 0xe003) == 0xe002))) {
             gen_exception_illegal(ctx);
         } else {
             ctx->opcode = opcode;
