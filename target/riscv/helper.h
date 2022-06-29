@@ -1215,3 +1215,8 @@ DEF_HELPER_FLAGS_2(clip, TCG_CALL_NO_RWG_SE, tl, tl, tl)
 DEF_HELPER_FLAGS_2(clipr, TCG_CALL_NO_RWG_SE, tl, tl, tl)
 DEF_HELPER_FLAGS_2(clipu, TCG_CALL_NO_RWG_SE, tl, tl, tl)
 DEF_HELPER_FLAGS_2(clipur, TCG_CALL_NO_RWG_SE, tl, tl, tl)
+/* Zce helper */
+DEF_HELPER_4(cm_pop, tl, env, tl, tl, tl)
+DEF_HELPER_4(cm_push, void, env, tl, tl, tl)
+DEF_HELPER_4(cm_popret, tl, env, tl, tl, tl)
+DEF_HELPER_4(cm_popretz, tl, env, tl, tl, tl)
