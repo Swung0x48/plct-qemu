@@ -1556,3 +1556,67 @@ static bool trans_cv_cmpleu_sci_b(DisasContext *ctx, arg_cv_cmpleu_sci_b *a)
 {
     return gen_simd_scalar_imm(ctx, a, EXT_NONE, MO_8, gen_helper_cmpleu_b);
 }
+
+static inline bool gen_subrotmj(DisasContext *ctx, arg_r *a,
+                                DisasExtend ext, int div,
+                                void (*fn)(TCGv, TCGv, TCGv, TCGv))
+{
+    TCGv dest = dest_gpr(ctx, a->rd);
+    TCGv src1 = get_gpr(ctx, a->rs1, ext);
+    TCGv src2 = get_gpr(ctx, a->rs2, ext);
+    fn(dest, src1, src2, tcg_constant_tl(div));
+    gen_set_gpr(ctx, a->rd, dest);
+    return true;
+}
+
+#define GEN_SUBROTMJ_TRANS(NAME, FUNC, EXT, DIV)             \
+static bool trans_##NAME(DisasContext *s, arg_r *a)          \
+{                                                            \
+    return gen_subrotmj(s, a, EXT, DIV, gen_helper_##FUNC);  \
+}
+
+GEN_SUBROTMJ_TRANS(cv_subrotmj, subrotmj, EXT_NONE, 0)
+GEN_SUBROTMJ_TRANS(cv_subrotmj_div2, subrotmj, EXT_NONE, 1)
+GEN_SUBROTMJ_TRANS(cv_subrotmj_div4, subrotmj, EXT_NONE, 2)
+GEN_SUBROTMJ_TRANS(cv_subrotmj_div8, subrotmj, EXT_NONE, 3)
+
+static bool trans_cv_cplxconj(DisasContext *ctx, arg_cv_cplxconj *a)
+{
+    TCGv dest = dest_gpr(ctx, a->rd);
+    TCGv src1 = get_gpr(ctx, a->rs1, EXT_NONE);
+
+    tcg_gen_sari_tl(dest, src1, 16);
+    tcg_gen_neg_tl(dest, dest);
+    tcg_gen_shli_tl(dest, dest, 16);
+    tcg_gen_deposit_tl(dest, dest, src1, 0, 16);
+    gen_set_gpr(ctx, a->rd, dest);
+    return true;
+}
+
+static inline bool gen_cplxmul(DisasContext *ctx, arg_r *a,
+                                DisasExtend ext, int div,
+                                void (*fn)(TCGv, TCGv, TCGv, TCGv, TCGv))
+{
+    TCGv dest = dest_gpr(ctx, a->rd);
+    TCGv src1 = get_gpr(ctx, a->rs1, ext);
+    TCGv src2 = get_gpr(ctx, a->rs2, ext);
+    TCGv src3 = get_gpr(ctx, a->rd, ext);
+    fn(dest, src1, src2, src3, tcg_constant_tl(div));
+    gen_set_gpr(ctx, a->rd, dest);
+    return true;
+}
+
+#define GEN_CPLXMUL_TRANS(NAME, FUNC, EXT, DIV)               \
+static bool trans_##NAME(DisasContext *s, arg_r *a)           \
+{                                                             \
+    return gen_cplxmul(s, a, EXT, DIV, gen_helper_##FUNC);    \
+}
+
+GEN_CPLXMUL_TRANS(cv_cplxmul_r, cplxmul_r, EXT_NONE, 0)
+GEN_CPLXMUL_TRANS(cv_cplxmul_r_div2, cplxmul_r, EXT_NONE, 1)
+GEN_CPLXMUL_TRANS(cv_cplxmul_r_div4, cplxmul_r, EXT_NONE, 2)
+GEN_CPLXMUL_TRANS(cv_cplxmul_r_div8, cplxmul_r, EXT_NONE, 3)
+GEN_CPLXMUL_TRANS(cv_cplxmul_i, cplxmul_i, EXT_NONE, 0)
+GEN_CPLXMUL_TRANS(cv_cplxmul_i_div2, cplxmul_i, EXT_NONE, 1)
+GEN_CPLXMUL_TRANS(cv_cplxmul_i_div4, cplxmul_i, EXT_NONE, 2)
+GEN_CPLXMUL_TRANS(cv_cplxmul_i_div8, cplxmul_i, EXT_NONE, 3)
