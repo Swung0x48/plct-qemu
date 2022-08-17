@@ -294,6 +294,45 @@ static const uint8_t default_iprio[64] = {
  [32] = IPRIO_DEFAULT_LOWER + 11,
 };
 
+static const uint8_t cv32e40p_iprio[12] = {
+ [11] = IPRIO_DEFAULT_M,
+ [3]  = IPRIO_DEFAULT_M - 1,
+ [7]  = IPRIO_DEFAULT_M - 2,
+ [10] = IPRIO_DEFAULT_M - 3,
+ [2]  = IPRIO_DEFAULT_M - 4,
+ [6]  = IPRIO_DEFAULT_M - 5,
+ [9]  = IPRIO_DEFAULT_M - 6,
+ [1]  = IPRIO_DEFAULT_M - 7,
+ [5]  = IPRIO_DEFAULT_M - 8,
+ [8]  = IPRIO_DEFAULT_M - 9,
+ [0]  = IPRIO_DEFAULT_M - 10,
+ [4]  = IPRIO_DEFAULT_M - 11
+};
+
+#define CV32E40P_IRQ_MASK 0xffff0888
+
+static inline int cv32e40p_highest_prio_int(uint32_t pending)
+{
+    int irq = 31 - clz32(pending);
+    uint8_t priv = 0;
+    int i;
+
+    if (irq >= 12) {
+        return irq;
+    }
+
+    for (i = 11 ; i >= 0; i--) {
+        if (pending & (1 << i)) {
+            if (cv32e40p_iprio[i] > priv) {
+                priv = cv32e40p_iprio[i];
+                irq = i;
+            }
+        }
+    }
+
+    return irq;
+}
+
 uint8_t riscv_cpu_default_priority(int irq)
 {
     if (irq < 0 || irq > 63) {
@@ -312,6 +351,10 @@ static int riscv_cpu_pending_to_irq(CPURISCVState *env,
 
     if (!pending) {
         return RISCV_EXCP_NONE;
+    }
+
+    if (env_archcpu(env)->cfg.cv32e40p) {
+        return cv32e40p_highest_prio_int(pending & CV32E40P_IRQ_MASK);
     }
 
     irq = ctz64(pending);
@@ -432,6 +475,11 @@ bool riscv_cpu_exec_interrupt(CPUState *cs, int interrupt_request)
         CPURISCVState *env = &cpu->env;
         int interruptno = riscv_cpu_local_irq_pending(env);
         if (interruptno >= 0) {
+            if (cpu->cfg.cv32e40p) {
+                if (interruptno != IRQ_M_EXT) {
+                    env->mip &= ~(1 << interruptno);
+                }
+            }
             cs->exception_index = RISCV_EXCP_INT_FLAG | interruptno;
             riscv_cpu_do_interrupt(cs);
             return true;

@@ -137,6 +137,9 @@
 #define CSR_HPMCOUNTER30H   0xc9e
 #define CSR_HPMCOUNTER31H   0xc9f
 
+#define CSR_UHARTID         0xcc0
+#define CSR_PRIVLV          0xcc1
+
 /* Machine Timers and Counters */
 #define CSR_MCYCLE          0xb00
 #define CSR_MINSTRET        0xb02

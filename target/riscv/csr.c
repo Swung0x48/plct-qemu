@@ -452,6 +452,15 @@ static RISCVException hwlp(CPURISCVState *env, int csrno)
     return RISCV_EXCP_ILLEGAL_INST;
 }
 
+static RISCVException cv32e40p(CPURISCVState *env, int csrno)
+{
+    if (env_archcpu(env)->cfg.cv32e40p) {
+        return RISCV_EXCP_NONE;
+    }
+
+    return RISCV_EXCP_ILLEGAL_INST;
+}
+
 /* User Floating-Point CSRs */
 static RISCVException read_fflags(CPURISCVState *env, int csrno,
                                   target_ulong *val)
@@ -1345,7 +1354,13 @@ static RISCVException rmw_mie64(CPURISCVState *env, int csrno,
                                 uint64_t *ret_val,
                                 uint64_t new_val, uint64_t wr_mask)
 {
-    uint64_t mask = wr_mask & all_ints;
+    uint64_t mask = all_ints;
+
+    if (env_archcpu(env)->cfg.cv32e40p) {
+        mask |= 0xFFFF0000;
+    }
+
+    mask = wr_mask & mask;
 
     if (ret_val) {
         *ret_val = env->mie;
@@ -3521,6 +3536,28 @@ static RISCVException write_lpcount1(CPURISCVState *env, int csrno,
     return RISCV_EXCP_NONE;
 }
 
+static RISCVException read_uhartid(CPURISCVState *env, int csrno,
+                                   target_ulong *val)
+{
+#ifndef CONFIG_USER_ONLY
+    *val = env->mhartid;
+#else
+    *val = 0;
+#endif
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException read_privlv(CPURISCVState *env, int csrno,
+                                  target_ulong *val)
+{
+#ifndef CONFIG_USER_ONLY
+    *val = env->priv;
+#else
+    *val = PRV_M;
+#endif
+    return RISCV_EXCP_NONE;
+}
+
 /*
  * riscv_csrrw - read and/or update control and status register
  *
@@ -4274,4 +4311,6 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_LPSTART1] =  { "lpstart1", hwlp,     read_lpstart1, write_lpstart1 },
     [CSR_LPEND1]   =  { "lpend1",   hwlp,     read_lpend1,   write_lpend1   },
     [CSR_LPCOUNT1] =  { "lpcount1", hwlp,     read_lpcount1, write_lpcount1 },
+    [CSR_UHARTID]  =  { "uhartid",  cv32e40p, read_uhartid                  },
+    [CSR_PRIVLV]   =  { "privlv",   cv32e40p, read_privlv                   },
 };
