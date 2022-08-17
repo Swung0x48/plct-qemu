@@ -136,6 +136,9 @@ config AUX
 config UNIMP
     bool
 
+config STDOUT
+    bool
+
 config LED
     bool
 
@@ -173,5 +176,9 @@ config VIRT_CTRL
 
 config LASI
     bool
+
+config CORE_V_UDMA_FILTER
+    bool
+    select CORE_V_UDMA
 
 source macio/Kconfig
