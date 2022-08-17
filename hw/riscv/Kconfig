@@ -85,3 +85,19 @@ config SPIKE
     select MSI_NONBROKEN
     select RISCV_ACLINT
     select SIFIVE_PLIC
+
+config CORE_V_MCU
+    bool
+    select CORE_V_EVT_GEN
+    select CORE_V_TIMER
+    select CORE_V_APB_ADV_TIMER
+    select CORE_V_UDMA
+    select CORE_V_UDMA_UART
+    select CORE_V_UDMA_SPI
+    select CORE_V_UDMA_I2C
+    select CORE_V_UDMA_SDIO
+    select CORE_V_GPIO
+    select CORE_V_I2CS
+    select SMBUS_EEPROM
+    select SSI_M25P80
+    select UNIMP

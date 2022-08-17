@@ -1,0 +1,8 @@
+#ifndef HW_CORE_V_CPU_H
+#define HW_CORE_V_CPU_H
+
+#if defined(TARGET_RISCV32)
+#define CORE_V_CV32E40P_CPU TYPE_RISCV_CPU_CORE_V_CV32E40P
+#endif
+
+#endif /* HW_CORE_V_CPU_H */
