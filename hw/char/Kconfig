@@ -71,3 +71,7 @@ config GOLDFISH_TTY
 
 config SHAKTI_UART
     bool
+
+config CORE_V_UDMA_UART
+    bool
+    select CORE_V_UDMA
