@@ -76,6 +76,9 @@ config RISCV_APLIC
 config RISCV_IMSIC
     bool
 
+config CORE_V_EVT_GEN
+    bool
+
 config SIFIVE_PLIC
     bool
 
