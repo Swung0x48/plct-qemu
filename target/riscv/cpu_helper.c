@@ -314,6 +314,10 @@ static int riscv_cpu_pending_to_irq(CPURISCVState *env,
         return RISCV_EXCP_NONE;
     }
 
+    if (riscv_feature(env, RISCV_FEATURE_CORE_V_INTC)) {
+        return  31 - clz32(pending);
+    }
+
     irq = ctz64(pending);
     if (!riscv_feature(env, RISCV_FEATURE_AIA)) {
         return irq;

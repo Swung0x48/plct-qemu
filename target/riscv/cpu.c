@@ -313,6 +313,18 @@ static void rv32_sifive_e_cpu_init(Object *obj)
     cpu->cfg.mmu = false;
 }
 
+static void rv32_core_v_cv32e40p_cpu_init(Object *obj)
+{
+    CPURISCVState *env = &RISCV_CPU(obj)->env;
+    RISCVCPU *cpu = RISCV_CPU(obj);
+
+    set_misa(env, MXL_RV32, RVI | RVM | RVF | RVC | RVD);
+    riscv_set_feature(env, RISCV_FEATURE_CORE_V_INTC);
+    set_priv_version(env, PRIV_VERSION_1_11_0);
+    cpu->cfg.ext_XPulp = true;
+    cpu->cfg.mmu = false;
+}
+
 static void rv32_ibex_cpu_init(Object *obj)
 {
     CPURISCVState *env = &RISCV_CPU(obj)->env;
@@ -935,6 +947,8 @@ static void riscv_cpu_set_irq(void *opaque, int irq, int level)
         default:
             g_assert_not_reached();
         }
+    } else if (riscv_feature(env, RISCV_FEATURE_CORE_V_INTC) && (irq < 32)) {
+        riscv_cpu_update_mip(cpu, 1 << irq, BOOL_TO_MASK(level));
     } else if (irq < (IRQ_LOCAL_MAX + IRQ_LOCAL_GUEST_MAX)) {
         /* Require H-extension for handling guest local interrupts */
         if (!riscv_has_ext(env, RVH)) {
@@ -1258,6 +1272,7 @@ static const TypeInfo riscv_cpu_type_infos[] = {
     DEFINE_CPU(TYPE_RISCV_CPU_SIFIVE_E31,       rv32_sifive_e_cpu_init),
     DEFINE_CPU(TYPE_RISCV_CPU_SIFIVE_E34,       rv32_imafcu_nommu_cpu_init),
     DEFINE_CPU(TYPE_RISCV_CPU_SIFIVE_U34,       rv32_sifive_u_cpu_init),
+    DEFINE_CPU(TYPE_RISCV_CPU_CORE_V_CV32E40P,  rv32_core_v_cv32e40p_cpu_init),
 #elif defined(TARGET_RISCV64)
     DEFINE_CPU(TYPE_RISCV_CPU_BASE64,           rv64_base_cpu_init),
     DEFINE_CPU(TYPE_RISCV_CPU_SIFIVE_E51,       rv64_sifive_e_cpu_init),

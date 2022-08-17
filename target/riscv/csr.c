@@ -1345,7 +1345,13 @@ static RISCVException rmw_mie64(CPURISCVState *env, int csrno,
                                 uint64_t *ret_val,
                                 uint64_t new_val, uint64_t wr_mask)
 {
-    uint64_t mask = wr_mask & all_ints;
+    uint64_t mask = all_ints;
+
+    if (riscv_feature(env, RISCV_FEATURE_CORE_V_INTC)) {
+        mask |= 0xFFFF0000;
+    }
+
+    mask = wr_mask & mask;
 
     if (ret_val) {
         *ret_val = env->mie;
