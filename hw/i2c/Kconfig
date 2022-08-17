@@ -38,6 +38,11 @@ config PCA954X
     bool
     select I2C
 
+config CORE_V_UDMA_I2C
+    bool
+    select CORE_V_UDMA
+    select I2C
+
 config PMBUS
     bool
     select SMBUS
