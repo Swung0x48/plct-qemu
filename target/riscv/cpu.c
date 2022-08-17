@@ -323,6 +323,7 @@ static void rv32_core_v_cv32e40p_cpu_init(Object *obj)
     cpu->cfg.ext_XPulp = true;
     cpu->cfg.cv32e40p = true;
     cpu->cfg.mmu = false;
+    env->ack_valid = false;
 }
 
 static void rv32_ibex_cpu_init(Object *obj)

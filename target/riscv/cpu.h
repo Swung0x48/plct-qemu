@@ -373,6 +373,7 @@ struct CPUArchState {
 #endif
 
     RISCVHwlp hwlp[2];
+    bool ack_valid;
 
     target_ulong cur_pmmask;
     target_ulong cur_pmbase;

@@ -478,6 +478,8 @@ bool riscv_cpu_exec_interrupt(CPUState *cs, int interrupt_request)
             if (cpu->cfg.cv32e40p) {
                 if (interruptno != IRQ_M_EXT) {
                     env->mip &= ~(1 << interruptno);
+                } else {
+                    env->ack_valid = true;
                 }
             }
             cs->exception_index = RISCV_EXCP_INT_FLAG | interruptno;
