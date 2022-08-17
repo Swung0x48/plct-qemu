@@ -371,6 +371,8 @@ struct CPUArchState {
     uint64_t menvcfg;
     target_ulong senvcfg;
     uint64_t henvcfg;
+
+    bool ack_valid;
 #endif
 
     RISCVHwlp hwlp[2];

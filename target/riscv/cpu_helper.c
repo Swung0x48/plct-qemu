@@ -436,6 +436,12 @@ bool riscv_cpu_exec_interrupt(CPUState *cs, int interrupt_request)
         CPURISCVState *env = &cpu->env;
         int interruptno = riscv_cpu_local_irq_pending(env);
         if (interruptno >= 0) {
+            if (riscv_feature(env, RISCV_FEATURE_CORE_V_INTC)) {
+                env->mip &= ~(1 << interruptno);
+                if (interruptno == 11) {
+                    env->ack_valid = true;
+                }
+            }
             cs->exception_index = RISCV_EXCP_INT_FLAG | interruptno;
             riscv_cpu_do_interrupt(cs);
             return true;
