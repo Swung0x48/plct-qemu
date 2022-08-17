@@ -20,3 +20,8 @@ config XILINX_SPIPS
 config STM32F2XX_SPI
     bool
     select SSI
+
+config CORE_V_UDMA_SPI
+    bool
+    select CORE_V_UDMA
+    select SSI
