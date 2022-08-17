@@ -63,3 +63,7 @@ config AVR_TIMER16
 
 config CORE_V_TIMER
     bool
+
+config CORE_V_APB_ADV_TIMER
+    bool
+    select PTIMER
