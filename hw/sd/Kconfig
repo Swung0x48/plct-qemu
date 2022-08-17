@@ -23,3 +23,8 @@ config SDHCI_PCI
 config CADENCE_SDHCI
     bool
     select SDHCI
+
+config CORE_V_UDMA_SDIO
+    bool
+    select CORE_V_UDMA
+    select SD
