@@ -328,19 +328,19 @@ static bool gen_simd_div(DisasContext *ctx, arg_r *a, DisasExtend ext,
     return true;
 }
 
-static bool trans_cv_add_div2(DisasContext *ctx, arg_cv_add_div2 *a)
+static bool trans_cv_add_div2_h(DisasContext *ctx, arg_cv_add_div2_h *a)
 {
     return gen_simd_div(ctx, a, EXT_NONE, 1, tcg_gen_vec_add16_tl,
                         tcg_gen_vec_shr16i_tl);
 }
 
-static bool trans_cv_add_div4(DisasContext *ctx, arg_cv_add_div4 *a)
+static bool trans_cv_add_div4_h(DisasContext *ctx, arg_cv_add_div4_h *a)
 {
     return gen_simd_div(ctx, a, EXT_NONE, 2, tcg_gen_vec_add16_tl,
                         tcg_gen_vec_shr16i_tl);
 }
 
-static bool trans_cv_add_div8(DisasContext *ctx, arg_cv_add_div8 *a)
+static bool trans_cv_add_div8_h(DisasContext *ctx, arg_cv_add_div8_h *a)
 {
     return gen_simd_div(ctx, a, EXT_NONE, 3, tcg_gen_vec_add16_tl,
                         tcg_gen_vec_shr16i_tl);
@@ -376,19 +376,19 @@ static bool trans_cv_sub_sci_b(DisasContext *ctx, arg_cv_sub_sci_b *a)
     return gen_simd_scalar_imm(ctx, a, EXT_NONE, MO_8, tcg_gen_vec_sub8_tl);
 }
 
-static bool trans_cv_sub_div2(DisasContext *ctx, arg_cv_sub_div2 *a)
+static bool trans_cv_sub_div2_h(DisasContext *ctx, arg_cv_sub_div2_h *a)
 {
     return gen_simd_div(ctx, a, EXT_NONE, 1, tcg_gen_vec_sub16_tl,
                         tcg_gen_vec_shr16i_tl);
 }
 
-static bool trans_cv_sub_div4(DisasContext *ctx, arg_cv_sub_div4 *a)
+static bool trans_cv_sub_div4_h(DisasContext *ctx, arg_cv_sub_div4_h *a)
 {
     return gen_simd_div(ctx, a, EXT_NONE, 2, tcg_gen_vec_sub16_tl,
                         tcg_gen_vec_shr16i_tl);
 }
 
-static bool trans_cv_sub_div8(DisasContext *ctx, arg_cv_sub_div8 *a)
+static bool trans_cv_sub_div8_h(DisasContext *ctx, arg_cv_sub_div8_h *a)
 {
     return gen_simd_div(ctx, a, EXT_NONE, 3, tcg_gen_vec_sub16_tl,
                         tcg_gen_vec_shr16i_tl);
