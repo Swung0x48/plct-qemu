@@ -85,6 +85,7 @@ enum {
     RISCV_FEATURE_PMP,
     RISCV_FEATURE_EPMP,
     RISCV_FEATURE_MISA,
+    RISCV_FEATURE_CXLEN,
     RISCV_FEATURE_DEBUG
 };
 
@@ -479,6 +480,7 @@ struct RISCVCPUConfig {
     bool pmp;
     bool epmp;
     bool debug;
+    bool cxlen;
 
     bool short_isa_string;
 };
@@ -646,7 +648,7 @@ static inline RISCVMXL cpu_recompute_xl(CPURISCVState *env)
      * MSTATUSH doesn't have UXL/SXL, therefore XLEN cannot be widened
      * back to RV64 for lower privs.
      */
-    if (xl != MXL_RV32) {
+    if (xl != MXL_RV32 && riscv_feature(env, RISCV_FEATURE_CXLEN)) {
         switch (env->priv) {
         case PRV_M:
             break;
@@ -676,7 +678,9 @@ static inline RISCVMXL riscv_cpu_sxl(CPURISCVState *env)
 #ifdef CONFIG_USER_ONLY
     return env->misa_mxl;
 #else
-    return get_field(env->mstatus, MSTATUS64_SXL);
+    uint64_t mstatus = riscv_cpu_virt_enabled(env) ? env->mstatus_hs :
+                                                     env->mstatus;
+    return get_field(mstatus, MSTATUS64_SXL);
 #endif
 }
 #endif

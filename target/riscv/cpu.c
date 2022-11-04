@@ -541,8 +541,16 @@ static void riscv_cpu_reset(DeviceState *dev)
          * The reset status of SXL/UXL is undefined, but mstatus is WARL
          * and we must ensure that the value after init is valid for read.
          */
-        env->mstatus = set_field(env->mstatus, MSTATUS64_SXL, env->misa_mxl);
-        env->mstatus = set_field(env->mstatus, MSTATUS64_UXL, env->misa_mxl);
+        if (riscv_has_ext(env, RVS)) {
+            env->mstatus = set_field(env->mstatus, MSTATUS64_SXL,
+                                     env->misa_mxl);
+        }
+
+        if (riscv_has_ext(env, RVU)) {
+            env->mstatus = set_field(env->mstatus, MSTATUS64_UXL,
+                                     env->misa_mxl);
+        }
+
         if (riscv_has_ext(env, RVH)) {
             env->vsstatus = set_field(env->vsstatus,
                                       MSTATUS64_SXL, env->misa_mxl);
@@ -685,6 +693,9 @@ static void riscv_cpu_realize(DeviceState *dev, Error **errp)
         riscv_set_feature(env, RISCV_FEATURE_DEBUG);
     }
 
+    if (cpu->cfg.cxlen) {
+        riscv_set_feature(env, RISCV_FEATURE_CXLEN);
+    }
 
 #ifndef CONFIG_USER_ONLY
     if (cpu->cfg.ext_sstc) {

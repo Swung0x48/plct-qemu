@@ -217,7 +217,7 @@ static RISCVException smode(CPURISCVState *env, int csrno)
 
 static int smode32(CPURISCVState *env, int csrno)
 {
-    if (riscv_cpu_mxl(env) != MXL_RV32) {
+    if (riscv_cpu_sxl(env) != MXL_RV32) {
         return RISCV_EXCP_ILLEGAL_INST;
     }
 
@@ -257,7 +257,7 @@ static RISCVException hmode(CPURISCVState *env, int csrno)
 
 static RISCVException hmode32(CPURISCVState *env, int csrno)
 {
-    if (riscv_cpu_mxl(env) != MXL_RV32) {
+    if (riscv_cpu_sxl(env) != MXL_RV32) {
         return RISCV_EXCP_ILLEGAL_INST;
     }
 
@@ -853,7 +853,7 @@ static RISCVException sstc(CPURISCVState *env, int csrno)
 
 static RISCVException sstc_32(CPURISCVState *env, int csrno)
 {
-    if (riscv_cpu_mxl(env) != MXL_RV32) {
+    if (riscv_cpu_sxl(env) != MXL_RV32) {
         return RISCV_EXCP_ILLEGAL_INST;
     }
 
@@ -881,7 +881,7 @@ static RISCVException write_vstimecmp(CPURISCVState *env, int csrno,
 {
     RISCVCPU *cpu = env_archcpu(env);
 
-    if (riscv_cpu_mxl(env) == MXL_RV32) {
+    if (riscv_cpu_sxl(env) == MXL_RV32) {
         env->vstimecmp = deposit64(env->vstimecmp, 0, 32, (uint64_t)val);
     } else {
         env->vstimecmp = val;
@@ -938,7 +938,7 @@ static RISCVException write_stimecmp(CPURISCVState *env, int csrno,
         return write_vstimecmp(env, csrno, val);
     }
 
-    if (riscv_cpu_mxl(env) == MXL_RV32) {
+    if (riscv_cpu_sxl(env) == MXL_RV32) {
         env->stimecmp = deposit64(env->stimecmp, 0, 32, (uint64_t)val);
     } else {
         env->stimecmp = val;
@@ -1143,17 +1143,45 @@ static RISCVException write_mstatus(CPURISCVState *env, int csrno,
          * add them to mstatush. For now, we just don't support it.
          */
         mask |= MSTATUS_MPV | MSTATUS_GVA;
-        if ((val & MSTATUS64_UXL) != 0) {
-            mask |= MSTATUS64_UXL;
+
+        if (riscv_feature(env, RISCV_FEATURE_CXLEN)) {
+            RISCVMXL new_sxlen = get_field(val, MSTATUS64_SXL);
+
+            if (riscv_has_ext(env, RVS)) {
+                mask |= MSTATUS64_SXL;
+                /*
+                 * SXL can only be changed to legal value less than MXL
+                 * It will remain unchanged if legal or  change to widest
+                 * supported width otherwise.
+                 */
+                if((new_sxlen > xl) || (new_sxlen == 0)) {
+                    RISCVMXL old_sxlen = riscv_cpu_sxl(env);
+                    new_sxlen = old_sxlen <= xl ? old_sxlen : xl;
+                    val = set_field(val, MSTATUS64_SXL, new_sxlen);
+                }
+            } else {
+                new_sxlen = xl;
+            }
+
+            if (riscv_has_ext(env, RVU)) {
+                RISCVMXL new_uxlen = get_field(val, MSTATUS64_UXL);
+                mask |= MSTATUS64_UXL;
+                /*
+                 * (V)UXL can only be changed to legal value less than SXL
+                 * It will remain unchanged if legal or  change to widest
+                 * supported width otherwise.
+                 */
+                if ((new_uxlen > new_sxlen) || (new_uxlen == 0)) {
+                    RISCVMXL old_uxlen = get_field(mstatus, MSTATUS64_UXL);
+                    new_uxlen = old_uxlen <= new_sxlen ? old_uxlen : new_sxlen;
+                    val = set_field(val, MSTATUS64_UXL, new_uxlen);
+                }
+            }
         }
     }
 
     mstatus = (mstatus & ~mask) | (val & mask);
 
-    if (xl > MXL_RV32) {
-        /* SXL field is for now read only */
-        mstatus = set_field(mstatus, MSTATUS64_SXL, xl);
-    }
     env->mstatus = mstatus;
     env->xl = cpu_recompute_xl(env);
 
@@ -1834,7 +1862,7 @@ static RISCVException write_henvcfg(CPURISCVState *env, int csrno,
 {
     uint64_t mask = HENVCFG_FIOM | HENVCFG_CBIE | HENVCFG_CBCFE | HENVCFG_CBZE;
 
-    if (riscv_cpu_mxl(env) == MXL_RV64) {
+    if (riscv_cpu_sxl(env) == MXL_RV64) {
         mask |= HENVCFG_PBMTE | HENVCFG_STCE;
     }
 
@@ -1936,7 +1964,7 @@ static RISCVException read_sstatus_i128(CPURISCVState *env, int csrno,
 {
     uint64_t mask = sstatus_v1_10_mask;
     uint64_t sstatus = env->mstatus & mask;
-    if (env->xl != MXL_RV32 || env->debugger) {
+    if (riscv_cpu_sxl(env) != MXL_RV32 || env->debugger) {
         mask |= SSTATUS64_UXL;
     }
 
@@ -1948,11 +1976,11 @@ static RISCVException read_sstatus(CPURISCVState *env, int csrno,
                                    target_ulong *val)
 {
     target_ulong mask = (sstatus_v1_10_mask);
-    if (env->xl != MXL_RV32 || env->debugger) {
+    if (riscv_cpu_sxl(env) != MXL_RV32 || env->debugger) {
         mask |= SSTATUS64_UXL;
     }
-    /* TODO: Use SXL not MXL. */
-    *val = add_status_sd(riscv_cpu_mxl(env), env->mstatus & mask);
+
+    *val = add_status_sd(riscv_cpu_sxl(env), env->mstatus & mask);
     return RISCV_EXCP_NONE;
 }
 
@@ -1961,7 +1989,7 @@ static RISCVException write_sstatus(CPURISCVState *env, int csrno,
 {
     target_ulong mask = (sstatus_v1_10_mask);
 
-    if (env->xl != MXL_RV32 || env->debugger) {
+    if (riscv_cpu_sxl(env) != MXL_RV32 || env->debugger) {
         if ((val & SSTATUS64_UXL) != 0) {
             mask |= SSTATUS64_UXL;
         }
@@ -2324,7 +2352,7 @@ static RISCVException write_satp(CPURISCVState *env, int csrno,
         return RISCV_EXCP_NONE;
     }
 
-    if (riscv_cpu_mxl(env) == MXL_RV32) {
+    if (riscv_cpu_sxl(env) == MXL_RV32) {
         vm = validate_vm(env, get_field(val, SATP32_MODE));
         mask = (val ^ env->satp) & (SATP32_MODE | SATP32_ASID | SATP32_PPN);
     } else {
@@ -2481,7 +2509,7 @@ static RISCVException write_hstatus(CPURISCVState *env, int csrno,
                                     target_ulong val)
 {
     env->hstatus = val;
-    if (riscv_cpu_mxl(env) != MXL_RV32 && get_field(val, HSTATUS_VSXL) != 2) {
+    if (riscv_cpu_sxl(env) != MXL_RV32 && get_field(val, HSTATUS_VSXL) != 2) {
         qemu_log_mask(LOG_UNIMP, "QEMU does not support mixed HSXLEN options.");
     }
     if (get_field(val, HSTATUS_VSBE) != 0) {
@@ -2726,7 +2754,7 @@ static RISCVException write_htimedelta(CPURISCVState *env, int csrno,
         return RISCV_EXCP_ILLEGAL_INST;
     }
 
-    if (riscv_cpu_mxl(env) == MXL_RV32) {
+    if (riscv_cpu_sxl(env) == MXL_RV32) {
         env->htimedelta = deposit64(env->htimedelta, 0, 32, (uint64_t)val);
     } else {
         env->htimedelta = val;
