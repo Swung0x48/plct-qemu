@@ -552,6 +552,8 @@ static void riscv_cpu_reset(DeviceState *dev)
         }
 
         if (riscv_has_ext(env, RVH)) {
+            env->hstatus = set_field(env->hstatus,
+                                     HSTATUS_VSXL, env->misa_mxl);
             env->vsstatus = set_field(env->vsstatus,
                                       MSTATUS64_SXL, env->misa_mxl);
             env->vsstatus = set_field(env->vsstatus,

@@ -257,7 +257,17 @@ static RISCVException hmode(CPURISCVState *env, int csrno)
 
 static RISCVException hmode32(CPURISCVState *env, int csrno)
 {
-    if (riscv_cpu_sxl(env) != MXL_RV32) {
+    if (riscv_cpu_hsxl(env) != MXL_RV32) {
+        return RISCV_EXCP_ILLEGAL_INST;
+    }
+
+    return hmode(env, csrno);
+
+}
+
+static RISCVException vsmode32(CPURISCVState *env, int csrno)
+{
+    if (riscv_cpu_vsxl(env) != MXL_RV32) {
         return RISCV_EXCP_ILLEGAL_INST;
     }
 
@@ -313,6 +323,17 @@ static int aia_hmode32(CPURISCVState *env, int csrno)
     }
 
     return hmode32(env, csrno);
+}
+
+static int aia_vsmode32(CPURISCVState *env, int csrno)
+{
+    RISCVCPU *cpu = env_archcpu(env);
+
+    if (!cpu->cfg.ext_ssaia) {
+        return RISCV_EXCP_ILLEGAL_INST;
+    }
+
+    return vsmode32(env, csrno);
 }
 
 static RISCVException pmp(CPURISCVState *env, int csrno)
@@ -860,6 +881,15 @@ static RISCVException sstc_32(CPURISCVState *env, int csrno)
     return sstc(env, csrno);
 }
 
+static RISCVException sstc_vs32(CPURISCVState *env, int csrno)
+{
+    if (riscv_cpu_vsxl(env) != MXL_RV32) {
+        return RISCV_EXCP_ILLEGAL_INST;
+    }
+
+    return sstc(env, csrno);
+}
+
 static RISCVException read_vstimecmp(CPURISCVState *env, int csrno,
                                     target_ulong *val)
 {
@@ -881,7 +911,7 @@ static RISCVException write_vstimecmp(CPURISCVState *env, int csrno,
 {
     RISCVCPU *cpu = env_archcpu(env);
 
-    if (riscv_cpu_sxl(env) == MXL_RV32) {
+    if (riscv_cpu_vsxl(env) == MXL_RV32) {
         env->vstimecmp = deposit64(env->vstimecmp, 0, 32, (uint64_t)val);
     } else {
         env->vstimecmp = val;
@@ -1148,16 +1178,30 @@ static RISCVException write_mstatus(CPURISCVState *env, int csrno,
             RISCVMXL new_sxlen = get_field(val, MSTATUS64_SXL);
 
             if (riscv_has_ext(env, RVS)) {
-                mask |= MSTATUS64_SXL;
-                /*
-                 * SXL can only be changed to legal value less than MXL
-                 * It will remain unchanged if legal or  change to widest
-                 * supported width otherwise.
-                 */
-                if((new_sxlen > xl) || (new_sxlen == 0)) {
-                    RISCVMXL old_sxlen = riscv_cpu_sxl(env);
-                    new_sxlen = old_sxlen <= xl ? old_sxlen : xl;
-                    val = set_field(val, MSTATUS64_SXL, new_sxlen);
+                if (!riscv_cpu_virt_enabled(env)) {
+                    RISCVMXL old_sxlen = riscv_cpu_hsxl(env);
+                    mask |= MSTATUS64_SXL;
+                    /*
+                    * SXL can only be changed to legal value less than MXL
+                    * It will remain unchanged if legal or  change to widest
+                    * supported width otherwise.
+                    */
+                    if((new_sxlen > xl) || (new_sxlen == 0)) {
+                        new_sxlen = old_sxlen <= xl ? old_sxlen : xl;
+                        val = set_field(val, MSTATUS64_SXL, new_sxlen);
+                    }
+
+                    /*
+                    * Change VSXL to widest supported not wider than SXL when
+                    * HSXLEN is changed from 32 to wider
+                    */
+                    if (riscv_has_ext(env, RVH) && old_sxlen == 1 &&
+                        new_sxlen > 1) {
+                        env->hstatus = set_field(env->hstatus, HSTATUS_VSXL,
+                                                new_sxlen);
+                    }
+                } else {
+                    new_sxlen = riscv_cpu_vsxl(env);
                 }
             } else {
                 new_sxlen = xl;
@@ -1167,7 +1211,7 @@ static RISCVException write_mstatus(CPURISCVState *env, int csrno,
                 RISCVMXL new_uxlen = get_field(val, MSTATUS64_UXL);
                 mask |= MSTATUS64_UXL;
                 /*
-                 * (V)UXL can only be changed to legal value less than SXL
+                 * (V)UXL can only be changed to legal value less than (V)SXL
                  * It will remain unchanged if legal or  change to widest
                  * supported width otherwise.
                  */
@@ -1862,7 +1906,7 @@ static RISCVException write_henvcfg(CPURISCVState *env, int csrno,
 {
     uint64_t mask = HENVCFG_FIOM | HENVCFG_CBIE | HENVCFG_CBCFE | HENVCFG_CBZE;
 
-    if (riscv_cpu_sxl(env) == MXL_RV64) {
+    if (riscv_cpu_hsxl(env) == MXL_RV64) {
         mask |= HENVCFG_PBMTE | HENVCFG_STCE;
     }
 
@@ -2496,10 +2540,7 @@ static RISCVException read_hstatus(CPURISCVState *env, int csrno,
                                    target_ulong *val)
 {
     *val = env->hstatus;
-    if (riscv_cpu_mxl(env) != MXL_RV32) {
-        /* We only support 64-bit VSXL */
-        *val = set_field(*val, HSTATUS_VSXL, 2);
-    }
+
     /* We only support little endian */
     *val = set_field(*val, HSTATUS_VSBE, 0);
     return RISCV_EXCP_NONE;
@@ -2508,10 +2549,25 @@ static RISCVException read_hstatus(CPURISCVState *env, int csrno,
 static RISCVException write_hstatus(CPURISCVState *env, int csrno,
                                     target_ulong val)
 {
-    env->hstatus = val;
-    if (riscv_cpu_sxl(env) != MXL_RV32 && get_field(val, HSTATUS_VSXL) != 2) {
-        qemu_log_mask(LOG_UNIMP, "QEMU does not support mixed HSXLEN options.");
+    uint8_t new_vsxl = get_field(val, HSTATUS_VSXL);
+    uint8_t old_vsxl = get_field(env->hstatus, HSTATUS_VSXL);
+    uint8_t hsxl = riscv_cpu_hsxl(env);
+
+    /*
+     * When HSXLEN=32, the VSXL field does not exist
+     * VSXL can only be changed to legal value less than HSXL
+     * It will remain unchanged if legal or  change to widest
+     * supported width otherwise.
+     */
+    if (hsxl == MXL_RV32 || !riscv_feature(env, RISCV_FEATURE_CXLEN)) {
+        val &= ~ HSTATUS_VSXL;
+    } else if (new_vsxl == 0 || new_vsxl > hsxl) {
+        new_vsxl = old_vsxl > hsxl ? hsxl : old_vsxl;
+        val = set_field(val, HSTATUS_VSXL, new_vsxl);
     }
+
+    env->hstatus = val;
+
     if (get_field(val, HSTATUS_VSBE) != 0) {
         qemu_log_mask(LOG_UNIMP, "QEMU does not support big endian guests.");
     }
@@ -2754,7 +2810,7 @@ static RISCVException write_htimedelta(CPURISCVState *env, int csrno,
         return RISCV_EXCP_ILLEGAL_INST;
     }
 
-    if (riscv_cpu_sxl(env) == MXL_RV32) {
+    if (riscv_cpu_hsxl(env) == MXL_RV32) {
         env->htimedelta = deposit64(env->htimedelta, 0, 32, (uint64_t)val);
     } else {
         env->htimedelta = val;
@@ -3794,7 +3850,7 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_VSTIMECMP] = { "vstimecmp", sstc, read_vstimecmp,
                         write_vstimecmp,
                         .min_priv_ver = PRIV_VERSION_1_12_0 },
-    [CSR_VSTIMECMPH] = { "vstimecmph", sstc_32, read_vstimecmph,
+    [CSR_VSTIMECMPH] = { "vstimecmph", sstc_vs32, read_vstimecmph,
                          write_vstimecmph,
                          .min_priv_ver = PRIV_VERSION_1_12_0 },
 
@@ -3901,8 +3957,8 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
                           write_hviprio1h                                   },
     [CSR_HVIPRIO2H]   = { "hviprio2h",   aia_hmode32, read_hviprio2h,
                           write_hviprio2h                                   },
-    [CSR_VSIEH]       = { "vsieh",       aia_hmode32, NULL, NULL, rmw_vsieh },
-    [CSR_VSIPH]       = { "vsiph",       aia_hmode32, NULL, NULL, rmw_vsiph },
+    [CSR_VSIEH]       = { "vsieh",       aia_vsmode32, NULL, NULL, rmw_vsieh },
+    [CSR_VSIPH]       = { "vsiph",       aia_vsmode32, NULL, NULL, rmw_vsiph },
 
     /* Physical Memory Protection */
     [CSR_MSECCFG]    = { "mseccfg",  epmp, read_mseccfg, write_mseccfg,

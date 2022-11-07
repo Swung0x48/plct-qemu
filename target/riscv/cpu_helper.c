@@ -817,7 +817,7 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
 
     if (first_stage == true) {
         if (use_background) {
-            if (riscv_cpu_sxl(env) == MXL_RV32) {
+            if (riscv_cpu_vsxl(env) == MXL_RV32) {
                 base = (hwaddr)get_field(env->vsatp, SATP32_PPN) << PGSHIFT;
                 vm = get_field(env->vsatp, SATP32_MODE);
             } else {
@@ -835,7 +835,7 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
         }
         widened = 0;
     } else {
-        if (riscv_cpu_sxl(env) == MXL_RV32) {
+        if (riscv_cpu_hsxl(env) == MXL_RV32) {
             base = (hwaddr)get_field(env->hgatp, SATP32_PPN) << PGSHIFT;
             vm = get_field(env->hgatp, SATP32_MODE);
         } else {
@@ -1073,15 +1073,13 @@ static void raise_mmu_exception(CPURISCVState *env, target_ulong address,
     int page_fault_exceptions, vm;
     uint64_t stap_mode;
 
-    if (riscv_cpu_sxl(env) == MXL_RV32) {
-        stap_mode = SATP32_MODE;
-    } else {
-        stap_mode = SATP64_MODE;
-    }
-
     if (first_stage) {
+        stap_mode = riscv_cpu_sxl(env) == MXL_RV32 ? SATP32_MODE :
+                                                     SATP64_MODE;
         vm = get_field(env->satp, stap_mode);
     } else {
+        stap_mode = riscv_cpu_hsxl(env) == MXL_RV32 ? SATP32_MODE :
+                                                      SATP64_MODE;
         vm = get_field(env->hgatp, stap_mode);
     }
 

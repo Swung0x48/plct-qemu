@@ -655,8 +655,10 @@ static inline RISCVMXL cpu_recompute_xl(CPURISCVState *env)
         case PRV_U:
             xl = get_field(env->mstatus, MSTATUS64_UXL);
             break;
-        default: /* PRV_S | PRV_H */
-            xl = get_field(env->mstatus, MSTATUS64_SXL);
+        default: /* PRV_S | PRV_H | PRV_VS */
+            xl = riscv_cpu_virt_enabled(env) ?
+                    get_field(env->hstatus, HSTATUS_VSXL) :
+                    get_field(env->mstatus, MSTATUS64_SXL);
             break;
         }
     }
@@ -671,9 +673,11 @@ static inline int riscv_cpu_xlen(CPURISCVState *env)
 }
 
 #ifdef TARGET_RISCV32
+#define riscv_cpu_hsxl(env)  ((void)(env), MXL_RV32)
+#define riscv_cpu_vsxl(env)  ((void)(env), MXL_RV32)
 #define riscv_cpu_sxl(env)  ((void)(env), MXL_RV32)
 #else
-static inline RISCVMXL riscv_cpu_sxl(CPURISCVState *env)
+static inline RISCVMXL riscv_cpu_hsxl(CPURISCVState *env)
 {
 #ifdef CONFIG_USER_ONLY
     return env->misa_mxl;
@@ -681,6 +685,25 @@ static inline RISCVMXL riscv_cpu_sxl(CPURISCVState *env)
     uint64_t mstatus = riscv_cpu_virt_enabled(env) ? env->mstatus_hs :
                                                      env->mstatus;
     return get_field(mstatus, MSTATUS64_SXL);
+#endif
+}
+
+static inline RISCVMXL riscv_cpu_vsxl(CPURISCVState *env)
+{
+#ifdef CONFIG_USER_ONLY
+    return env->misa_mxl;
+#else
+    return get_field(env->hstatus, HSTATUS_VSXL);
+#endif
+}
+
+static inline RISCVMXL riscv_cpu_sxl(CPURISCVState *env)
+{
+#ifdef CONFIG_USER_ONLY
+    return env->misa_mxl;
+#else
+    return riscv_cpu_virt_enabled(env) ? riscv_cpu_vsxl(env) :
+                                         riscv_cpu_hsxl(env);
 #endif
 }
 #endif
