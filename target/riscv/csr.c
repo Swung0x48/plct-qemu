@@ -120,7 +120,7 @@ skip_ext_pmu_check:
 
 static RISCVException ctr32(CPURISCVState *env, int csrno)
 {
-    if (riscv_cpu_mxl(env) != MXL_RV32) {
+    if (riscv_cpu_uxl(env) != MXL_RV32) {
         return RISCV_EXCP_ILLEGAL_INST;
     }
 
@@ -3570,6 +3570,22 @@ static inline RISCVException riscv_csrrw_check(CPURISCVState *env,
     return RISCV_EXCP_NONE;
 }
 
+static inline target_ulong trunk_by_csr_len(CPURISCVState *env, int csrno,
+                                            bool is_vs_csr,
+                                            target_ulong value) {
+    int csr_priv = get_field(csrno, 0x300);
+    int csr_xl = riscv_cpu_mxl(env);
+    if (is_vs_csr) {
+        csr_xl = riscv_cpu_vsxl(env);
+    } else if (csr_priv == (PRV_S + 1)) {
+        csr_xl = riscv_cpu_hsxl(env);
+    } else if (csr_priv == PRV_U) {
+        csr_xl = riscv_cpu_uxl(env);
+    }
+
+    return value & (1 <<((16 << csr_xl) - 1));
+}
+
 static RISCVException riscv_csrrw_do64(CPURISCVState *env, int csrno,
                                        target_ulong *ret_value,
                                        target_ulong new_value,
@@ -3597,6 +3613,8 @@ static RISCVException riscv_csrrw_do64(CPURISCVState *env, int csrno,
     if (write_mask) {
         new_value = (old_value & ~write_mask) | (new_value & write_mask);
         if (csr_ops[csrno].write) {
+            new_value = trunk_by_csr_len(env, csrno, csr_ops[csrno].is_vs_csr,
+                                         new_value);
             ret = csr_ops[csrno].write(env, csrno, new_value);
             if (ret != RISCV_EXCP_NONE) {
                 return ret;
@@ -3606,7 +3624,8 @@ static RISCVException riscv_csrrw_do64(CPURISCVState *env, int csrno,
 
     /* return old value */
     if (ret_value) {
-        *ret_value = old_value;
+        *ret_value = trunk_by_csr_len(env, csrno, csr_ops[csrno].is_vs_csr,
+                                      old_value);
     }
 
     return RISCV_EXCP_NONE;
@@ -3849,10 +3868,12 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
                         .min_priv_ver = PRIV_VERSION_1_12_0 },
     [CSR_VSTIMECMP] = { "vstimecmp", sstc, read_vstimecmp,
                         write_vstimecmp,
-                        .min_priv_ver = PRIV_VERSION_1_12_0 },
+                        .min_priv_ver = PRIV_VERSION_1_12_0,
+                        .is_vs_csr = true                   },
     [CSR_VSTIMECMPH] = { "vstimecmph", sstc_vs32, read_vstimecmph,
                          write_vstimecmph,
-                         .min_priv_ver = PRIV_VERSION_1_12_0 },
+                         .min_priv_ver = PRIV_VERSION_1_12_0,
+                         .is_vs_csr = true                  },
 
     /* Supervisor Protection and Translation */
     [CSR_SATP]     = { "satp",     smode, read_satp,     write_satp     },
@@ -3903,24 +3924,33 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
 
     [CSR_VSSTATUS]    = { "vsstatus",    hmode,   read_vsstatus,
                           write_vsstatus,
-                          .min_priv_ver = PRIV_VERSION_1_12_0                },
+                          .min_priv_ver = PRIV_VERSION_1_12_0,
+                          .is_vs_csr = true                                  },
     [CSR_VSIP]        = { "vsip",        hmode,   NULL,    NULL, rmw_vsip,
-                          .min_priv_ver = PRIV_VERSION_1_12_0                },
+                          .min_priv_ver = PRIV_VERSION_1_12_0,
+                          .is_vs_csr = true                                  },
     [CSR_VSIE]        = { "vsie",        hmode,   NULL,    NULL, rmw_vsie ,
-                          .min_priv_ver = PRIV_VERSION_1_12_0                },
+                          .min_priv_ver = PRIV_VERSION_1_12_0,
+                          .is_vs_csr = true                                  },
     [CSR_VSTVEC]      = { "vstvec",      hmode,   read_vstvec,   write_vstvec,
-                          .min_priv_ver = PRIV_VERSION_1_12_0                },
+                          .min_priv_ver = PRIV_VERSION_1_12_0,
+                          .is_vs_csr = true                                  },
     [CSR_VSSCRATCH]   = { "vsscratch",   hmode,   read_vsscratch,
                           write_vsscratch,
-                          .min_priv_ver = PRIV_VERSION_1_12_0                },
+                          .min_priv_ver = PRIV_VERSION_1_12_0,
+                          .is_vs_csr = true                                  },
     [CSR_VSEPC]       = { "vsepc",       hmode,   read_vsepc,    write_vsepc,
-                          .min_priv_ver = PRIV_VERSION_1_12_0                },
+                          .min_priv_ver = PRIV_VERSION_1_12_0,
+                          .is_vs_csr = true                                  },
     [CSR_VSCAUSE]     = { "vscause",     hmode,   read_vscause,  write_vscause,
-                          .min_priv_ver = PRIV_VERSION_1_12_0                },
+                          .min_priv_ver = PRIV_VERSION_1_12_0,
+                          .is_vs_csr = true                                  },
     [CSR_VSTVAL]      = { "vstval",      hmode,   read_vstval,   write_vstval,
-                          .min_priv_ver = PRIV_VERSION_1_12_0                },
+                          .min_priv_ver = PRIV_VERSION_1_12_0,
+                          .is_vs_csr = true                                  },
     [CSR_VSATP]       = { "vsatp",       hmode,   read_vsatp,    write_vsatp,
-                          .min_priv_ver = PRIV_VERSION_1_12_0                },
+                          .min_priv_ver = PRIV_VERSION_1_12_0,
+                          .is_vs_csr = true                                  },
 
     [CSR_MTVAL2]      = { "mtval2",      hmode,   read_mtval2,   write_mtval2,
                           .min_priv_ver = PRIV_VERSION_1_12_0                },
@@ -3940,12 +3970,15 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
      * VS-Level Window to Indirectly Accessed Registers (H-extension with AIA)
      */
     [CSR_VSISELECT]   = { "vsiselect",   aia_hmode, NULL, NULL,
-                          rmw_xiselect                                     },
-    [CSR_VSIREG]      = { "vsireg",      aia_hmode, NULL, NULL, rmw_xireg  },
+                          rmw_xiselect,  .is_vs_csr = true                 },
+    [CSR_VSIREG]      = { "vsireg",      aia_hmode, NULL, NULL,
+                          rmw_xireg,     .is_vs_csr = true                 },
 
     /* VS-Level Interrupts (H-extension with AIA) */
-    [CSR_VSTOPEI]     = { "vstopei",     aia_hmode, NULL, NULL, rmw_xtopei },
-    [CSR_VSTOPI]      = { "vstopi",      aia_hmode, read_vstopi },
+    [CSR_VSTOPEI]     = { "vstopei",     aia_hmode, NULL, NULL,
+                          rmw_xtopei,    .is_vs_csr = true                 },
+    [CSR_VSTOPI]      = { "vstopi",      aia_hmode, read_vstopi,
+                          .is_vs_csr = true                                },
 
     /* Hypervisor and VS-Level High-Half CSRs (H-extension with AIA) */
     [CSR_HIDELEGH]    = { "hidelegh",    aia_hmode32, NULL, NULL,
@@ -3957,8 +3990,10 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
                           write_hviprio1h                                   },
     [CSR_HVIPRIO2H]   = { "hviprio2h",   aia_hmode32, read_hviprio2h,
                           write_hviprio2h                                   },
-    [CSR_VSIEH]       = { "vsieh",       aia_vsmode32, NULL, NULL, rmw_vsieh },
-    [CSR_VSIPH]       = { "vsiph",       aia_vsmode32, NULL, NULL, rmw_vsiph },
+    [CSR_VSIEH]       = { "vsieh",       aia_vsmode32, NULL, NULL,
+                          rmw_vsieh,     .is_vs_csr = true                  },
+    [CSR_VSIPH]       = { "vsiph",       aia_vsmode32, NULL, NULL,
+                          rmw_vsiph,     .is_vs_csr = true                  },
 
     /* Physical Memory Protection */
     [CSR_MSECCFG]    = { "mseccfg",  epmp, read_mseccfg, write_mseccfg,

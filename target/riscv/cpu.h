@@ -676,6 +676,7 @@ static inline int riscv_cpu_xlen(CPURISCVState *env)
 #define riscv_cpu_hsxl(env)  ((void)(env), MXL_RV32)
 #define riscv_cpu_vsxl(env)  ((void)(env), MXL_RV32)
 #define riscv_cpu_sxl(env)  ((void)(env), MXL_RV32)
+#define riscv_cpu_uxl(env)  ((void)(env), MXL_RV32)
 #else
 static inline RISCVMXL riscv_cpu_hsxl(CPURISCVState *env)
 {
@@ -704,6 +705,15 @@ static inline RISCVMXL riscv_cpu_sxl(CPURISCVState *env)
 #else
     return riscv_cpu_virt_enabled(env) ? riscv_cpu_vsxl(env) :
                                          riscv_cpu_hsxl(env);
+#endif
+}
+
+static inline RISCVMXL riscv_cpu_uxl(CPURISCVState *env)
+{
+#ifdef CONFIG_USER_ONLY
+    return env->misa_mxl;
+#else
+    return get_field(env->mstatus, MSTATUS64_UXL);
 #endif
 }
 #endif
@@ -777,7 +787,7 @@ RISCVException riscv_csrrw_i128(CPURISCVState *env, int csrno,
 typedef RISCVException (*riscv_csr_read128_fn)(CPURISCVState *env, int csrno,
                                                Int128 *ret_value);
 typedef RISCVException (*riscv_csr_write128_fn)(CPURISCVState *env, int csrno,
-                                             Int128 new_value);
+                                                Int128 new_value);
 
 typedef struct {
     const char *name;
@@ -789,6 +799,7 @@ typedef struct {
     riscv_csr_write128_fn write128;
     /* The default priv spec version should be PRIV_VERSION_1_10_0 (i.e 0) */
     uint32_t min_priv_ver;
+    bool is_vs_csr;
 } riscv_csr_operations;
 
 /* CSR function table constants */
