@@ -29,7 +29,7 @@
     if (!ctx->cfg_ptr->ext_zhinx && !ctx->cfg_ptr->ext_zfh) { \
         return false;                  \
     }                                  \
-    if (!smstateen_fcsr_check(ctx, 0)) { \
+    if (!smstateen_check(ctx, 0, SMSTATEEN0_FCSR)) { \
         return false; \
     } \
 } while (0)
@@ -38,7 +38,7 @@
     if (!(ctx->cfg_ptr->ext_zfh || ctx->cfg_ptr->ext_zfhmin)) { \
         return false;                         \
     }                                         \
-    if (!smstateen_fcsr_check(ctx, 0)) { \
+    if (!smstateen_check(ctx, 0, SMSTATEEN0_FCSR)) { \
         return false; \
     } \
 } while (0)
@@ -48,7 +48,7 @@
           ctx->cfg_ptr->ext_zhinx || ctx->cfg_ptr->ext_zhinxmin)) {     \
         return false;                                        \
     }                                                        \
-    if (!smstateen_fcsr_check(ctx, 0)) { \
+    if (!smstateen_check(ctx, 0, SMSTATEEN0_FCSR)) { \
         return false; \
     } \
 } while (0)
