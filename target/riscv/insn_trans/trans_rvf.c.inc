@@ -25,7 +25,7 @@
 } while (0)
 
 #ifndef CONFIG_USER_ONLY
-static inline bool smstateen_fcsr_check(DisasContext *ctx, int index)
+static inline bool smstateen_check(DisasContext *ctx, int index, uint64_t bit)
 {
     CPUState *cpu = ctx->cs;
     CPURISCVState *env = cpu->env_ptr;
@@ -43,7 +43,7 @@ static inline bool smstateen_fcsr_check(DisasContext *ctx, int index)
         stateen &= env->sstateen[index];
     }
 
-    if (!(stateen & SMSTATEEN0_FCSR)) {
+    if (!(stateen & bit)) {
         if (ctx->virt_enabled) {
             ctx->virt_inst_excp = true;
         }
@@ -53,7 +53,7 @@ static inline bool smstateen_fcsr_check(DisasContext *ctx, int index)
     return true;
 }
 #else
-#define smstateen_fcsr_check(ctx, index) (true)
+#define smstateen_check(ctx, index, bit) (true)
 #endif
 
 #define REQUIRE_ZFINX_OR_F(ctx) do { \
@@ -61,7 +61,7 @@ static inline bool smstateen_fcsr_check(DisasContext *ctx, int index)
         if (!ctx->cfg_ptr->ext_zfinx) { \
             return false; \
         } \
-        if (!smstateen_fcsr_check(ctx, 0)) { \
+        if (!smstateen_check(ctx, 0, SMSTATEEN0_FCSR)) { \
             return false; \
         } \
     } \
