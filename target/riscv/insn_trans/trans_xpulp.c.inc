@@ -1786,9 +1786,8 @@ static bool trans_cv_bitrev(DisasContext *ctx, arg_cv_bitrev *a)
     /* Is3 can be either 0 (radix-2), 1 (radix-4) or 2 (radix-8) */
     target_ulong is3 = (a->imm >> 5) & 0x3;
 
-    if (is3 == 3) {
-        return false;
-    }
+    is3 = (is3 == 3) ? 0 : is3;
+
     return gen_arith_imm_tl(ctx, a, EXT_NONE, gen_helper_bitrev, NULL);
 }
 

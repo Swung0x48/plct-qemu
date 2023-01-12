@@ -433,17 +433,17 @@ target_ulong HELPER(insert)(target_ulong a, target_ulong b, target_ulong c)
 {
     uint32_t is2 = b & 0x1F;
     uint32_t is3 = (b >> 5) & 0x1F;
-    uint32_t lsb = is2 + is3 > 31 ? is2 + is3 - 32 : 0;
-    uint32_t mask = (~(0xfffffffe << is3)) << is2;
-    uint32_t field = a << (is2 - lsb);
-    return (c & ~mask) | (field & mask);
+    uint32_t length = is2 + is3 > 31 ? 32 - is2 : is3 + 1;
+    uint32_t mask = (1 << length) - 1;
+    return (c & (mask << is2)) | ((mask & a) << is2);
 }
 
 target_ulong HELPER(bclr)(target_ulong a, target_ulong b)
 {
     uint32_t is2 = b & 0x1F;
     uint32_t is3 = (b >> 5) & 0x1F;
-    uint32_t mask = (~(0xfffffffe << is3)) << is2;
+    uint32_t length = is2 + is3 > 31 ? 32 - is2 : is3 + 1;
+    uint32_t mask = (1 << length) - 1;
     return a & ~mask;
 }
 
@@ -451,7 +451,8 @@ target_ulong HELPER(bset)(target_ulong a, target_ulong b)
 {
     uint32_t is2 = b & 0x1F;
     uint32_t is3 = (b >> 5) & 0x1F;
-    uint32_t mask = (~(0xfffffffe << is3)) << is2;
+    uint32_t length = is2 + is3 > 31 ? 32 - is2 : is3 + 1;
+    uint32_t mask = (1 << length) - 1;
     return a | mask;
 }
 
