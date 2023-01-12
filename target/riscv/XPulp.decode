@@ -24,6 +24,8 @@
 # immediates:
 %imm_i    20:s12
 %imm_s    25:s7 7:5
+%imm_u    20:12
+%imm_us   15:5
 %imm_s6   20:s5 25:1
 %imm_u6   20:5 25:1
 %imm_l    25:5
@@ -39,8 +41,8 @@
 &s    imm rs1 rs2  !extern
 &lhl_i   imm l
 &lhl_r   rs1 l
-&shl_r   imm rs1  l
 &shl_i   imm imms l
+&shl_r   rs1 imm l
 &r2   rd rs1       !extern
 &mac  imm rs1 rs2 rd
 &bimm    imm rs1 offset
@@ -49,10 +51,10 @@
 @i         ............   ..... ... .....  ....... &i      imm=%imm_i      %rs1 %rd
 @r         .......  ..... ..... ... .....  ....... &r                 %rs2 %rs1 %rd
 @s         .......  ..... ..... ... .....  ....... &s      imm=%imm_s %rs2 %rs1
-@lhl_i     ............   ..... ... .... . ....... &lhl_i  imm=%imm_i                 %l
-@lhl_r     ............   ..... ... .... . ....... &lhl_r                  %rs1       %l
-@shl_r     ............   ..... ... .... . ....... &shl_r  imm=%imm_i      %rs1       %l
-@shl_i     ............   ..... ... .... . ....... &shl_i  imm=%imm_i      imms=%rs1  %l
+@lhl_i     ............   ..... ... .... . ....... &lhl_i  imm=%imm_u                     %l
+@lhl_r     ............   ..... ... .... . ....... &lhl_r                  %rs1           %l
+@shl_r     ............   ..... ... .... . ....... &shl_r  imm=%imm_u      %rs1           %l
+@shl_i     ............   ..... ... .... . ....... &shl_i  imm=%imm_u      imms=%imm_us  %l
 @sci       ............   ..... ... .....  ....... &i      imm=%imm_s6     %rs1 %rd
 @sci_u     ............   ..... ... .....  ....... &i      imm=%imm_u6     %rs1 %rd
 @r2        .......   ..... ..... ... ..... ....... &r2                     %rs1 %rd
@@ -95,14 +97,16 @@ cv_sh_rr     0010101 .....  ..... 011 ..... 0101011  @r
 cv_sw_rr     0010110 .....  ..... 011 ..... 0101011  @r
 
 # *** Long Hardware Loop Setup instructions ***
-cv_starti    ............  00000 000 0000 . 1111011  @lhl_i
-cv_endi      ............  00000 001 0000 . 1111011  @lhl_i
-cv_count     000000000000  ..... 010 0000 . 1111011  @lhl_r
-cv_counti    ............  00000 011 0000 . 1111011  @lhl_i
+cv_starti    ............  00000 100 0000 . 0101011  @lhl_i
+cv_start     000000000000  ..... 100 0001 . 0101011  @lhl_r
+cv_endi      ............  00000 100 0010 . 0101011  @lhl_i
+cv_end       000000000000  ..... 100 0011 . 0101011  @lhl_r
+cv_counti    ............  00000 100 0100 . 0101011  @lhl_i
+cv_count     000000000000  ..... 100 0101 . 0101011  @lhl_r
 
 # *** Short Hardware Loop Setup instructions ***
-cv_setup     ............  ..... 100 0000 . 1111011  @shl_r
-cv_setupi    ............  ..... 101 0000 . 1111011  @shl_i
+cv_setup     ............  ..... 100 0110 . 0101011  @shl_r
+cv_setupi    ............  ..... 100 0111 . 0101011  @shl_i
 
 # *** SIMD ALU instructions ***
 cv_add_h          000000 0 ..... ..... 000 ..... 1010111  @r

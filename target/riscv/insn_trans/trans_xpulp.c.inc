@@ -187,16 +187,34 @@ static bool trans_cv_sw_rr(DisasContext *ctx, arg_cv_sw_rr *a)
 
 static bool trans_cv_starti(DisasContext *ctx, arg_cv_starti *a)
 {
-    target_ulong lpstart = ctx->base.pc_next + (a->imm << 1);
+    target_ulong lpstart = ctx->base.pc_next + (a->imm << 2);
     TCGv src = tcg_constant_tl(lpstart);
+    return do_csrw(ctx, a->l == 0 ? CSR_LPSTART0 : CSR_LPSTART1, src);
+}
+
+static bool trans_cv_start(DisasContext *ctx, arg_cv_start *a)
+{
+    TCGv src = get_gpr(ctx, a->rs1, EXT_NONE);
     return do_csrw(ctx, a->l == 0 ? CSR_LPSTART0 : CSR_LPSTART1, src);
 }
 
 static bool trans_cv_endi(DisasContext *ctx, arg_cv_endi *a)
 {
-    target_ulong lpend = ctx->base.pc_next + (a->imm << 1);
+    target_ulong lpend = ctx->base.pc_next + (a->imm << 2);
     TCGv src = tcg_constant_tl(lpend);
     return do_csrw(ctx, a->l == 0 ? CSR_LPEND0 : CSR_LPEND1, src);
+}
+
+static bool trans_cv_end(DisasContext *ctx, arg_cv_end *a)
+{
+    TCGv src = get_gpr(ctx, a->rs1, EXT_NONE);
+    return do_csrw(ctx, a->l == 0 ? CSR_LPEND0 : CSR_LPEND1, src);
+}
+
+static bool trans_cv_counti(DisasContext *ctx, arg_cv_counti *a)
+{
+    TCGv src = tcg_constant_tl(a->imm);
+    return do_csrw(ctx, a->l == 0 ? CSR_LPCOUNT0 : CSR_LPCOUNT1, src);
 }
 
 static bool trans_cv_count(DisasContext *ctx, arg_cv_count *a)
@@ -205,16 +223,10 @@ static bool trans_cv_count(DisasContext *ctx, arg_cv_count *a)
     return do_csrw(ctx, a->l == 0 ? CSR_LPCOUNT0 : CSR_LPCOUNT1, src);
 }
 
-static bool trans_cv_counti(DisasContext *ctx, arg_cv_counti *a)
-{
-    TCGv src = tcg_constant_tl(a->imm);
-    return do_csrw(ctx, a->l == 0 ? CSR_LPCOUNT0 : CSR_LPEND1, src);
-}
-
 static bool trans_cv_setup(DisasContext *ctx, arg_cv_setup *a)
 {
     TCGv start = tcg_constant_tl(ctx->pc_succ_insn);
-    TCGv end = tcg_constant_tl(ctx->base.pc_next + (a->imm << 1));
+    TCGv end = tcg_constant_tl(ctx->base.pc_next + (a->imm << 2));
     TCGv count = get_gpr(ctx, a->rs1, EXT_NONE);
     int start_csr = a->l == 0 ? CSR_LPSTART0 : CSR_LPSTART1;
     int end_csr = a->l == 0 ? CSR_LPEND0 : CSR_LPEND1;
@@ -234,8 +246,8 @@ static bool trans_cv_setup(DisasContext *ctx, arg_cv_setup *a)
 static bool trans_cv_setupi(DisasContext *ctx, arg_cv_setupi *a)
 {
     TCGv start = tcg_constant_tl(ctx->pc_succ_insn);
-    TCGv end = tcg_constant_tl(ctx->base.pc_next + (a->imm << 1));
-    TCGv count = tcg_constant_tl(a->imms);
+    TCGv end = tcg_constant_tl(ctx->base.pc_next + (a->imms << 2));
+    TCGv count = tcg_constant_tl(a->imm);
     int start_csr = a->l == 0 ? CSR_LPSTART0 : CSR_LPSTART1;
     int end_csr = a->l == 0 ? CSR_LPEND0 : CSR_LPEND1;
     int count_csr = a->l == 0 ? CSR_LPCOUNT0 : CSR_LPCOUNT1;
