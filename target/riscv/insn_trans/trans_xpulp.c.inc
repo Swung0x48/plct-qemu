@@ -1662,7 +1662,7 @@ static bool trans_cv_msu(DisasContext *ctx, arg_cv_msu *a)
 static inline bool gen_mul(DisasContext *ctx, arg_mac *a,
                            DisasExtend ext, int extra,
                            void (*fn)(TCGv, TCGv, TCGv,
-                                       TCGv, TCGv))
+                                      TCGv, TCGv))
 {
     TCGv dest = dest_gpr(ctx, a->rd);
     TCGv src1 = get_gpr(ctx, a->rs1, ext);
