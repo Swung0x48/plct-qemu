@@ -455,6 +455,7 @@ struct RISCVCPUConfig {
     bool ext_zdinx;
     bool ext_zawrs;
     bool ext_zfh;
+    bool ext_zfa;
     bool ext_zfhmin;
     bool ext_zfinx;
     bool ext_zhinx;

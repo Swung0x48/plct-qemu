@@ -561,3 +561,174 @@ uint64_t helper_fcvt_d_h(CPURISCVState *env, uint64_t rs1)
     float16 frs1 = check_nanbox_h(env, rs1);
     return float16_to_float64(frs1, true, &env->fp_status);
 }
+
+uint64_t helper_fminm_s(CPURISCVState *env, uint64_t rs1, uint64_t rs2)
+{
+    float32 frs1 = check_nanbox_s(env, rs1);
+    float32 frs2 = check_nanbox_s(env, rs2);
+    float32 result = float32_minimum_number(frs1, frs2, &env->fp_status);
+
+     /* if either input is NaN, the result is the canonical NaN */
+    if (float32_is_any_nan(frs1) || float32_is_any_nan(frs2)) {
+        result = 0x7FC00000 ; 
+    }
+    return nanbox_s(env, result);
+}
+
+uint64_t helper_fmaxm_s(CPURISCVState *env, uint64_t rs1, uint64_t rs2)
+{
+    float32 frs1 = check_nanbox_s(env, rs1);
+    float32 frs2 = check_nanbox_s(env, rs2);
+    float32 result = float32_maximum_number(frs1, frs2, &env->fp_status);
+
+     /* if either input is NaN, the result is the canonical NaN */
+    if (float32_is_any_nan(frs1) || float32_is_any_nan(frs2)) {
+        result = 0x7FC00000 ; 
+    }
+    return nanbox_s(env, result);
+}
+
+
+uint64_t helper_fminm_d(CPURISCVState *env, uint64_t frs1, uint64_t frs2)
+{
+    float64 result = float64_minimum_number(frs1, frs2, &env->fp_status);
+
+    /* if either input is NaN, the result is the canonical NaN */
+    if (float64_is_any_nan(frs1) || float64_is_any_nan(frs2)) {
+        result =  0x7FF8000000000000;
+    }
+    return result;
+}
+
+uint64_t helper_fmaxm_d(CPURISCVState *env, uint64_t frs1, uint64_t frs2)
+{
+    float64 result = float64_maximum_number(frs1, frs2, &env->fp_status);
+
+    /* if either input is NaN, the result is the canonical NaN */
+    if (float64_is_any_nan(frs1) || float64_is_any_nan(frs2)) {
+        result =  0x7FF8000000000000;
+    }
+    return result;
+}
+
+uint64_t helper_fminm_h(CPURISCVState *env, uint64_t rs1, uint64_t rs2)
+{
+    float16 frs1 = check_nanbox_h(env, rs1);
+    float16 frs2 = check_nanbox_h(env, rs2);
+    float16 result = float16_minimum_number(frs1, frs2, &env->fp_status);
+
+    /* if either input is NaN, the result is the canonical NaN */
+    if (float16_is_any_nan(frs1) || float16_is_any_nan(frs2)) {
+        result = 0x7E00; 
+    }
+    return nanbox_h(env, result);
+}
+
+uint64_t helper_fmaxm_h(CPURISCVState *env, uint64_t rs1, uint64_t rs2)
+{
+    float16 frs1 = check_nanbox_h(env, rs1);
+    float16 frs2 = check_nanbox_h(env, rs2);
+    float16 result = float16_maximum_number(frs1, frs2, &env->fp_status);
+
+    /* if either input is NaN, the result is the canonical NaN */
+    if (float16_is_any_nan(frs1) || float16_is_any_nan(frs2)) {
+        result = 0x7E00; 
+    }
+    return nanbox_h(env, result);
+}
+
+uint64_t helper_fround_s(CPURISCVState *env, uint64_t rs1)
+{
+    float32 frs1 = check_nanbox_s(env, rs1);
+    float32 result = float32_round_to_int(frs1, &env->fp_status);
+
+    env->fp_status.float_exception_flags &= ~float_flag_inexact;
+    return nanbox_s(env, result);
+}
+
+uint64_t helper_froundnx_s(CPURISCVState *env, uint64_t rs1)
+{
+    float32 frs1 = check_nanbox_s(env, rs1);
+    float32 result = float32_round_to_int(frs1, &env->fp_status);
+
+    return nanbox_s(env, result);
+}
+
+uint64_t helper_fround_d(CPURISCVState *env, uint64_t frs1)
+{
+    float64 result = float64_round_to_int(frs1, &env->fp_status);
+
+    env->fp_status.float_exception_flags &= ~float_flag_inexact;
+    return result;
+}
+
+uint64_t helper_froundnx_d(CPURISCVState *env, uint64_t frs1)
+{
+    return float64_round_to_int(frs1, &env->fp_status);
+}
+
+uint64_t helper_fround_h(CPURISCVState *env, uint64_t rs1)
+{
+    float16 frs1 = check_nanbox_h(env, rs1);
+    float16 result = float16_round_to_int(frs1, &env->fp_status);
+
+    env->fp_status.float_exception_flags &= ~float_flag_inexact;
+    return nanbox_h(env, result);
+}
+
+uint64_t helper_froundnx_h(CPURISCVState *env, uint64_t rs1)
+{
+    float16 frs1 = check_nanbox_h(env, rs1);
+    float16 result = float16_round_to_int(frs1, &env->fp_status);
+
+    return nanbox_h(env, result);
+}
+
+target_ulong helper_fcvtmod_w_d(CPURISCVState *env, uint64_t frs1)
+{
+    int32_t result = float64_to_int32(frs1, &env->fp_status);
+
+    if (env->fp_status.float_exception_flags & float_flag_invalid) {
+        if (float32_is_any_nan(frs1) || float32_is_infinity(frs1)) {
+            result = 0;
+        } else {  /* do mod operation for int overflow or underflow */
+            uint16_t exception_flags = env->fp_status.float_exception_flags;
+            result = float64_to_int32(float64_rem(frs1,  0x41F0000000000000,
+                                                  &env->fp_status),
+                                      &env->fp_status);
+            env->fp_status.float_exception_flags = exception_flags;
+        }
+    }
+
+    return result;
+}
+
+target_ulong helper_fleq_s(CPURISCVState *env, uint64_t frs1, uint64_t frs2)
+{
+    return float32_le_quiet(frs1, frs2, &env->fp_status);
+}
+
+target_ulong helper_fltq_s(CPURISCVState *env, uint64_t frs1, uint64_t frs2)
+{
+    return float32_lt_quiet(frs1, frs2, &env->fp_status);
+}
+
+target_ulong helper_fleq_d(CPURISCVState *env, uint64_t frs1, uint64_t frs2)
+{
+    return float64_le_quiet(frs1, frs2, &env->fp_status);
+}
+
+target_ulong helper_fltq_d(CPURISCVState *env, uint64_t frs1, uint64_t frs2)
+{
+    return float64_lt_quiet(frs1, frs2, &env->fp_status);
+}
+
+target_ulong helper_fleq_h(CPURISCVState *env, uint64_t frs1, uint64_t frs2)
+{
+    return float16_le_quiet(frs1, frs2, &env->fp_status);
+}
+
+target_ulong helper_fltq_h(CPURISCVState *env, uint64_t frs1, uint64_t frs2)
+{
+    return float16_lt_quiet(frs1, frs2, &env->fp_status);
+}
