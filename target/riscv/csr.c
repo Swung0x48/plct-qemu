@@ -1885,10 +1885,14 @@ static RISCVException read_menvcfg(CPURISCVState *env, int csrno,
 static RISCVException write_menvcfg(CPURISCVState *env, int csrno,
                                   target_ulong val)
 {
+    RISCVCPU *cpu = env_archcpu(env);
     uint64_t mask = MENVCFG_FIOM | MENVCFG_CBIE | MENVCFG_CBCFE | MENVCFG_CBZE;
 
     if (riscv_cpu_mxl(env) == MXL_RV64) {
         mask |= MENVCFG_PBMTE | MENVCFG_STCE;
+        if (cpu->cfg.ext_svadu) {
+            mask |= MENVCFG_HADE;
+        }
     }
     env->menvcfg = (env->menvcfg & ~mask) | (val & mask);
 
@@ -1905,9 +1909,13 @@ static RISCVException read_menvcfgh(CPURISCVState *env, int csrno,
 static RISCVException write_menvcfgh(CPURISCVState *env, int csrno,
                                   target_ulong val)
 {
+    RISCVCPU *cpu = env_archcpu(env);
     uint64_t mask = MENVCFG_PBMTE | MENVCFG_STCE;
     uint64_t valh = (uint64_t)val << 32;
 
+    if (cpu->cfg.ext_svadu) {
+        mask |= MENVCFG_HADE;
+    }
     env->menvcfg = (env->menvcfg & ~mask) | (valh & mask);
 
     return RISCV_EXCP_NONE;
@@ -1952,13 +1960,20 @@ static RISCVException read_henvcfg(CPURISCVState *env, int csrno,
         return ret;
     }
 
-    *val = env->henvcfg;
+    /*
+     * henvcfg.pbmte is read_only 0 when menvcfg.pbmte = 0
+     * henvcfg.stce is read_only 0 when menvcfg.stce = 0
+     * henvcfg.hade is read_only 0 when menvcfg.hade = 0
+     */
+    *val = env->henvcfg & (env->menvcfg | ~(MENVCFG_PBMTE | MENVCFG_STCE |
+                                            MENVCFG_HADE));
     return RISCV_EXCP_NONE;
 }
 
 static RISCVException write_henvcfg(CPURISCVState *env, int csrno,
                                   target_ulong val)
 {
+    RISCVCPU *cpu = env_archcpu(env);
     uint64_t mask = HENVCFG_FIOM | HENVCFG_CBIE | HENVCFG_CBCFE | HENVCFG_CBZE;
     RISCVException ret;
 
@@ -1969,6 +1984,9 @@ static RISCVException write_henvcfg(CPURISCVState *env, int csrno,
 
     if (riscv_cpu_mxl(env) == MXL_RV64) {
         mask |= HENVCFG_PBMTE | HENVCFG_STCE;
+        if (cpu->cfg.ext_svadu) {
+            mask |= HENVCFG_HADE;
+        }
     }
 
     env->henvcfg = (env->henvcfg & ~mask) | (val & mask);
@@ -1993,6 +2011,7 @@ static RISCVException read_henvcfgh(CPURISCVState *env, int csrno,
 static RISCVException write_henvcfgh(CPURISCVState *env, int csrno,
                                   target_ulong val)
 {
+    RISCVCPU *cpu = env_archcpu(env);
     uint64_t mask = HENVCFG_PBMTE | HENVCFG_STCE;
     uint64_t valh = (uint64_t)val << 32;
     RISCVException ret;
@@ -2002,6 +2021,9 @@ static RISCVException write_henvcfgh(CPURISCVState *env, int csrno,
         return ret;
     }
 
+    if (cpu->cfg.ext_svadu) {
+        mask |= HENVCFG_HADE;
+    }
     env->henvcfg = (env->henvcfg & ~mask) | (valh & mask);
     return RISCV_EXCP_NONE;
 }
