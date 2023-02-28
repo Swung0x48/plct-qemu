@@ -505,6 +505,10 @@ void riscv_cpu_swap_hypervisor_regs(CPURISCVState *env)
         env->vscause = env->scause;
         env->scause = env->scause_hs;
 
+        env->vspmpswitch = env->spmpswitch;
+        env->spmpswitch = env->spmpswitch_hs;
+        env->spmp_type = SPMP;
+
         env->vstval = env->stval;
         env->stval = env->stval_hs;
 
@@ -533,6 +537,10 @@ void riscv_cpu_swap_hypervisor_regs(CPURISCVState *env)
 
         env->satp_hs = env->satp;
         env->satp = env->vsatp;
+
+        env->spmpswitch_hs = env->spmpswitch;
+        env->spmpswitch = env->vspmpswitch;
+        env->spmp_type = VSPMP;
     }
 }
 
@@ -723,7 +731,101 @@ static int get_physical_address_pmp(CPURISCVState *env, int *prot,
         target_ulong tlb_sa = addr & ~(TARGET_PAGE_SIZE - 1);
         target_ulong tlb_ea = tlb_sa + TARGET_PAGE_SIZE - 1;
 
-        *tlb_size = pmp_get_tlb_size(env, pmp_index, tlb_sa, tlb_ea);
+        *tlb_size = pmp_get_tlb_size(env, pmp_index, tlb_sa, tlb_ea, PMP);
+    }
+
+    return TRANSLATE_SUCCESS;
+}
+
+/*
+ * get_physical_address_spmp - check SPMP permission for the physical address
+ *
+ * Match the PMP region and check permission for this physical address and it's
+ * TLB page. Returns 0 if the permission checking was successful
+ *
+ * @env: CPURISCVState
+ * @prot: The returned protection attributes
+ * @tlb_size: TLB page size containing addr. It could be modified after PMP
+ *            permission checking. NULL if not set TLB page for addr.
+ * @addr: The physical address to be checked permission
+ * @access_type: The type of MMU access
+ * @mode: Indicates current privilege level.
+ * @sum: Sum value of mstatus
+ */
+static int get_physical_address_spmp(CPURISCVState *env, int *prot,
+                                     target_ulong *tlb_size, hwaddr addr,
+                                     int size, MMUAccessType access_type,
+                                     int mode, bool sum)
+{
+    pmp_priv_t pmp_priv;
+    int pmp_index = -1;
+
+    if ((riscv_cpu_virt_enabled(env) && !env_archcpu(env)->cfg.ext_vspmp) ||
+        !env_archcpu(env)->cfg.ext_spmp) {
+        *prot = PAGE_READ | PAGE_WRITE | PAGE_EXEC;
+        return TRANSLATE_SUCCESS;
+    }
+
+    pmp_index = spmp_hart_has_privs(env, addr, size, 1 << access_type,
+                                    &pmp_priv, mode, sum);
+    if (pmp_index < 0) {
+        *prot = 0;
+        return TRANSLATE_FAIL;
+    }
+
+    *prot = pmp_priv_to_page_prot(pmp_priv);
+    if ((tlb_size != NULL) && pmp_index != MAX_RISCV_PMPS) {
+        target_ulong tlb_sa = addr & ~(TARGET_PAGE_SIZE - 1);
+        target_ulong tlb_ea = tlb_sa + TARGET_PAGE_SIZE - 1;
+
+        *tlb_size = pmp_get_tlb_size(env, pmp_index, tlb_sa, tlb_ea,
+                                     env->spmp_type);
+    }
+
+    return TRANSLATE_SUCCESS;
+}
+
+
+/*
+ * get_physical_address_hgpmp - check HGPMP permission for the physical address
+ *
+ * Match the PMP region and check permission for this physical address and it's
+ * TLB page. Returns 0 if the permission checking was successful
+ *
+ * @env: CPURISCVState
+ * @prot: The returned protection attributes
+ * @tlb_size: TLB page size containing addr. It could be modified after PMP
+ *            permission checking. NULL if not set TLB page for addr.
+ * @addr: The physical address to be checked permission
+ * @access_type: The type of MMU access
+ * @mode: Indicates current privilege level.
+ */
+static int get_physical_address_hgpmp(CPURISCVState *env, int *prot,
+                                      target_ulong *tlb_size, hwaddr addr,
+                                      int size, MMUAccessType access_type,
+                                      int mode)
+{
+    pmp_priv_t pmp_priv;
+    int pmp_index = -1;
+
+    if (!env_archcpu(env)->cfg.ext_hgpmp) {
+        *prot = PAGE_READ | PAGE_WRITE | PAGE_EXEC;
+        return TRANSLATE_SUCCESS;
+    }
+
+    pmp_index = hgpmp_hart_has_privs(env, addr, size, 1 << access_type,
+                                     &pmp_priv, mode);
+    if (pmp_index < 0) {
+        *prot = 0;
+        return TRANSLATE_FAIL;
+    }
+
+    *prot = pmp_priv_to_page_prot(pmp_priv);
+    if ((tlb_size != NULL) && pmp_index != MAX_RISCV_PMPS) {
+        target_ulong tlb_sa = addr & ~(TARGET_PAGE_SIZE - 1);
+        target_ulong tlb_ea = tlb_sa + TARGET_PAGE_SIZE - 1;
+
+        *tlb_size = pmp_get_tlb_size(env, pmp_index, tlb_sa, tlb_ea, HGPMP);
     }
 
     return TRANSLATE_SUCCESS;
@@ -855,7 +957,20 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
       levels = 5; ptidxbits = 9; ptesize = 8; break;
     case VM_1_10_MBARE:
         *physical = addr;
-        *prot = PAGE_READ | PAGE_WRITE | PAGE_EXEC;
+        int pmp_ret = get_physical_address_spmp(env, prot, NULL, addr,
+                                                sizeof(target_ulong),
+                                                access_type, mode, sum);
+        if (pmp_ret != TRANSLATE_SUCCESS) {
+            return TRANSLATE_FAIL;
+        }
+        if (!first_stage && two_stage) {
+            pmp_ret = get_physical_address_hgpmp(env, prot, NULL, addr,
+                                                 sizeof(target_ulong),
+                                                 access_type, mode);
+            if (pmp_ret != TRANSLATE_SUCCESS) {
+                return TRANSLATE_FAIL;
+            }
+        }
         return TRANSLATE_SUCCESS;
     default:
       g_assert_not_reached();
