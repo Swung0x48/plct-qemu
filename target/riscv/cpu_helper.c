@@ -108,59 +108,35 @@ void cpu_get_tb_cpu_state(CPURISCVState *env, target_ulong *pc,
     if (riscv_feature(env, RISCV_FEATURE_DEBUG) && !icount_enabled()) {
         flags = FIELD_DP32(flags, TB_FLAGS, ITRIGGER, env->itrigger_enabled);
     }
+
+    if (cpu->cfg.ext_zjpm) {
+        flags = FIELD_DP32(flags, TB_FLAGS, PM_ENABLED, env->pm_enabled);
+        flags = FIELD_DP32(flags, TB_FLAGS, PM_BITS, env->pm_bits);
+    }
 #endif
 
     flags = FIELD_DP32(flags, TB_FLAGS, XL, env->xl);
-    if (env->cur_pmmask < (env->xl == MXL_RV32 ? UINT32_MAX : UINT64_MAX)) {
-        flags = FIELD_DP32(flags, TB_FLAGS, PM_MASK_ENABLED, 1);
-    }
-    if (env->cur_pmbase != 0) {
-        flags = FIELD_DP32(flags, TB_FLAGS, PM_BASE_ENABLED, 1);
-    }
 
     *pflags = flags;
 }
 
 void riscv_cpu_update_mask(CPURISCVState *env)
 {
-    target_ulong mask = -1, base = 0;
-    /*
-     * TODO: Current RVJ spec does not specify
-     * how the extension interacts with XLEN.
-     */
 #ifndef CONFIG_USER_ONLY
-    if (riscv_has_ext(env, RVJ)) {
-        switch (env->priv) {
-        case PRV_M:
-            if (env->mmte & M_PM_ENABLE) {
-                mask = env->mpmmask;
-                base = env->mpmbase;
+    if (env_archcpu(env)->cfg.ext_zjpm) {
+        int mode = env->priv;
+        if (mode == PRV_M) {
+            if (get_field(env->mstatus, MSTATUS_MPRV)) {
+                mode = get_field(env->mstatus, MSTATUS_MPP);
             }
-            break;
-        case PRV_S:
-            if (env->mmte & S_PM_ENABLE) {
-                mask = env->spmmask;
-                base = env->spmbase;
-            }
-            break;
-        case PRV_U:
-            if (env->mmte & U_PM_ENABLE) {
-                mask = env->upmmask;
-                base = env->upmbase;
-            }
-            break;
-        default:
-            g_assert_not_reached();
         }
+        env->pm_enabled = env->pm[mode] & PM_ENABLE;
+        env->pm_bits = get_field(env->pm[mode], PM_BITS_MASK);
+    } else {
+        env->pm_enabled = false;
+        env->pm_bits = 0;
     }
 #endif
-    if (env->xl == MXL_RV32) {
-        env->cur_pmmask = mask & UINT32_MAX;
-        env->cur_pmbase = base & UINT32_MAX;
-    } else {
-        env->cur_pmmask = mask;
-        env->cur_pmbase = base;
-    }
 }
 
 #ifndef CONFIG_USER_ONLY
@@ -514,6 +490,9 @@ void riscv_cpu_swap_hypervisor_regs(CPURISCVState *env)
 
         env->vsatp = env->satp;
         env->satp = env->satp_hs;
+
+        env->pm[2] = env->pm[PRV_S];
+        env->pm[PRV_S] = env->pm_hs;
     } else {
         /* Current V=0 and we are about to change to V=1 */
         env->mstatus_hs = env->mstatus & mstatus_mask;
@@ -541,6 +520,9 @@ void riscv_cpu_swap_hypervisor_regs(CPURISCVState *env)
         env->spmpswitch_hs = env->spmpswitch;
         env->spmpswitch = env->vspmpswitch;
         env->spmp_type = VSPMP;
+
+        env->pm_hs = env->pm[PRV_S];
+        env->pm[PRV_S] = env->pm[2];
     }
 }
 

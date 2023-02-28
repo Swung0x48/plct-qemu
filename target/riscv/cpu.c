@@ -459,13 +459,10 @@ static void riscv_cpu_dump_state(CPUState *cs, FILE *f, int flags)
             CSR_MSCRATCH,
             CSR_SSCRATCH,
             CSR_SATP,
-            CSR_MMTE,
-            CSR_UPMBASE,
-            CSR_UPMMASK,
-            CSR_SPMBASE,
-            CSR_SPMMASK,
-            CSR_MPMBASE,
-            CSR_MPMMASK,
+            CSR_MPM,
+            CSR_SPM,
+            CSR_VSPM,
+            CSR_UPM,
         };
 
         for (int i = 0; i < ARRAY_SIZE(dump_csrs); ++i) {
@@ -634,8 +631,7 @@ static void riscv_cpu_reset_hold(Object *obj)
         }
         i++;
     }
-    /* mmte is supposed to have pm.current hardwired to 1 */
-    env->mmte |= (PM_EXT_INITIAL | MMTE_M_PM_CURRENT);
+
 #endif
     env->xl = riscv_cpu_mxl(env);
     riscv_cpu_update_mask(env);
@@ -872,9 +868,6 @@ static void riscv_cpu_validate_set_extensions(RISCVCPU *cpu, Error **errp)
                  "use the default value v1.0\n");
     }
     set_vext_version(env, vext_version);
-    }
-    if (cpu->cfg.ext_j) {
-        ext |= RVJ;
     }
 
     set_misa(env, env->misa_mxl, ext);
@@ -1158,7 +1151,7 @@ static Property riscv_cpu_extensions[] = {
     DEFINE_PROP_BOOL("xventanacondops", RISCVCPU, cfg.ext_XVentanaCondOps, false),
 
     /* These are experimental so mark with 'x-' */
-    DEFINE_PROP_BOOL("x-j", RISCVCPU, cfg.ext_j, false),
+    DEFINE_PROP_BOOL("x-zjpm", RISCVCPU, cfg.ext_zjpm, false),
     /* ePMP 0.9.3 */
     DEFINE_PROP_BOOL("x-epmp", RISCVCPU, cfg.epmp, false),
     DEFINE_PROP_BOOL("x-spmp", RISCVCPU, cfg.ext_spmp, false),
@@ -1199,7 +1192,6 @@ static void register_cpu_props(DeviceState *dev)
         cpu->cfg.ext_s = misa_ext & RVS;
         cpu->cfg.ext_u = misa_ext & RVU;
         cpu->cfg.ext_h = misa_ext & RVH;
-        cpu->cfg.ext_j = misa_ext & RVJ;
 
         /*
          * We don't want to set the default riscv_cpu_extensions

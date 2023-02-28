@@ -366,13 +366,8 @@ struct CPUArchState {
     /*
      * CSRs for PointerMasking extension
      */
-    target_ulong mmte;
-    target_ulong mpmmask;
-    target_ulong mpmbase;
-    target_ulong spmmask;
-    target_ulong spmbase;
-    target_ulong upmmask;
-    target_ulong upmbase;
+    target_ulong pm[4];
+    target_ulong pm_hs;
 
     /* CSRs for execution enviornment configuration */
     uint64_t menvcfg;
@@ -382,8 +377,9 @@ struct CPUArchState {
     target_ulong senvcfg;
     uint64_t henvcfg;
 #endif
-    target_ulong cur_pmmask;
-    target_ulong cur_pmbase;
+    /* PointerMasking extension */
+    bool pm_enabled;
+    uint8_t pm_bits;
 
     float_status fp_status;
 
@@ -432,7 +428,6 @@ struct RISCVCPUConfig {
     bool ext_s;
     bool ext_u;
     bool ext_h;
-    bool ext_j;
     bool ext_v;
     bool ext_zba;
     bool ext_zbb;
@@ -470,6 +465,7 @@ struct RISCVCPUConfig {
     bool ext_zve32f;
     bool ext_zve64f;
     bool ext_zmmul;
+    bool ext_zjpm;
     bool ext_smaia;
     bool ext_ssaia;
     bool ext_sscofpmf;
@@ -592,6 +588,7 @@ G_NORETURN void  riscv_cpu_do_unaligned_access(CPUState *cs, vaddr addr,
 bool riscv_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
                         MMUAccessType access_type, int mmu_idx,
                         bool probe, uintptr_t retaddr);
+
 void riscv_cpu_do_transaction_failed(CPUState *cs, hwaddr physaddr,
                                      vaddr addr, unsigned size,
                                      MMUAccessType access_type,
@@ -649,8 +646,8 @@ FIELD(TB_FLAGS, MSTATUS_HS_VS, 18, 2)
 /* The combination of MXL/SXL/UXL that applies to the current cpu mode. */
 FIELD(TB_FLAGS, XL, 20, 2)
 /* If PointerMasking should be applied */
-FIELD(TB_FLAGS, PM_MASK_ENABLED, 22, 1)
-FIELD(TB_FLAGS, PM_BASE_ENABLED, 23, 1)
+FIELD(TB_FLAGS, PM_ENABLED, 22, 1)
+FIELD(TB_FLAGS, PM_BITS, 26, 6)
 FIELD(TB_FLAGS, VTA, 24, 1)
 FIELD(TB_FLAGS, VMA, 25, 1)
 /* Native debug itrigger */
