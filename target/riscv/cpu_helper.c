@@ -926,7 +926,7 @@ restart:
         }
 
         target_ulong pte;
-        if (riscv_cpu_mxl(env) == MXL_RV32) {
+        if (vm == VM_1_10_SV32) {
             pte = address_space_ldl(cs->as, pte_addr, attrs, &res);
         } else {
             pte = address_space_ldq(cs->as, pte_addr, attrs, &res);
@@ -944,7 +944,7 @@ restart:
             hade = hade && (env->henvcfg & HENVCFG_HADE);
         }
 
-        if (riscv_cpu_sxl(env) == MXL_RV32) {
+        if (vm == VM_1_10_SV32) {
             ppn = pte >> PTE_PPN_SHIFT;
         } else if (pbmte || cpu->cfg.ext_svnapot) {
             ppn = (pte & (target_ulong)PTE_PPN_MASK) >> PTE_PPN_SHIFT;
@@ -1022,14 +1022,27 @@ restart:
 #if TCG_OVERSIZED_GUEST
                     /* MTTCG is not enabled on oversized TCG guests so
                      * page table updates do not need to be atomic */
-                    *pte_pa = pte = updated_pte;
+                    if (vm == VM_1_10_SV32)
+                        *(uint32_t *)pte_pa = (uint32_t)pte = (uint32_t)updated_pte;
+                    else
+                        *pte_pa = pte = updated_pte;
 #else
-                    target_ulong old_pte =
-                        qatomic_cmpxchg(pte_pa, pte, updated_pte);
-                    if (old_pte != pte) {
-                        goto restart;
+                    target_ulong old_pte;
+
+                    if (vm == VM_1_10_SV32) {
+                        old_pte = (target_ulong)qatomic_cmpxchg((uint32_t *)pte_pa,
+                                                                (uint32_t)pte,
+                                                                (uint32_t)updated_pte);
+                        if ((uint32_t)old_pte != (uint32_t)pte)
+                            goto restart;
+                        else
+                            pte = (target_ulong)((uint32_t)updated_pte);
                     } else {
-                        pte = updated_pte;
+                        old_pte = qatomic_cmpxchg(pte_pa, pte, updated_pte);
+                        if (old_pte != pte)
+                            goto restart;
+                        else
+                            pte = updated_pte;
                     }
 #endif
                 } else {
