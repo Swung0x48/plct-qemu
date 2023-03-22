@@ -865,8 +865,8 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
     int va_bits = PGSHIFT + levels * ptidxbits + widened;
     target_ulong mask, masked_msbs;
 
-    if (TARGET_LONG_BITS > (va_bits - 1)) {
-        mask = (1L << (TARGET_LONG_BITS - (va_bits - 1))) - 1;
+    if ((ptesize << 3) > (va_bits - 1)) {
+        mask = (1L << ((ptesize << 3) - (va_bits - 1))) - 1;
     } else {
         mask = 0;
     }
