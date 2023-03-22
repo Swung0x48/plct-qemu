@@ -765,6 +765,11 @@ static void riscv_cpu_reset_hold(Object *obj)
     }
     /* mmte is supposed to have pm.current hardwired to 1 */
     env->mmte |= (PM_EXT_INITIAL | MMTE_M_PM_CURRENT);
+    if (riscv_cpu_cfg(env)->ilp32) {
+        env->mmte |= (SMTE_S_PM_ENABLE | SMTE_S_PM_CURRENT | SMTE_S_PM_INSN);
+        env->spmmask = (target_ulong)0xffffffff00000000;
+        env->spmbase = 0;
+    }
 #endif
     env->xl = riscv_cpu_mxl(env);
     riscv_cpu_update_mask(env);
@@ -1456,6 +1461,7 @@ static Property riscv_cpu_extensions[] = {
     DEFINE_PROP_BOOL("x-zvfh", RISCVCPU, cfg.ext_zvfh, false),
     DEFINE_PROP_BOOL("x-zvfhmin", RISCVCPU, cfg.ext_zvfhmin, false),
 
+    DEFINE_PROP_BOOL("ilp32", RISCVCPU, cfg.ilp32, false),
     DEFINE_PROP_END_OF_LIST(),
 };
 

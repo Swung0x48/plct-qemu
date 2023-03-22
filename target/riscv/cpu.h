@@ -512,6 +512,8 @@ struct RISCVCPUConfig {
     bool debug;
     bool misa_w;
 
+    bool ilp32;
+
     bool short_isa_string;
 
 #ifndef CONFIG_USER_ONLY
