@@ -1461,7 +1461,6 @@ static Property riscv_cpu_extensions[] = {
     DEFINE_PROP_BOOL("x-zvfh", RISCVCPU, cfg.ext_zvfh, false),
     DEFINE_PROP_BOOL("x-zvfhmin", RISCVCPU, cfg.ext_zvfhmin, false),
 
-    DEFINE_PROP_BOOL("ilp32", RISCVCPU, cfg.ilp32, false),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -1534,6 +1533,8 @@ static Property riscv_cpu_properties[] = {
      * it with -x and default to 'false'.
      */
     DEFINE_PROP_BOOL("x-misa-w", RISCVCPU, cfg.misa_w, false),
+
+    DEFINE_PROP_BOOL("ilp32", RISCVCPU, cfg.ilp32, false),
     DEFINE_PROP_END_OF_LIST(),
 };
 
