@@ -859,7 +859,11 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
     case VM_1_10_SV57:
       levels = 5; ptidxbits = 9; ptesize = 8; break;
     case VM_1_10_MBARE:
-        *physical = addr;
+        if ((addr & 0xffffffff) != addr)
+        qemu_log_mask(LOG_GUEST_ERROR,
+                      "bad bare address: %" VADDR_PRIx " pc: %" VADDR_PRIx " %d\n",
+                       addr, env->pc, access_type);
+        *physical = addr & 0xffffffff;
         *prot = PAGE_READ | PAGE_WRITE | PAGE_EXEC;
         return TRANSLATE_SUCCESS;
     default:
@@ -1277,6 +1281,13 @@ bool riscv_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
 
     qemu_log_mask(CPU_LOG_MMU, "%s ad %" VADDR_PRIx " rw %d mmu_idx %d\n",
                   __func__, address, access_type, mmu_idx);
+
+
+    target_ulong high = address >> 32;
+    if ((high != 0xffffffff) && (high != 0))
+        qemu_log_mask(LOG_GUEST_ERROR,
+                      "bad address: %" VADDR_PRIx " pc: %" VADDR_PRIx " %d\n",
+                       address, env->pc, access_type);
 
     if (access_type == MMU_INST_FETCH) {
         address = adjust_pc_address(env, address);

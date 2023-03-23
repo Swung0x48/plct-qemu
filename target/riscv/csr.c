@@ -3505,9 +3505,9 @@ static RISCVException write_mmte(CPURISCVState *env, int csrno,
     target_ulong wpri_val = val & MMTE_MASK;
 
     if (val != wpri_val) {
-        qemu_log_mask(LOG_GUEST_ERROR, "%s" TARGET_FMT_lx " %s" TARGET_FMT_lx "\n",
+        qemu_log_mask(LOG_GUEST_ERROR, "%s" TARGET_FMT_lx " %s" TARGET_FMT_lx " %s" TARGET_FMT_lx "\n",
                       "MMTE: WPRI violation written 0x", val,
-                      "vs expected 0x", wpri_val);
+                      "vs expected 0x", wpri_val, "pc 0x", env->pc);
     }
     /* for machine mode pm.current is hardwired to 1 */
     wpri_val |= MMTE_M_PM_CURRENT;
