@@ -205,7 +205,8 @@ void pmp_update_rule_nums(CPURISCVState *env)
     }
 }
 
-/* Convert cfg/addr reg values here into simple 'sa' --> start address and 'ea'
+/*
+ * Convert cfg/addr reg values here into simple 'sa' --> start address and 'ea'
  *   end address values.
  *   This function is called relatively infrequently whereas the check that
  *   an address is within a pmp rule is called often, so optimise that one
@@ -329,8 +330,10 @@ int pmp_hart_has_privs(CPURISCVState *env, target_ulong addr,
         pmp_size = size;
     }
 
-    /* 1.10 draft priv spec states there is an implicit order
-         from low to high */
+    /*
+     * 1.10 draft priv spec states there is an implicit order
+     * from low to high
+     */
     for (i = 0; i < MAX_RISCV_PMPS; i++) {
         s = pmp_is_in_range(env, i, addr);
         e = pmp_is_in_range(env, i, addr + pmp_size - 1);
@@ -609,13 +612,13 @@ target_ulong pmp_get_tlb_size(CPURISCVState *env, int pmp_index,
         return TARGET_PAGE_SIZE;
     } else {
         /*
-        * At this point we have a tlb_size that is the smallest possible size
-        * That fits within a TARGET_PAGE_SIZE and the PMP region.
-        *
-        * If the size is less then TARGET_PAGE_SIZE we drop the size to 1.
-        * This means the result isn't cached in the TLB and is only used for
-        * a single translation.
-        */
+         * At this point we have a tlb_size that is the smallest possible size
+         * That fits within a TARGET_PAGE_SIZE and the PMP region.
+         *
+         * If the size is less then TARGET_PAGE_SIZE we drop the size to 1.
+         * This means the result isn't cached in the TLB and is only used for
+         * a single translation.
+         */
         return 1;
     }
 }
