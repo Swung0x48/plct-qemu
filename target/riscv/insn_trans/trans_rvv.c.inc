@@ -238,8 +238,8 @@ static bool vext_check_store(DisasContext *s, int vd, int nf, uint8_t eew)
 {
     int8_t emul = eew - s->sew + s->lmul;
     return (emul >= -3 && emul <= 3) &&
-            require_align(vd, emul) &&
-            require_nf(vd, nf, emul);
+           require_align(vd, emul) &&
+           require_nf(vd, nf, emul);
 }
 
 /*
@@ -315,7 +315,7 @@ static bool vext_check_ld_index(DisasContext *s, int vd, int vs2,
     int8_t seg_vd;
     int8_t emul = eew - s->sew + s->lmul;
     bool ret = vext_check_st_index(s, vd, vs2, nf, eew) &&
-        require_vm(vm, vd);
+               require_vm(vm, vd);
 
     /* Each segment register group has to follow overlap rules. */
     for (int i = 0; i < nf; ++i) {
@@ -345,8 +345,8 @@ static bool vext_check_ld_index(DisasContext *s, int vd, int vs2,
 static bool vext_check_ss(DisasContext *s, int vd, int vs, int vm)
 {
     return require_vm(vm, vd) &&
-        require_align(vd, s->lmul) &&
-        require_align(vs, s->lmul);
+           require_align(vd, s->lmul) &&
+           require_align(vs, s->lmul);
 }
 
 /*
@@ -365,7 +365,7 @@ static bool vext_check_ss(DisasContext *s, int vd, int vs, int vm)
 static bool vext_check_sss(DisasContext *s, int vd, int vs1, int vs2, int vm)
 {
     return vext_check_ss(s, vd, vs2, vm) &&
-        require_align(vs1, s->lmul);
+           require_align(vs1, s->lmul);
 }
 
 static bool vext_check_ms(DisasContext *s, int vd, int vs)
@@ -396,7 +396,7 @@ static bool vext_check_ms(DisasContext *s, int vd, int vs)
 static bool vext_check_mss(DisasContext *s, int vd, int vs1, int vs2)
 {
     bool ret = vext_check_ms(s, vd, vs2) &&
-        require_align(vs1, s->lmul);
+               require_align(vs1, s->lmul);
     if (vd != vs1) {
         ret &= require_noover(vd, 0, vs1, s->lmul);
     }
@@ -460,14 +460,14 @@ static bool vext_narrow_check_common(DisasContext *s, int vd, int vs2,
 static bool vext_check_ds(DisasContext *s, int vd, int vs, int vm)
 {
     return vext_wide_check_common(s, vd, vm) &&
-        require_align(vs, s->lmul) &&
-        require_noover(vd, s->lmul + 1, vs, s->lmul);
+           require_align(vs, s->lmul) &&
+           require_noover(vd, s->lmul + 1, vs, s->lmul);
 }
 
 static bool vext_check_dd(DisasContext *s, int vd, int vs, int vm)
 {
     return vext_wide_check_common(s, vd, vm) &&
-        require_align(vs, s->lmul + 1);
+           require_align(vs, s->lmul + 1);
 }
 
 /*
@@ -485,8 +485,8 @@ static bool vext_check_dd(DisasContext *s, int vd, int vs, int vm)
 static bool vext_check_dss(DisasContext *s, int vd, int vs1, int vs2, int vm)
 {
     return vext_check_ds(s, vd, vs2, vm) &&
-        require_align(vs1, s->lmul) &&
-        require_noover(vd, s->lmul + 1, vs1, s->lmul);
+           require_align(vs1, s->lmul) &&
+           require_noover(vd, s->lmul + 1, vs1, s->lmul);
 }
 
 /*
@@ -507,7 +507,7 @@ static bool vext_check_dss(DisasContext *s, int vd, int vs1, int vs2, int vm)
 static bool vext_check_dds(DisasContext *s, int vd, int vs1, int vs2, int vm)
 {
     return vext_check_ds(s, vd, vs1, vm) &&
-        require_align(vs2, s->lmul + 1);
+           require_align(vs2, s->lmul + 1);
 }
 
 static bool vext_check_sd(DisasContext *s, int vd, int vs, int vm)
@@ -535,7 +535,7 @@ static bool vext_check_sd(DisasContext *s, int vd, int vs, int vm)
 static bool vext_check_sds(DisasContext *s, int vd, int vs1, int vs2, int vm)
 {
     return vext_check_sd(s, vd, vs2, vm) &&
-        require_align(vs1, s->lmul);
+           require_align(vs1, s->lmul);
 }
 
 /*
@@ -1216,7 +1216,7 @@ do_opivv_gvec(DisasContext *s, arg_rmrr *a, GVecGen3Fn *gvec_fn,
 }
 
 /* OPIVV with GVEC IR */
-#define GEN_OPIVV_GVEC_TRANS(NAME, SUF) \
+#define GEN_OPIVV_GVEC_TRANS(NAME, SUF)                            \
 static bool trans_##NAME(DisasContext *s, arg_rmrr *a)             \
 {                                                                  \
     static gen_helper_gvec_4_ptr * const fns[4] = {                \
@@ -1300,7 +1300,7 @@ do_opivx_gvec(DisasContext *s, arg_rmrr *a, GVecGen2sFn *gvec_fn,
 }
 
 /* OPIVX with GVEC IR */
-#define GEN_OPIVX_GVEC_TRANS(NAME, SUF) \
+#define GEN_OPIVX_GVEC_TRANS(NAME, SUF)                            \
 static bool trans_##NAME(DisasContext *s, arg_rmrr *a)             \
 {                                                                  \
     static gen_helper_opivx * const fns[4] = {                     \
@@ -1453,7 +1453,7 @@ do_opivi_gvec(DisasContext *s, arg_rmrr *a, GVecGen2iFn *gvec_fn,
 }
 
 /* OPIVI with GVEC IR */
-#define GEN_OPIVI_GVEC_TRANS(NAME, IMM_MODE, OPIVX, SUF) \
+#define GEN_OPIVI_GVEC_TRANS(NAME, IMM_MODE, OPIVX, SUF)           \
 static bool trans_##NAME(DisasContext *s, arg_rmrr *a)             \
 {                                                                  \
     static gen_helper_opivx * const fns[4] = {                     \
@@ -1512,7 +1512,7 @@ static bool do_opivv_widen(DisasContext *s, arg_rmrr *a,
     return false;
 }
 
-#define GEN_OPIVV_WIDEN_TRANS(NAME, CHECK) \
+#define GEN_OPIVV_WIDEN_TRANS(NAME, CHECK)                   \
 static bool trans_##NAME(DisasContext *s, arg_rmrr *a)       \
 {                                                            \
     static gen_helper_gvec_4_ptr * const fns[3] = {          \
@@ -1545,7 +1545,7 @@ static bool do_opivx_widen(DisasContext *s, arg_rmrr *a,
     return false;
 }
 
-#define GEN_OPIVX_WIDEN_TRANS(NAME) \
+#define GEN_OPIVX_WIDEN_TRANS(NAME)                          \
 static bool trans_##NAME(DisasContext *s, arg_rmrr *a)       \
 {                                                            \
     static gen_helper_opivx * const fns[3] = {               \
@@ -1594,7 +1594,7 @@ static bool do_opiwv_widen(DisasContext *s, arg_rmrr *a,
     return false;
 }
 
-#define GEN_OPIWV_WIDEN_TRANS(NAME) \
+#define GEN_OPIWV_WIDEN_TRANS(NAME)                          \
 static bool trans_##NAME(DisasContext *s, arg_rmrr *a)       \
 {                                                            \
     static gen_helper_gvec_4_ptr * const fns[3] = {          \
@@ -1627,7 +1627,7 @@ static bool do_opiwx_widen(DisasContext *s, arg_rmrr *a,
     return false;
 }
 
-#define GEN_OPIWX_WIDEN_TRANS(NAME) \
+#define GEN_OPIWX_WIDEN_TRANS(NAME)                          \
 static bool trans_##NAME(DisasContext *s, arg_rmrr *a)       \
 {                                                            \
     static gen_helper_opivx * const fns[3] = {               \
@@ -1801,7 +1801,7 @@ do_opivx_gvec_shift(DisasContext *s, arg_rmrr *a, GVecGen2sFn32 *gvec_fn,
     return opivx_trans(a->rd, a->rs1, a->rs2, a->vm, fn, s);
 }
 
-#define GEN_OPIVX_GVEC_SHIFT_TRANS(NAME, SUF) \
+#define GEN_OPIVX_GVEC_SHIFT_TRANS(NAME, SUF)                             \
 static bool trans_##NAME(DisasContext *s, arg_rmrr *a)                    \
 {                                                                         \
     static gen_helper_opivx * const fns[4] = {                            \
@@ -3668,7 +3668,7 @@ static bool trans_vcompress_vm(DisasContext *s, arg_r *a)
  * Whole Vector Register Move Instructions ignore vtype and vl setting.
  * Thus, we don't need to check vill bit. (Section 16.6)
  */
-#define GEN_VMV_WHOLE_TRANS(NAME, LEN)                             \
+#define GEN_VMV_WHOLE_TRANS(NAME, LEN)                                  \
 static bool trans_##NAME(DisasContext *s, arg_##NAME * a)               \
 {                                                                       \
     if (require_rvv(s) &&                                               \

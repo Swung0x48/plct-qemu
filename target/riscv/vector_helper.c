@@ -1116,7 +1116,7 @@ void HELPER(NAME)(void *vd, void *v0, target_ulong s1, void *vs2,        \
                                                                          \
         *((ETYPE *)vd + H(i)) = DO_OP(s2, (ETYPE)(target_long)s1, carry);\
     }                                                                    \
-    env->vstart = 0;                                          \
+    env->vstart = 0;                                                     \
     /* set tail elements to 1s */                                        \
     vext_set_elems_1s(vd, vta, vl * esz, total_elems * esz);             \
 }
@@ -1308,7 +1308,8 @@ GEN_VEXT_SHIFT_VV(vsra_vv_d, uint64_t, int64_t, H8, H8, DO_SRL, 0x3f)
 /* generate the helpers for shift instructions with one vector and one scalar */
 #define GEN_VEXT_SHIFT_VX(NAME, TD, TS2, HD, HS2, OP, MASK) \
 void HELPER(NAME)(void *vd, void *v0, target_ulong s1,      \
-        void *vs2, CPURISCVState *env, uint32_t desc)       \
+                  void *vs2, CPURISCVState *env,            \
+                  uint32_t desc)                            \
 {                                                           \
     uint32_t vm = vext_vm(desc);                            \
     uint32_t vl = env->vl;                                  \
@@ -1735,9 +1736,9 @@ GEN_VEXT_VX(vmulhsu_vx_d, 8)
 /* Vector Integer Divide Instructions */
 #define DO_DIVU(N, M) (unlikely(M == 0) ? (__typeof(N))(-1) : N / M)
 #define DO_REMU(N, M) (unlikely(M == 0) ? N : N % M)
-#define DO_DIV(N, M)  (unlikely(M == 0) ? (__typeof(N))(-1) :\
+#define DO_DIV(N, M)  (unlikely(M == 0) ? (__typeof(N))(-1) : \
         unlikely((N == -N) && (M == (__typeof(N))(-1))) ? N : N / M)
-#define DO_REM(N, M)  (unlikely(M == 0) ? N :\
+#define DO_REM(N, M)  (unlikely(M == 0) ? N : \
         unlikely((N == -N) && (M == (__typeof(N))(-1))) ? 0 : N % M)
 
 RVVCALL(OPIVV2, vdivu_vv_b, OP_UUU_B, H1, H1, H1, DO_DIVU)
@@ -1846,7 +1847,7 @@ GEN_VEXT_VX(vwmulsu_vx_h, 4)
 GEN_VEXT_VX(vwmulsu_vx_w, 8)
 
 /* Vector Single-Width Integer Multiply-Add Instructions */
-#define OPIVV3(NAME, TD, T1, T2, TX1, TX2, HD, HS1, HS2, OP)   \
+#define OPIVV3(NAME, TD, T1, T2, TX1, TX2, HD, HS1, HS2, OP)       \
 static void do_##NAME(void *vd, void *vs1, void *vs2, int i)       \
 {                                                                  \
     TX1 s1 = *((T1 *)vs1 + HS1(i));                                \
@@ -2277,7 +2278,8 @@ vext_vx_rm_2(void *vd, void *v0, target_long s1, void *vs2,
 /* generate helpers for fixed point instructions with OPIVX format */
 #define GEN_VEXT_VX_RM(NAME, ESZ)                         \
 void HELPER(NAME)(void *vd, void *v0, target_ulong s1,    \
-        void *vs2, CPURISCVState *env, uint32_t desc)     \
+                  void *vs2, CPURISCVState *env,          \
+                  uint32_t desc)                          \
 {                                                         \
     vext_vx_rm_2(vd, v0, s1, vs2, env, desc,              \
                  do_##NAME, ESZ);                         \
@@ -3052,7 +3054,7 @@ void HELPER(NAME)(void *vd, void *v0, uint64_t s1,        \
     uint32_t vm = vext_vm(desc);                          \
     uint32_t vl = env->vl;                                \
     uint32_t total_elems =                                \
-        vext_get_total_elems(env, desc, ESZ);              \
+        vext_get_total_elems(env, desc, ESZ);             \
     uint32_t vta = vext_vta(desc);                        \
     uint32_t vma = vext_vma(desc);                        \
     uint32_t i;                                           \
@@ -3118,13 +3120,13 @@ GEN_VEXT_VF(vfrsub_vf_d, 8)
 static uint32_t vfwadd16(uint16_t a, uint16_t b, float_status *s)
 {
     return float32_add(float16_to_float32(a, true, s),
-            float16_to_float32(b, true, s), s);
+                       float16_to_float32(b, true, s), s);
 }
 
 static uint64_t vfwadd32(uint32_t a, uint32_t b, float_status *s)
 {
     return float64_add(float32_to_float64(a, s),
-            float32_to_float64(b, s), s);
+                       float32_to_float64(b, s), s);
 
 }
 
@@ -3140,13 +3142,13 @@ GEN_VEXT_VF(vfwadd_vf_w, 8)
 static uint32_t vfwsub16(uint16_t a, uint16_t b, float_status *s)
 {
     return float32_sub(float16_to_float32(a, true, s),
-            float16_to_float32(b, true, s), s);
+                       float16_to_float32(b, true, s), s);
 }
 
 static uint64_t vfwsub32(uint32_t a, uint32_t b, float_status *s)
 {
     return float64_sub(float32_to_float64(a, s),
-            float32_to_float64(b, s), s);
+                       float32_to_float64(b, s), s);
 
 }
 
@@ -3250,13 +3252,13 @@ GEN_VEXT_VF(vfrdiv_vf_d, 8)
 static uint32_t vfwmul16(uint16_t a, uint16_t b, float_status *s)
 {
     return float32_mul(float16_to_float32(a, true, s),
-            float16_to_float32(b, true, s), s);
+                       float16_to_float32(b, true, s), s);
 }
 
 static uint64_t vfwmul32(uint32_t a, uint32_t b, float_status *s)
 {
     return float64_mul(float32_to_float64(a, s),
-            float32_to_float64(b, s), s);
+                       float32_to_float64(b, s), s);
 
 }
 RVVCALL(OPFVV2, vfwmul_vv_h, WOP_UUU_H, H4, H2, H2, vfwmul16)
@@ -3271,7 +3273,7 @@ GEN_VEXT_VF(vfwmul_vf_w, 8)
 /* Vector Single-Width Floating-Point Fused Multiply-Add Instructions */
 #define OPFVV3(NAME, TD, T1, T2, TX1, TX2, HD, HS1, HS2, OP)       \
 static void do_##NAME(void *vd, void *vs1, void *vs2, int i,       \
-        CPURISCVState *env)                                        \
+                      CPURISCVState *env)                          \
 {                                                                  \
     TX1 s1 = *((T1 *)vs1 + HS1(i));                                \
     TX2 s2 = *((T2 *)vs2 + HS2(i));                                \
@@ -3303,7 +3305,7 @@ GEN_VEXT_VV_ENV(vfmacc_vv_d, 8)
 
 #define OPFVF3(NAME, TD, T1, T2, TX1, TX2, HD, HS2, OP)           \
 static void do_##NAME(void *vd, uint64_t s1, void *vs2, int i,    \
-        CPURISCVState *env)                                       \
+                      CPURISCVState *env)                         \
 {                                                                 \
     TX2 s2 = *((T2 *)vs2 + HS2(i));                               \
     TD d = *((TD *)vd + HD(i));                                   \
@@ -3319,20 +3321,20 @@ GEN_VEXT_VF(vfmacc_vf_d, 8)
 
 static uint16_t fnmacc16(uint16_t a, uint16_t b, uint16_t d, float_status *s)
 {
-    return float16_muladd(a, b, d,
-            float_muladd_negate_c | float_muladd_negate_product, s);
+    return float16_muladd(a, b, d, float_muladd_negate_c |
+                                   float_muladd_negate_product, s);
 }
 
 static uint32_t fnmacc32(uint32_t a, uint32_t b, uint32_t d, float_status *s)
 {
-    return float32_muladd(a, b, d,
-            float_muladd_negate_c | float_muladd_negate_product, s);
+    return float32_muladd(a, b, d, float_muladd_negate_c |
+                                   float_muladd_negate_product, s);
 }
 
 static uint64_t fnmacc64(uint64_t a, uint64_t b, uint64_t d, float_status *s)
 {
-    return float64_muladd(a, b, d,
-            float_muladd_negate_c | float_muladd_negate_product, s);
+    return float64_muladd(a, b, d, float_muladd_negate_c |
+                                   float_muladd_negate_product, s);
 }
 
 RVVCALL(OPFVV3, vfnmacc_vv_h, OP_UUU_H, H2, H2, H2, fnmacc16)
@@ -3434,20 +3436,20 @@ GEN_VEXT_VF(vfmadd_vf_d, 8)
 
 static uint16_t fnmadd16(uint16_t a, uint16_t b, uint16_t d, float_status *s)
 {
-    return float16_muladd(d, b, a,
-            float_muladd_negate_c | float_muladd_negate_product, s);
+    return float16_muladd(d, b, a, float_muladd_negate_c |
+                                   float_muladd_negate_product, s);
 }
 
 static uint32_t fnmadd32(uint32_t a, uint32_t b, uint32_t d, float_status *s)
 {
-    return float32_muladd(d, b, a,
-            float_muladd_negate_c | float_muladd_negate_product, s);
+    return float32_muladd(d, b, a, float_muladd_negate_c |
+                                   float_muladd_negate_product, s);
 }
 
 static uint64_t fnmadd64(uint64_t a, uint64_t b, uint64_t d, float_status *s)
 {
-    return float64_muladd(d, b, a,
-            float_muladd_negate_c | float_muladd_negate_product, s);
+    return float64_muladd(d, b, a, float_muladd_negate_c |
+                                   float_muladd_negate_product, s);
 }
 
 RVVCALL(OPFVV3, vfnmadd_vv_h, OP_UUU_H, H2, H2, H2, fnmadd16)
@@ -3523,13 +3525,13 @@ GEN_VEXT_VF(vfnmsub_vf_d, 8)
 static uint32_t fwmacc16(uint16_t a, uint16_t b, uint32_t d, float_status *s)
 {
     return float32_muladd(float16_to_float32(a, true, s),
-                        float16_to_float32(b, true, s), d, 0, s);
+                          float16_to_float32(b, true, s), d, 0, s);
 }
 
 static uint64_t fwmacc32(uint32_t a, uint32_t b, uint64_t d, float_status *s)
 {
     return float64_muladd(float32_to_float64(a, s),
-                        float32_to_float64(b, s), d, 0, s);
+                          float32_to_float64(b, s), d, 0, s);
 }
 
 RVVCALL(OPFVV3, vfwmacc_vv_h, WOP_UUU_H, H4, H2, H2, fwmacc16)
@@ -3544,15 +3546,16 @@ GEN_VEXT_VF(vfwmacc_vf_w, 8)
 static uint32_t fwnmacc16(uint16_t a, uint16_t b, uint32_t d, float_status *s)
 {
     return float32_muladd(float16_to_float32(a, true, s),
-                        float16_to_float32(b, true, s), d,
-                        float_muladd_negate_c | float_muladd_negate_product, s);
+                          float16_to_float32(b, true, s), d,
+                          float_muladd_negate_c | float_muladd_negate_product,
+                          s);
 }
 
 static uint64_t fwnmacc32(uint32_t a, uint32_t b, uint64_t d, float_status *s)
 {
-    return float64_muladd(float32_to_float64(a, s),
-                        float32_to_float64(b, s), d,
-                        float_muladd_negate_c | float_muladd_negate_product, s);
+    return float64_muladd(float32_to_float64(a, s), float32_to_float64(b, s),
+                          d, float_muladd_negate_c |
+                             float_muladd_negate_product, s);
 }
 
 RVVCALL(OPFVV3, vfwnmacc_vv_h, WOP_UUU_H, H4, H2, H2, fwnmacc16)
@@ -3567,15 +3570,15 @@ GEN_VEXT_VF(vfwnmacc_vf_w, 8)
 static uint32_t fwmsac16(uint16_t a, uint16_t b, uint32_t d, float_status *s)
 {
     return float32_muladd(float16_to_float32(a, true, s),
-                        float16_to_float32(b, true, s), d,
-                        float_muladd_negate_c, s);
+                          float16_to_float32(b, true, s), d,
+                          float_muladd_negate_c, s);
 }
 
 static uint64_t fwmsac32(uint32_t a, uint32_t b, uint64_t d, float_status *s)
 {
     return float64_muladd(float32_to_float64(a, s),
-                        float32_to_float64(b, s), d,
-                        float_muladd_negate_c, s);
+                          float32_to_float64(b, s), d,
+                          float_muladd_negate_c, s);
 }
 
 RVVCALL(OPFVV3, vfwmsac_vv_h, WOP_UUU_H, H4, H2, H2, fwmsac16)
@@ -3590,15 +3593,15 @@ GEN_VEXT_VF(vfwmsac_vf_w, 8)
 static uint32_t fwnmsac16(uint16_t a, uint16_t b, uint32_t d, float_status *s)
 {
     return float32_muladd(float16_to_float32(a, true, s),
-                        float16_to_float32(b, true, s), d,
-                        float_muladd_negate_product, s);
+                          float16_to_float32(b, true, s), d,
+                          float_muladd_negate_product, s);
 }
 
 static uint64_t fwnmsac32(uint32_t a, uint32_t b, uint64_t d, float_status *s)
 {
     return float64_muladd(float32_to_float64(a, s),
-                        float32_to_float64(b, s), d,
-                        float_muladd_negate_product, s);
+                          float32_to_float64(b, s), d,
+                          float_muladd_negate_product, s);
 }
 
 RVVCALL(OPFVV3, vfwnmsac_vv_h, WOP_UUU_H, H4, H2, H2, fwnmsac16)
@@ -3616,9 +3619,9 @@ GEN_VEXT_VF(vfwnmsac_vf_w, 8)
 #define OP_UU_W uint32_t, uint32_t, uint32_t
 #define OP_UU_D uint64_t, uint64_t, uint64_t
 
-#define OPFVV1(NAME, TD, T2, TX2, HD, HS2, OP)        \
+#define OPFVV1(NAME, TD, T2, TX2, HD, HS2, OP)         \
 static void do_##NAME(void *vd, void *vs2, int i,      \
-        CPURISCVState *env)                            \
+                      CPURISCVState *env)              \
 {                                                      \
     TX2 s2 = *((T2 *)vs2 + HS2(i));                    \
     *((TD *)vd + HD(i)) = OP(s2, &env->fp_status);     \
@@ -3626,7 +3629,7 @@ static void do_##NAME(void *vd, void *vs2, int i,      \
 
 #define GEN_VEXT_V_ENV(NAME, ESZ)                      \
 void HELPER(NAME)(void *vd, void *v0, void *vs2,       \
-        CPURISCVState *env, uint32_t desc)             \
+                  CPURISCVState *env, uint32_t desc)   \
 {                                                      \
     uint32_t vm = vext_vm(desc);                       \
     uint32_t vl = env->vl;                             \
@@ -3703,9 +3706,9 @@ static uint64_t frsqrt7(uint64_t f, int exp_size, int frac_size)
     }
 
     int idx = ((exp & 1) << (precision - 1)) |
-                (frac >> (frac_size - precision + 1));
+              (frac >> (frac_size - precision + 1));
     uint64_t out_frac = (uint64_t)(lookup_table[idx]) <<
-                            (frac_size - precision);
+                        (frac_size - precision);
     uint64_t out_exp = (3 * MAKE_64BIT_MASK(0, exp_size - 1) + ~exp) / 2;
 
     uint64_t val = 0;
@@ -3727,9 +3730,9 @@ static float16 frsqrt7_h(float16 f, float_status *s)
      * frsqrt7(-subnormal) = canonical NaN
      */
     if (float16_is_signaling_nan(f, s) ||
-            (float16_is_infinity(f) && sign) ||
-            (float16_is_normal(f) && sign) ||
-            (float16_is_zero_or_denormal(f) && !float16_is_zero(f) && sign)) {
+        (float16_is_infinity(f) && sign) ||
+        (float16_is_normal(f) && sign) ||
+        (float16_is_zero_or_denormal(f) && !float16_is_zero(f) && sign)) {
         s->float_exception_flags |= float_flag_invalid;
         return float16_default_nan(s);
     }
@@ -3767,9 +3770,9 @@ static float32 frsqrt7_s(float32 f, float_status *s)
      * frsqrt7(-subnormal) = canonical NaN
      */
     if (float32_is_signaling_nan(f, s) ||
-            (float32_is_infinity(f) && sign) ||
-            (float32_is_normal(f) && sign) ||
-            (float32_is_zero_or_denormal(f) && !float32_is_zero(f) && sign)) {
+        (float32_is_infinity(f) && sign) ||
+        (float32_is_normal(f) && sign) ||
+        (float32_is_zero_or_denormal(f) && !float32_is_zero(f) && sign)) {
         s->float_exception_flags |= float_flag_invalid;
         return float32_default_nan(s);
     }
@@ -3807,9 +3810,9 @@ static float64 frsqrt7_d(float64 f, float_status *s)
      * frsqrt7(-subnormal) = canonical NaN
      */
     if (float64_is_signaling_nan(f, s) ||
-            (float64_is_infinity(f) && sign) ||
-            (float64_is_normal(f) && sign) ||
-            (float64_is_zero_or_denormal(f) && !float64_is_zero(f) && sign)) {
+        (float64_is_infinity(f) && sign) ||
+        (float64_is_normal(f) && sign) ||
+        (float64_is_zero_or_denormal(f) && !float64_is_zero(f) && sign)) {
         s->float_exception_flags |= float_flag_invalid;
         return float64_default_nan(s);
     }
@@ -3897,18 +3900,18 @@ static uint64_t frec7(uint64_t f, int exp_size, int frac_size,
                 ((s->float_rounding_mode == float_round_up) && sign)) {
                 /* Return greatest/negative finite value. */
                 return (sign << (exp_size + frac_size)) |
-                    (MAKE_64BIT_MASK(frac_size, exp_size) - 1);
+                       (MAKE_64BIT_MASK(frac_size, exp_size) - 1);
             } else {
                 /* Return +-inf. */
                 return (sign << (exp_size + frac_size)) |
-                    MAKE_64BIT_MASK(frac_size, exp_size);
+                       MAKE_64BIT_MASK(frac_size, exp_size);
             }
         }
     }
 
     int idx = frac >> (frac_size - precision);
     uint64_t out_frac = (uint64_t)(lookup_table[idx]) <<
-                            (frac_size - precision);
+                        (frac_size - precision);
     uint64_t out_exp = 2 * MAKE_64BIT_MASK(0, exp_size - 1) + ~exp;
 
     if (out_exp == 0 || out_exp == UINT64_MAX) {
@@ -4422,8 +4425,8 @@ void HELPER(NAME)(void *vd, void *v0, uint64_t s1, void *vs2, \
                                                               \
     for (i = env->vstart; i < vl; i++) {                      \
         ETYPE s2 = *((ETYPE *)vs2 + H(i));                    \
-        *((ETYPE *)vd + H(i))                                 \
-          = (!vm && !vext_elem_mask(v0, i) ? s2 : s1);        \
+        *((ETYPE *)vd + H(i)) =                               \
+            (!vm && !vext_elem_mask(v0, i) ? s2 : s1);        \
     }                                                         \
     env->vstart = 0;                                          \
     /* set tail elements to 1s */                             \
@@ -4564,7 +4567,8 @@ GEN_VEXT_V_ENV(vfncvt_f_f_w_w, 4)
 /* Vector Single-Width Integer Reduction Instructions */
 #define GEN_VEXT_RED(NAME, TD, TS2, HD, HS2, OP)          \
 void HELPER(NAME)(void *vd, void *v0, void *vs1,          \
-        void *vs2, CPURISCVState *env, uint32_t desc)     \
+                  void *vs2, CPURISCVState *env,          \
+                  uint32_t desc)                          \
 {                                                         \
     uint32_t vm = vext_vm(desc);                          \
     uint32_t vl = env->vl;                                \
@@ -5013,7 +5017,8 @@ GEN_VEXT_VSLIDEDOWN_VX(vslidedown_vx_d, uint64_t, H8)
 
 #define GEN_VEXT_VSLIE1UP(BITWIDTH, H)                                      \
 static void vslide1up_##BITWIDTH(void *vd, void *v0, uint64_t s1,           \
-                     void *vs2, CPURISCVState *env, uint32_t desc)          \
+                                 void *vs2, CPURISCVState *env,             \
+                                 uint32_t desc)                             \
 {                                                                           \
     typedef uint##BITWIDTH##_t ETYPE;                                       \
     uint32_t vm = vext_vm(desc);                                            \
@@ -5061,7 +5066,8 @@ GEN_VEXT_VSLIDE1UP_VX(vslide1up_vx_d, 64)
 
 #define GEN_VEXT_VSLIDE1DOWN(BITWIDTH, H)                                     \
 static void vslide1down_##BITWIDTH(void *vd, void *v0, uint64_t s1,           \
-                       void *vs2, CPURISCVState *env, uint32_t desc)          \
+                                   void *vs2, CPURISCVState *env,             \
+                                   uint32_t desc)                             \
 {                                                                             \
     typedef uint##BITWIDTH##_t ETYPE;                                         \
     uint32_t vm = vext_vm(desc);                                              \
