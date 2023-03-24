@@ -344,8 +344,8 @@ static void riscv_any_cpu_init(Object *obj)
 
 #ifndef CONFIG_USER_ONLY
     set_satp_mode_max_supported(RISCV_CPU(obj),
-            riscv_cpu_mxl(&RISCV_CPU(obj)->env) == MXL_RV32 ?
-                                    VM_1_10_SV32 : VM_1_10_SV57);
+        riscv_cpu_mxl(&RISCV_CPU(obj)->env) == MXL_RV32 ?
+        VM_1_10_SV32 : VM_1_10_SV57);
 #endif
 
     set_priv_version(env, PRIV_VERSION_1_12_0);

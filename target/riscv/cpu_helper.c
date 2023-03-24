@@ -68,12 +68,12 @@ void cpu_get_tb_cpu_state(CPURISCVState *env, target_ulong *pc,
         flags = FIELD_DP32(flags, TB_FLAGS, VILL, env->vill);
         flags = FIELD_DP32(flags, TB_FLAGS, SEW, sew);
         flags = FIELD_DP32(flags, TB_FLAGS, LMUL,
-                    FIELD_EX64(env->vtype, VTYPE, VLMUL));
+                           FIELD_EX64(env->vtype, VTYPE, VLMUL));
         flags = FIELD_DP32(flags, TB_FLAGS, VL_EQ_VLMAX, vl_eq_vlmax);
         flags = FIELD_DP32(flags, TB_FLAGS, VTA,
-                    FIELD_EX64(env->vtype, VTYPE, VTA));
+                           FIELD_EX64(env->vtype, VTYPE, VTA));
         flags = FIELD_DP32(flags, TB_FLAGS, VMA,
-                    FIELD_EX64(env->vtype, VTYPE, VMA));
+                           FIELD_EX64(env->vtype, VTYPE, VMA));
     } else {
         flags = FIELD_DP32(flags, TB_FLAGS, VILL, 1);
     }
@@ -1052,7 +1052,7 @@ restart:
             /* add write permission on stores or if the page is already dirty,
                so that we TLB miss on later writes to update the dirty bit */
             if ((pte & PTE_W) &&
-                    (access_type == MMU_DATA_STORE || (pte & PTE_D))) {
+                (access_type == MMU_DATA_STORE || (pte & PTE_D))) {
                 *prot |= PAGE_WRITE;
             }
             return TRANSLATE_SUCCESS;
@@ -1281,9 +1281,10 @@ bool riscv_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
                                        false);
 
             qemu_log_mask(CPU_LOG_MMU,
-                    "%s 2nd-stage address=%" VADDR_PRIx " ret %d physical "
-                    HWADDR_FMT_plx " prot %d\n",
-                    __func__, im_address, ret, pa, prot2);
+                          "%s 2nd-stage address=%" VADDR_PRIx
+                          " ret %d physical "
+                          HWADDR_FMT_plx " prot %d\n",
+                          __func__, im_address, ret, pa, prot2);
 
             prot &= prot2;
 
