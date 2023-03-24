@@ -565,10 +565,6 @@ bool riscv_cpu_virt_enabled(CPURISCVState *env)
 
 void riscv_cpu_set_virt_enabled(CPURISCVState *env, bool enable)
 {
-    if (!riscv_has_ext(env, RVH)) {
-        return;
-    }
-
     /* Flush the TLB on all virt mode changes. */
     if (get_field(env->virt, VIRT_ONOFF) != enable) {
         tlb_flush(env_cpu(env));
