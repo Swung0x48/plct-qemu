@@ -38,7 +38,15 @@ static bool trans_lui(DisasContext *ctx, arg_lui *a)
 
 static bool trans_auipc(DisasContext *ctx, arg_auipc *a)
 {
-    gen_set_gpri(ctx, a->rd, a->imm + ctx->base.pc_next);
+    assert(ctx->pc_save != -1);
+    if (tb_cflags(ctx->base.tb) & CF_PCREL) {
+        TCGv target_pc = tcg_temp_new();
+        tcg_gen_addi_tl(target_pc, cpu_pc, a->imm + ctx->base.pc_next -
+                                           ctx->pc_save);
+        gen_set_gpr(ctx, a->rd, target_pc);
+    } else {
+        gen_set_gpri(ctx, a->rd, a->imm + ctx->base.pc_next);
+    }
     return true;
 }
 
@@ -51,6 +59,11 @@ static bool trans_jal(DisasContext *ctx, arg_jal *a)
 static bool trans_jalr(DisasContext *ctx, arg_jalr *a)
 {
     TCGLabel *misaligned = NULL;
+    TCGv succ_pc = tcg_temp_new();
+
+    if (tb_cflags(ctx->base.tb) & CF_PCREL) {
+        tcg_gen_addi_tl(succ_pc, cpu_pc, ctx->pc_succ_insn - ctx->pc_save);
+    }
 
     tcg_gen_addi_tl(cpu_pc, get_gpr(ctx, a->rs1, EXT_NONE), a->imm);
     tcg_gen_andi_tl(cpu_pc, cpu_pc, (target_ulong)-2);
@@ -64,7 +77,11 @@ static bool trans_jalr(DisasContext *ctx, arg_jalr *a)
         tcg_gen_brcondi_tl(TCG_COND_NE, t0, 0x0, misaligned);
     }
 
-    gen_set_gpri(ctx, a->rd, ctx->pc_succ_insn);
+    if (tb_cflags(ctx->base.tb) & CF_PCREL) {
+        gen_set_gpr(ctx, a->rd, succ_pc);
+    } else {
+        gen_set_gpri(ctx, a->rd, ctx->pc_succ_insn);
+    }
     lookup_and_goto_ptr(ctx);
 
     if (misaligned) {
