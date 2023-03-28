@@ -259,8 +259,11 @@ static void gen_exception_illegal(DisasContext *ctx)
 
 static void gen_exception_inst_addr_mis(DisasContext *ctx)
 {
+    gen_set_pc_imm(ctx, ctx->base.pc_next);
     tcg_gen_st_tl(cpu_pc, cpu_env, offsetof(CPURISCVState, badaddr));
-    generate_exception(ctx, RISCV_EXCP_INST_ADDR_MIS);
+    gen_helper_raise_exception(cpu_env,
+                               tcg_constant_i32(RISCV_EXCP_INST_ADDR_MIS));
+    ctx->base.is_jmp = DISAS_NORETURN;
 }
 
 static void lookup_and_goto_ptr(DisasContext *ctx)
