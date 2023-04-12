@@ -904,6 +904,13 @@ static void riscv_cpu_validate_set_extensions(RISCVCPU *cpu, Error **errp)
         return;
     }
 
+    if ((cpu->cfg.ext_zfbfmin | cpu->cfg.ext_zvfbfmin |
+         cpu->cfg.ext_zvfbfwma) && !riscv_has_ext(env, RVF)) {
+        error_setg(errp, "Zfbfmin/Zvfbfmin/Zvfbfwma extensions require F "
+                         "extension");
+        return;
+    }
+
     if (riscv_has_ext(env, RVD) && !riscv_has_ext(env, RVF)) {
         error_setg(errp, "D extension requires F extension");
         return;
@@ -948,6 +955,13 @@ static void riscv_cpu_validate_set_extensions(RISCVCPU *cpu, Error **errp)
         return;
     }
 
+    if ((cpu->cfg.ext_zvfbfmin | cpu->cfg.ext_zvfbfwma) &&
+        !cpu->cfg.ext_zve32f) {
+        error_setg(errp, "Zvfbfmin/Zvfbfwma extensions require Zve32f "
+                         "extension");
+        return;
+    }
+
     /* Set the ISA extensions, checks should have happened above */
     if (cpu->cfg.ext_zhinx) {
         cpu->cfg.ext_zhinxmin = true;
@@ -955,6 +969,11 @@ static void riscv_cpu_validate_set_extensions(RISCVCPU *cpu, Error **errp)
 
     if ((cpu->cfg.ext_zdinx || cpu->cfg.ext_zhinxmin) && !cpu->cfg.ext_zfinx) {
         error_setg(errp, "Zdinx/Zhinx/Zhinxmin extensions require Zfinx");
+        return;
+    }
+
+    if (cpu->cfg.ext_zfbfinxmin && !cpu->cfg.ext_zfinx) {
+        error_setg(errp, "Zfbfinxmin requires Zfinx extension");
         return;
     }
 
