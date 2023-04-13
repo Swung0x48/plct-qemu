@@ -1563,13 +1563,6 @@ static int probe_access_internal(CPUArchState *env, target_ulong addr,
             /* TLB resize via tlb_fill may have moved the entry.  */
             index = tlb_index(env, mmu_idx, addr);
             entry = tlb_entry(env, mmu_idx, addr);
-
-            /*
-             * With PAGE_WRITE_INV, we set TLB_INVALID_MASK immediately,
-             * to force the next access through tlb_fill.  We've just
-             * called tlb_fill, so we know that this entry *is* valid.
-             */
-            flags &= ~TLB_INVALID_MASK;
         }
         tlb_addr = tlb_read_ofs(entry, elt_ofs);
     }
