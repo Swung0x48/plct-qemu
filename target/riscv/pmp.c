@@ -612,6 +612,10 @@ target_ulong pmp_get_tlb_size(CPURISCVState *env, target_ulong addr)
     target_ulong tlb_ea = tlb_sa + TARGET_PAGE_SIZE - 1;
     int i;
 
+    if (!riscv_cpu_cfg(env)->pmp || !pmp_get_num_rules(env)) {
+        return TARGET_PAGE_SIZE;
+    }
+
     for (i = 0; i < MAX_RISCV_PMPS; i++) {
         if (pmp_get_a_field(env->pmp_state.pmp[i].cfg_reg) == PMP_AMATCH_OFF) {
             continue;
