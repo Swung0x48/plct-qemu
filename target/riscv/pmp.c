@@ -25,6 +25,7 @@
 #include "cpu.h"
 #include "trace.h"
 #include "exec/exec-all.h"
+#include "exec/tb-flush.h"
 
 static bool pmp_write_cfg(CPURISCVState *env, uint32_t addr_index,
                           uint8_t val);
@@ -492,6 +493,7 @@ void pmpcfg_csr_write(CPURISCVState *env, uint32_t reg_index,
     /* If PMP permission of any addr has been changed, flush TLB pages. */
     if (modified) {
         tlb_flush(env_cpu(env));
+        tb_flush(env_cpu(env));
     }
 }
 
@@ -545,6 +547,7 @@ void pmpaddr_csr_write(CPURISCVState *env, uint32_t addr_index,
                 env->pmp_state.pmp[addr_index].addr_reg = val;
                 pmp_update_rule(env, addr_index);
                 tlb_flush(env_cpu(env));
+                tb_flush(env_cpu(env));
             }
         } else {
             qemu_log_mask(LOG_GUEST_ERROR,
