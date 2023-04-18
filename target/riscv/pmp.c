@@ -314,149 +314,144 @@ int pmp_hart_has_privs(CPURISCVState *env, target_ulong addr,
     target_ulong e = 0;
 
     /* Short cut if no rules */
-    if (0 == pmp_get_num_rules(env)) {
-        if (pmp_hart_has_privs_default(env, addr, size, privs,
-                                       allowed_privs, mode)) {
-            ret = MAX_RISCV_PMPS;
-        }
-    }
-
-    if (size == 0) {
-        if (riscv_cpu_cfg(env)->mmu) {
-            /*
-             * If size is unknown (0), assume that all bytes
-             * from addr to the end of the page will be accessed.
-             */
-            pmp_size = -(addr | TARGET_PAGE_MASK);
+    if (pmp_get_num_rules(env) != 0) {
+        if (size == 0) {
+            if (riscv_cpu_cfg(env)->mmu) {
+                /*
+                 * If size is unknown (0), assume that all bytes
+                 * from addr to the end of the page will be accessed.
+                 */
+                pmp_size = -(addr | TARGET_PAGE_MASK);
+            } else {
+                pmp_size = sizeof(target_ulong);
+            }
         } else {
-            pmp_size = sizeof(target_ulong);
+            pmp_size = size;
         }
-    } else {
-        pmp_size = size;
-    }
-
-    /*
-     * 1.10 draft priv spec states there is an implicit order
-     * from low to high
-     */
-    for (i = 0; i < MAX_RISCV_PMPS; i++) {
-        s = pmp_is_in_range(env, i, addr);
-        e = pmp_is_in_range(env, i, addr + pmp_size - 1);
-
-        /* partially inside */
-        if ((s + e) == 1) {
-            qemu_log_mask(LOG_GUEST_ERROR,
-                          "pmp violation - access is partially inside\n");
-            ret = -1;
-            break;
-        }
-
-        /* fully inside */
-        const uint8_t a_field =
-            pmp_get_a_field(env->pmp_state.pmp[i].cfg_reg);
 
         /*
-         * Convert the PMP permissions to match the truth table in the
-         * ePMP spec.
+         * 1.10 draft priv spec states there is an implicit order
+         * from low to high
          */
-        const uint8_t epmp_operation =
-            ((env->pmp_state.pmp[i].cfg_reg & PMP_LOCK) >> 4) |
-            ((env->pmp_state.pmp[i].cfg_reg & PMP_READ) << 2) |
-            (env->pmp_state.pmp[i].cfg_reg & PMP_WRITE) |
-            ((env->pmp_state.pmp[i].cfg_reg & PMP_EXEC) >> 2);
+        for (i = 0; i < MAX_RISCV_PMPS; i++) {
+            s = pmp_is_in_range(env, i, addr);
+            e = pmp_is_in_range(env, i, addr + pmp_size - 1);
 
-        if (((s + e) == 2) && (PMP_AMATCH_OFF != a_field)) {
-            /*
-             * If the PMP entry is not off and the address is in range,
-             * do the priv check
-             */
-            if (!MSECCFG_MML_ISSET(env)) {
-                /*
-                 * If mseccfg.MML Bit is not set, do pmp priv check
-                 * This will always apply to regular PMP.
-                 */
-                *allowed_privs = PMP_READ | PMP_WRITE | PMP_EXEC;
-                if ((mode != PRV_M) || pmp_is_locked(env, i)) {
-                    *allowed_privs &= env->pmp_state.pmp[i].cfg_reg;
-                }
-            } else {
-                /*
-                 * If mseccfg.MML Bit set, do the enhanced pmp priv check
-                 */
-                if (mode == PRV_M) {
-                    switch (epmp_operation) {
-                    case 0:
-                    case 1:
-                    case 4:
-                    case 5:
-                    case 6:
-                    case 7:
-                    case 8:
-                        *allowed_privs = 0;
-                        break;
-                    case 2:
-                    case 3:
-                    case 14:
-                        *allowed_privs = PMP_READ | PMP_WRITE;
-                        break;
-                    case 9:
-                    case 10:
-                        *allowed_privs = PMP_EXEC;
-                        break;
-                    case 11:
-                    case 13:
-                        *allowed_privs = PMP_READ | PMP_EXEC;
-                        break;
-                    case 12:
-                    case 15:
-                        *allowed_privs = PMP_READ;
-                        break;
-                    default:
-                        g_assert_not_reached();
-                    }
-                } else {
-                    switch (epmp_operation) {
-                    case 0:
-                    case 8:
-                    case 9:
-                    case 12:
-                    case 13:
-                    case 14:
-                        *allowed_privs = 0;
-                        break;
-                    case 1:
-                    case 10:
-                    case 11:
-                        *allowed_privs = PMP_EXEC;
-                        break;
-                    case 2:
-                    case 4:
-                    case 15:
-                        *allowed_privs = PMP_READ;
-                        break;
-                    case 3:
-                    case 6:
-                        *allowed_privs = PMP_READ | PMP_WRITE;
-                        break;
-                    case 5:
-                        *allowed_privs = PMP_READ | PMP_EXEC;
-                        break;
-                    case 7:
-                        *allowed_privs = PMP_READ | PMP_WRITE | PMP_EXEC;
-                        break;
-                    default:
-                        g_assert_not_reached();
-                    }
-                }
+            /* partially inside */
+            if ((s + e) == 1) {
+                qemu_log_mask(LOG_GUEST_ERROR,
+                              "pmp violation - access is partially inside\n");
+                ret = -1;
+                break;
             }
 
+            /* fully inside */
+            const uint8_t a_field =
+                pmp_get_a_field(env->pmp_state.pmp[i].cfg_reg);
+
             /*
-             * If matching address range was found, the protection bits
-             * defined with PMP must be used. We shouldn't fallback on
-             * finding default privileges.
+             * Convert the PMP permissions to match the truth table in the
+             * ePMP spec.
              */
-            ret = i;
-            break;
+            const uint8_t epmp_operation =
+                ((env->pmp_state.pmp[i].cfg_reg & PMP_LOCK) >> 4) |
+                ((env->pmp_state.pmp[i].cfg_reg & PMP_READ) << 2) |
+                (env->pmp_state.pmp[i].cfg_reg & PMP_WRITE) |
+                ((env->pmp_state.pmp[i].cfg_reg & PMP_EXEC) >> 2);
+
+            if (((s + e) == 2) && (PMP_AMATCH_OFF != a_field)) {
+                /*
+                 * If the PMP entry is not off and the address is in range,
+                 * do the priv check
+                 */
+                if (!MSECCFG_MML_ISSET(env)) {
+                    /*
+                     * If mseccfg.MML Bit is not set, do pmp priv check
+                     * This will always apply to regular PMP.
+                     */
+                    *allowed_privs = PMP_READ | PMP_WRITE | PMP_EXEC;
+                    if ((mode != PRV_M) || pmp_is_locked(env, i)) {
+                        *allowed_privs &= env->pmp_state.pmp[i].cfg_reg;
+                    }
+                } else {
+                    /*
+                     * If mseccfg.MML Bit set, do the enhanced pmp priv check
+                     */
+                    if (mode == PRV_M) {
+                        switch (epmp_operation) {
+                        case 0:
+                        case 1:
+                        case 4:
+                        case 5:
+                        case 6:
+                        case 7:
+                        case 8:
+                            *allowed_privs = 0;
+                            break;
+                        case 2:
+                        case 3:
+                        case 14:
+                            *allowed_privs = PMP_READ | PMP_WRITE;
+                            break;
+                        case 9:
+                        case 10:
+                            *allowed_privs = PMP_EXEC;
+                            break;
+                        case 11:
+                        case 13:
+                            *allowed_privs = PMP_READ | PMP_EXEC;
+                            break;
+                        case 12:
+                        case 15:
+                            *allowed_privs = PMP_READ;
+                            break;
+                        default:
+                            g_assert_not_reached();
+                        }
+                    } else {
+                        switch (epmp_operation) {
+                        case 0:
+                        case 8:
+                        case 9:
+                        case 12:
+                        case 13:
+                        case 14:
+                            *allowed_privs = 0;
+                            break;
+                        case 1:
+                        case 10:
+                        case 11:
+                            *allowed_privs = PMP_EXEC;
+                            break;
+                        case 2:
+                        case 4:
+                        case 15:
+                            *allowed_privs = PMP_READ;
+                            break;
+                        case 3:
+                        case 6:
+                            *allowed_privs = PMP_READ | PMP_WRITE;
+                            break;
+                        case 5:
+                            *allowed_privs = PMP_READ | PMP_EXEC;
+                            break;
+                        case 7:
+                            *allowed_privs = PMP_READ | PMP_WRITE | PMP_EXEC;
+                            break;
+                        default:
+                            g_assert_not_reached();
+                        }
+                    }
+                }
+
+                /*
+                 * If matching address range was found, the protection bits
+                 * defined with PMP must be used. We shouldn't fallback on
+                 * finding default privileges.
+                 */
+                ret = i;
+                break;
+            }
         }
     }
 
