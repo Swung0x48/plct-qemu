@@ -476,11 +476,24 @@ static RISCVException hgatp(CPURISCVState *env, int csrno)
 /* Checks if PointerMasking registers could be accessed */
 static RISCVException pointer_masking(CPURISCVState *env, int csrno)
 {
-    /* Check if j-ext is present */
-    if (riscv_has_ext(env, RVJ)) {
-        return RISCV_EXCP_NONE;
+    int csr_priv = get_field(csrno, 0x300);
+    bool ext_enabled = true;
+    const RISCVCPUConfig *cfg = riscv_cpu_cfg(env);
+    switch (csr_priv) {
+    case PRV_M:  /* mpm */
+        ext_enabled = cfg->ext_smjpm;
+        break;
+    case PRV_S:
+    case PRV_S + 1:
+        ext_enabled = cfg->ext_ssjpm;
+        break;
+    case PRV_U:
+        ext_enabled = cfg->ext_zjpm;
+        break;
+    default:
+        g_assert_not_reached();
     }
-    return RISCV_EXCP_ILLEGAL_INST;
+    return ext_enabled ? RISCV_EXCP_NONE : RISCV_EXCP_ILLEGAL_INST;
 }
 
 static int aia_hmode(CPURISCVState *env, int csrno)
@@ -1284,6 +1297,7 @@ static RISCVException write_mstatus(CPURISCVState *env, int csrno,
                                     target_ulong val)
 {
     uint64_t mstatus = env->mstatus;
+    uint64_t old_mstatus = mstatus;
     uint64_t mask = 0;
     RISCVMXL xl = riscv_cpu_mxl(env);
 
@@ -1323,7 +1337,15 @@ static RISCVException write_mstatus(CPURISCVState *env, int csrno,
         /* SXL field is for now read only */
         mstatus = set_field(mstatus, MSTATUS64_SXL, xl);
     }
+
     env->mstatus = mstatus;
+
+    if ((old_mstatus ^ env->mstatus) & (MSTATUS64_UXL | MSTATUS64_SXL)) {
+        riscv_cpu_update_mask(env);
+    } else if ((old_mstatus ^ env->mstatus) & (MSTATUS_MPRV | MSTATUS_MPP |
+                                               MSTATUS_MPV)) {
+        riscv_cpu_update_mprv_mask(env);
+    }
 
     /*
      * Except in debug mode, UXL/SXL can only be modified by higher
@@ -1331,8 +1353,8 @@ static RISCVException write_mstatus(CPURISCVState *env, int csrno,
      */
     if (env->debugger) {
         env->xl = cpu_recompute_xl(env);
-        riscv_cpu_update_mask(env);
     }
+
     return RISCV_EXCP_NONE;
 }
 
@@ -1949,6 +1971,10 @@ static RISCVException write_menvcfg(CPURISCVState *env, int csrno,
     const RISCVCPUConfig *cfg = riscv_cpu_cfg(env);
     uint64_t mask = MENVCFG_FIOM | MENVCFG_CBIE | MENVCFG_CBCFE | MENVCFG_CBZE;
 
+    if (cfg->ext_ssjpm) {
+        mask |= MENVCFG_SPMSELF | MENVCFG_UPMSELF;
+    }
+
     if (riscv_cpu_mxl(env) == MXL_RV64) {
         mask |= (cfg->ext_svpbmt ? MENVCFG_PBMTE : 0) |
                 (cfg->ext_sstc ? MENVCFG_STCE : 0) |
@@ -1991,6 +2017,11 @@ static RISCVException read_senvcfg(CPURISCVState *env, int csrno,
     }
 
     *val = env->senvcfg;
+
+    /* senvcfg.upmself is alias of menvcfg.upmself */
+    if (riscv_cpu_cfg(env)->ext_ssjpm) {
+        *val |= env->menvcfg & MENVCFG_UPMSELF;
+    }
     return RISCV_EXCP_NONE;
 }
 
@@ -2003,6 +2034,12 @@ static RISCVException write_senvcfg(CPURISCVState *env, int csrno,
     ret = smstateen_acc_ok(env, 0, SMSTATEEN0_HSENVCFG);
     if (ret != RISCV_EXCP_NONE) {
         return ret;
+    }
+
+    /* senvcfg.upmself is alias of menvcfg.upmself */
+    if (riscv_cpu_cfg(env)->ext_ssjpm) {
+        env->menvcfg = (env->menvcfg & ~MENVCFG_UPMSELF) |
+                       (val & SENVCFG_UPMSELF);
     }
 
     env->senvcfg = (env->senvcfg & ~mask) | (val & mask);
@@ -2026,6 +2063,11 @@ static RISCVException read_henvcfg(CPURISCVState *env, int csrno,
      */
     *val = env->henvcfg & (~(HENVCFG_PBMTE | HENVCFG_STCE | HENVCFG_HADE) |
                            env->menvcfg);
+
+    /* henvcfg.upmself is alias of menvcfg.upmself */
+    if (riscv_cpu_cfg(env)->ext_ssjpm) {
+        *val |= env->menvcfg & MENVCFG_UPMSELF;
+    }
     return RISCV_EXCP_NONE;
 }
 
@@ -2038,6 +2080,12 @@ static RISCVException write_henvcfg(CPURISCVState *env, int csrno,
     ret = smstateen_acc_ok(env, 0, SMSTATEEN0_HSENVCFG);
     if (ret != RISCV_EXCP_NONE) {
         return ret;
+    }
+
+    /* henvcfg.upmself is alias of menvcfg.upmself */
+    if (riscv_cpu_cfg(env)->ext_ssjpm) {
+        env->menvcfg = (env->menvcfg & ~MENVCFG_UPMSELF) |
+                       (val & SENVCFG_UPMSELF);
     }
 
     if (riscv_cpu_mxl(env) == MXL_RV64) {
@@ -2733,6 +2781,7 @@ static RISCVException write_satp(CPURISCVState *env, int csrno,
          */
         tlb_flush(env_cpu(env));
         env->satp = val;
+        riscv_cpu_update_mask(env);
     }
     return RISCV_EXCP_NONE;
 }
@@ -3359,7 +3408,33 @@ static RISCVException read_vsatp(CPURISCVState *env, int csrno,
 static RISCVException write_vsatp(CPURISCVState *env, int csrno,
                                   target_ulong val)
 {
+    target_ulong mask;
+    bool vm;
+
     env->vsatp = val;
+    if (!riscv_cpu_cfg(env)->mmu) {
+        return RISCV_EXCP_NONE;
+    }
+
+    if (riscv_cpu_mxl(env) == MXL_RV32) {
+        vm = validate_vm(env, get_field(val, SATP32_MODE));
+        mask = (val ^ env->satp) & (SATP32_MODE | SATP32_ASID | SATP32_PPN);
+    } else {
+        vm = validate_vm(env, get_field(val, SATP64_MODE));
+        mask = (val ^ env->satp) & (SATP64_MODE | SATP64_ASID | SATP64_PPN);
+    }
+
+    if (vm && mask) {
+        /*
+         * The ISA defines VSATP.MODE=Bare as "no translation", but we still
+         * pass these through QEMU's TLB emulation as it improves
+         * performance.  Flushing the TLB on SATP writes with paging
+         * enabled avoids leaking those invalid cached mappings.
+         */
+        tlb_flush(env_cpu(env));
+        env->vsatp = val;
+        riscv_cpu_update_mask(env);
+    }
     return RISCV_EXCP_NONE;
 }
 
@@ -3509,13 +3584,14 @@ static bool check_pm_current_disabled(CPURISCVState *env, int csrno)
     }
     switch (env->priv) {
     case PRV_M:
-        pm_current = get_field(env->mmte, M_PM_CURRENT);
+        pm_current = true;
         break;
     case PRV_S:
-        pm_current = get_field(env->mmte, S_PM_CURRENT);
+        pm_current = get_field(env->menvcfg, MENVCFG_SPMSELF);
         break;
     case PRV_U:
-        pm_current = get_field(env->mmte, U_PM_CURRENT);
+        pm_current = !riscv_cpu_cfg(env)->ext_ssjpm ||
+                     get_field(env->menvcfg, MENVCFG_UPMSELF);
         break;
     default:
         g_assert_not_reached();
@@ -3524,53 +3600,52 @@ static bool check_pm_current_disabled(CPURISCVState *env, int csrno)
     return !pm_current;
 }
 
-static RISCVException read_mmte(CPURISCVState *env, int csrno,
-                                target_ulong *val)
+static RISCVException read_mpm(CPURISCVState *env, int csrno,
+                               target_ulong *val)
 {
-    *val = env->mmte & MMTE_MASK;
+    *val = env->mpm & MPM_MXPMEN;
     return RISCV_EXCP_NONE;
 }
 
-static RISCVException write_mmte(CPURISCVState *env, int csrno,
-                                 target_ulong val)
+static RISCVException write_mpm(CPURISCVState *env, int csrno,
+                                target_ulong val)
 {
-    uint64_t mstatus;
-    target_ulong wpri_val = val & MMTE_MASK;
+    target_ulong wpri_val = val & MPM_MXPMEN;
 
     if (val != wpri_val) {
-        qemu_log_mask(LOG_GUEST_ERROR, "%s" TARGET_FMT_lx " %s"
-                      TARGET_FMT_lx "\n", "MMTE: WPRI violation written 0x",
+        qemu_log_mask(LOG_GUEST_ERROR, "%s" TARGET_FMT_lx " %s" TARGET_FMT_lx
+                                       "\n", "MPM: WPRI violation written 0x",
                       val, "vs expected 0x", wpri_val);
     }
-    /* for machine mode pm.current is hardwired to 1 */
-    wpri_val |= MMTE_M_PM_CURRENT;
 
-    /* hardwiring pm.instruction bit to 0, since it's not supported yet */
-    wpri_val &= ~(MMTE_M_PM_INSN | MMTE_S_PM_INSN | MMTE_U_PM_INSN);
-    env->mmte = wpri_val | EXT_STATUS_DIRTY;
+    /*
+     * Pointer masking only applies to RV64. On RV32, trying to enable pointer
+     * masking will cause an exception
+     */
+    if (wpri_val && riscv_cpu_mxl(env) == MXL_RV32) {
+        return RISCV_EXCP_ILLEGAL_INST;
+    }
+
+    env->mpm = wpri_val;
     riscv_cpu_update_mask(env);
-
-    /* Set XS and SD bits, since PM CSRs are dirty */
-    mstatus = env->mstatus | MSTATUS_XS;
-    write_mstatus(env, csrno, mstatus);
     return RISCV_EXCP_NONE;
 }
 
-static RISCVException read_smte(CPURISCVState *env, int csrno,
-                                target_ulong *val)
+static RISCVException read_spm(CPURISCVState *env, int csrno,
+                               target_ulong *val)
 {
-    *val = env->mmte & SMTE_MASK;
+    *val = env->spm & SPM_SXPMEN;
     return RISCV_EXCP_NONE;
 }
 
-static RISCVException write_smte(CPURISCVState *env, int csrno,
-                                 target_ulong val)
+static RISCVException write_spm(CPURISCVState *env, int csrno,
+                                target_ulong val)
 {
-    target_ulong wpri_val = val & SMTE_MASK;
+    target_ulong wpri_val = val & SPM_SXPMEN;
 
     if (val != wpri_val) {
-        qemu_log_mask(LOG_GUEST_ERROR, "%s" TARGET_FMT_lx " %s"
-                      TARGET_FMT_lx "\n", "SMTE: WPRI violation written 0x",
+        qemu_log_mask(LOG_GUEST_ERROR, "%s" TARGET_FMT_lx " %s" TARGET_FMT_lx
+                                       "\n", "SPM: WPRI violation written 0x",
                       val, "vs expected 0x", wpri_val);
     }
 
@@ -3579,26 +3654,72 @@ static RISCVException write_smte(CPURISCVState *env, int csrno,
         return RISCV_EXCP_NONE;
     }
 
-    wpri_val |= (env->mmte & ~SMTE_MASK);
-    write_mmte(env, csrno, wpri_val);
+    /*
+     * Pointer masking only applies to RV64. On RV32, trying to enable pointer
+     * masking will cause an exception
+     */
+    if (wpri_val && (riscv_cpu_mxl(env) == MXL_RV32 ||
+                     get_field(env->mstatus, MSTATUS64_SXL))) {
+        return RISCV_EXCP_ILLEGAL_INST;
+    }
+
+    env->spm = wpri_val;
+    riscv_cpu_update_mask(env);
     return RISCV_EXCP_NONE;
 }
 
-static RISCVException read_umte(CPURISCVState *env, int csrno,
+static RISCVException read_vspm(CPURISCVState *env, int csrno,
                                 target_ulong *val)
 {
-    *val = env->mmte & UMTE_MASK;
+    *val = env->vspm & VSPM_VSXPMEN;
     return RISCV_EXCP_NONE;
 }
 
-static RISCVException write_umte(CPURISCVState *env, int csrno,
+static RISCVException write_vspm(CPURISCVState *env, int csrno,
                                  target_ulong val)
 {
-    target_ulong wpri_val = val & UMTE_MASK;
+    target_ulong wpri_val = val & VSPM_VSXPMEN;
 
     if (val != wpri_val) {
-        qemu_log_mask(LOG_GUEST_ERROR, "%s" TARGET_FMT_lx " %s"
-                      TARGET_FMT_lx "\n", "UMTE: WPRI violation written 0x",
+        qemu_log_mask(LOG_GUEST_ERROR, "%s" TARGET_FMT_lx " %s" TARGET_FMT_lx
+                                       "\n", "VSPM: WPRI violation written 0x",
+                      val, "vs expected 0x", wpri_val);
+    }
+
+    /* if pm.current==0 we can't modify current PM CSRs */
+    if (check_pm_current_disabled(env, csrno)) {
+        return RISCV_EXCP_NONE;
+    }
+
+    /*
+     * Pointer masking only applies to RV64. On RV32, trying to enable pointer
+     * masking will cause an exception
+     */
+    if (wpri_val && (riscv_cpu_mxl(env) == MXL_RV32 ||
+                     get_field(env->mstatus, MSTATUS64_SXL))) {
+        return RISCV_EXCP_ILLEGAL_INST;
+    }
+
+    env->vspm = wpri_val;
+    riscv_cpu_update_mask(env);
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException read_upm(CPURISCVState *env, int csrno,
+                               target_ulong *val)
+{
+    *val = env->upm & UPM_UXPMEN;
+    return RISCV_EXCP_NONE;
+}
+
+static RISCVException write_upm(CPURISCVState *env, int csrno,
+                                target_ulong val)
+{
+    target_ulong wpri_val = val & UPM_UXPMEN;
+
+    if (val != wpri_val) {
+        qemu_log_mask(LOG_GUEST_ERROR, "%s" TARGET_FMT_lx " %s" TARGET_FMT_lx
+                                       "\n", "UPM: WPRI violation written 0x",
                       val, "vs expected 0x", wpri_val);
     }
 
@@ -3606,168 +3727,16 @@ static RISCVException write_umte(CPURISCVState *env, int csrno,
         return RISCV_EXCP_NONE;
     }
 
-    wpri_val |= (env->mmte & ~UMTE_MASK);
-    write_mmte(env, csrno, wpri_val);
-    return RISCV_EXCP_NONE;
-}
-
-static RISCVException read_mpmmask(CPURISCVState *env, int csrno,
-                                   target_ulong *val)
-{
-    *val = env->mpmmask;
-    return RISCV_EXCP_NONE;
-}
-
-static RISCVException write_mpmmask(CPURISCVState *env, int csrno,
-                                    target_ulong val)
-{
-    uint64_t mstatus;
-
-    env->mpmmask = val;
-    if ((env->priv == PRV_M) && (env->mmte & M_PM_ENABLE)) {
-        env->cur_pmmask = val;
+    /*
+     * Pointer masking only applies to RV64. On RV32, trying to enable pointer
+     * masking will cause an exception
+     */
+    if (wpri_val && (riscv_cpu_mxl(env) == MXL_RV32 ||
+                     get_field(env->mstatus, MSTATUS64_UXL))) {
+        return RISCV_EXCP_ILLEGAL_INST;
     }
-    env->mmte |= EXT_STATUS_DIRTY;
-
-    /* Set XS and SD bits, since PM CSRs are dirty */
-    mstatus = env->mstatus | MSTATUS_XS;
-    write_mstatus(env, csrno, mstatus);
-    return RISCV_EXCP_NONE;
-}
-
-static RISCVException read_spmmask(CPURISCVState *env, int csrno,
-                                   target_ulong *val)
-{
-    *val = env->spmmask;
-    return RISCV_EXCP_NONE;
-}
-
-static RISCVException write_spmmask(CPURISCVState *env, int csrno,
-                                    target_ulong val)
-{
-    uint64_t mstatus;
-
-    /* if pm.current==0 we can't modify current PM CSRs */
-    if (check_pm_current_disabled(env, csrno)) {
-        return RISCV_EXCP_NONE;
-    }
-    env->spmmask = val;
-    if ((env->priv == PRV_S) && (env->mmte & S_PM_ENABLE)) {
-        env->cur_pmmask = val;
-    }
-    env->mmte |= EXT_STATUS_DIRTY;
-
-    /* Set XS and SD bits, since PM CSRs are dirty */
-    mstatus = env->mstatus | MSTATUS_XS;
-    write_mstatus(env, csrno, mstatus);
-    return RISCV_EXCP_NONE;
-}
-
-static RISCVException read_upmmask(CPURISCVState *env, int csrno,
-                                   target_ulong *val)
-{
-    *val = env->upmmask;
-    return RISCV_EXCP_NONE;
-}
-
-static RISCVException write_upmmask(CPURISCVState *env, int csrno,
-                                    target_ulong val)
-{
-    uint64_t mstatus;
-
-    /* if pm.current==0 we can't modify current PM CSRs */
-    if (check_pm_current_disabled(env, csrno)) {
-        return RISCV_EXCP_NONE;
-    }
-    env->upmmask = val;
-    if ((env->priv == PRV_U) && (env->mmte & U_PM_ENABLE)) {
-        env->cur_pmmask = val;
-    }
-    env->mmte |= EXT_STATUS_DIRTY;
-
-    /* Set XS and SD bits, since PM CSRs are dirty */
-    mstatus = env->mstatus | MSTATUS_XS;
-    write_mstatus(env, csrno, mstatus);
-    return RISCV_EXCP_NONE;
-}
-
-static RISCVException read_mpmbase(CPURISCVState *env, int csrno,
-                                   target_ulong *val)
-{
-    *val = env->mpmbase;
-    return RISCV_EXCP_NONE;
-}
-
-static RISCVException write_mpmbase(CPURISCVState *env, int csrno,
-                                    target_ulong val)
-{
-    uint64_t mstatus;
-
-    env->mpmbase = val;
-    if ((env->priv == PRV_M) && (env->mmte & M_PM_ENABLE)) {
-        env->cur_pmbase = val;
-    }
-    env->mmte |= EXT_STATUS_DIRTY;
-
-    /* Set XS and SD bits, since PM CSRs are dirty */
-    mstatus = env->mstatus | MSTATUS_XS;
-    write_mstatus(env, csrno, mstatus);
-    return RISCV_EXCP_NONE;
-}
-
-static RISCVException read_spmbase(CPURISCVState *env, int csrno,
-                                   target_ulong *val)
-{
-    *val = env->spmbase;
-    return RISCV_EXCP_NONE;
-}
-
-static RISCVException write_spmbase(CPURISCVState *env, int csrno,
-                                    target_ulong val)
-{
-    uint64_t mstatus;
-
-    /* if pm.current==0 we can't modify current PM CSRs */
-    if (check_pm_current_disabled(env, csrno)) {
-        return RISCV_EXCP_NONE;
-    }
-    env->spmbase = val;
-    if ((env->priv == PRV_S) && (env->mmte & S_PM_ENABLE)) {
-        env->cur_pmbase = val;
-    }
-    env->mmte |= EXT_STATUS_DIRTY;
-
-    /* Set XS and SD bits, since PM CSRs are dirty */
-    mstatus = env->mstatus | MSTATUS_XS;
-    write_mstatus(env, csrno, mstatus);
-    return RISCV_EXCP_NONE;
-}
-
-static RISCVException read_upmbase(CPURISCVState *env, int csrno,
-                                   target_ulong *val)
-{
-    *val = env->upmbase;
-    return RISCV_EXCP_NONE;
-}
-
-static RISCVException write_upmbase(CPURISCVState *env, int csrno,
-                                    target_ulong val)
-{
-    uint64_t mstatus;
-
-    /* if pm.current==0 we can't modify current PM CSRs */
-    if (check_pm_current_disabled(env, csrno)) {
-        return RISCV_EXCP_NONE;
-    }
-    env->upmbase = val;
-    if ((env->priv == PRV_U) && (env->mmte & U_PM_ENABLE)) {
-        env->cur_pmbase = val;
-    }
-    env->mmte |= EXT_STATUS_DIRTY;
-
-    /* Set XS and SD bits, since PM CSRs are dirty */
-    mstatus = env->mstatus | MSTATUS_XS;
-    write_mstatus(env, csrno, mstatus);
+    env->upm = wpri_val;
+    riscv_cpu_update_mask(env);
     return RISCV_EXCP_NONE;
 }
 
@@ -4372,23 +4341,12 @@ riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_TINFO]     =  { "tinfo",   debug, read_tinfo,   write_ignore  },
 
     /* User Pointer Masking */
-    [CSR_UMTE]    =    { "umte",    pointer_masking, read_umte,  write_umte },
-    [CSR_UPMMASK] =    { "upmmask", pointer_masking, read_upmmask,
-                         write_upmmask                                      },
-    [CSR_UPMBASE] =    { "upmbase", pointer_masking, read_upmbase,
-                         write_upmbase                                      },
+    [CSR_UPM]    =    { "upm",    pointer_masking, read_upm,  write_upm  },
     /* Machine Pointer Masking */
-    [CSR_MMTE]    =    { "mmte",    pointer_masking, read_mmte,  write_mmte },
-    [CSR_MPMMASK] =    { "mpmmask", pointer_masking, read_mpmmask,
-                         write_mpmmask                                      },
-    [CSR_MPMBASE] =    { "mpmbase", pointer_masking, read_mpmbase,
-                         write_mpmbase                                      },
+    [CSR_MPM]    =    { "mpm",    pointer_masking, read_mpm,  write_mpm  },
     /* Supervisor Pointer Masking */
-    [CSR_SMTE]    =    { "smte",    pointer_masking, read_smte,  write_smte },
-    [CSR_SPMMASK] =    { "spmmask", pointer_masking, read_spmmask,
-                         write_spmmask                                      },
-    [CSR_SPMBASE] =    { "spmbase", pointer_masking, read_spmbase,
-                         write_spmbase                                      },
+    [CSR_SPM]    =    { "spm",    pointer_masking, read_spm,  write_spm  },
+    [CSR_VSPM]   =    { "vspm",   pointer_masking, read_vspm, write_vspm },
 
     /* Performance Counters */
     [CSR_HPMCOUNTER3]    = { "hpmcounter3",    ctr,    read_hpmcounter },

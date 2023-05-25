@@ -169,7 +169,16 @@ static inline uint32_t vext_get_total_elems(CPURISCVState *env, uint32_t desc,
 
 static inline target_ulong adjust_addr(CPURISCVState *env, target_ulong addr)
 {
-    return (addr & ~env->cur_pmmask) | env->cur_pmbase;
+    target_ulong adjust_addr = addr;
+
+    if (env->cur_loadstore_mask_bits) {
+        adjust_addr = ((target_long)addr << env->cur_loadstore_mask_bits) >>
+                      env->cur_loadstore_mask_bits;
+    } else if (env->xl == MXL_RV32) {
+        adjust_addr &= UINT32_MAX;
+    }
+
+    return adjust_addr;
 }
 
 /*

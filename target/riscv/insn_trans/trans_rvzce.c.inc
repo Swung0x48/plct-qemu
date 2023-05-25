@@ -179,7 +179,7 @@ static bool gen_pop(DisasContext *ctx, arg_cmpp *a, bool ret, bool ret_val)
     int reg_size = memop_size(memop);
     target_ulong stack_adj = ROUND_UP(ctpop32(reg_bitmap) * reg_size, 16) +
                              a->spimm;
-    TCGv sp = dest_gpr(ctx, xSP);
+    TCGv sp = get_address(ctx, xSP, 0);
     TCGv addr = tcg_temp_new();
     int i;
 
@@ -224,7 +224,7 @@ static bool trans_cm_push(DisasContext *ctx, arg_cm_push *a)
     int reg_size = memop_size(memop);
     target_ulong stack_adj = ROUND_UP(ctpop32(reg_bitmap) * reg_size, 16) +
                              a->spimm;
-    TCGv sp = dest_gpr(ctx, xSP);
+    TCGv sp = get_address(ctx, xSP, 0);
     TCGv addr = tcg_temp_new();
     int i;
 

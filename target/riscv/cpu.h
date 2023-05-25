@@ -259,6 +259,7 @@ struct CPUArchState {
     target_ulong scause_hs;
     target_ulong stval_hs;
     target_ulong satp_hs;
+    target_ulong spm_hs;
     uint64_t mstatus_hs;
 
     /*
@@ -335,13 +336,10 @@ struct CPUArchState {
     /*
      * CSRs for PointerMasking extension
      */
-    target_ulong mmte;
-    target_ulong mpmmask;
-    target_ulong mpmbase;
-    target_ulong spmmask;
-    target_ulong spmbase;
-    target_ulong upmmask;
-    target_ulong upmbase;
+    target_ulong mpm;
+    target_ulong spm;
+    target_ulong vspm;
+    target_ulong upm;
 
     /* CSRs for execution enviornment configuration */
     uint64_t menvcfg;
@@ -351,8 +349,10 @@ struct CPUArchState {
     target_ulong senvcfg;
     uint64_t henvcfg;
 #endif
-    target_ulong cur_pmmask;
-    target_ulong cur_pmbase;
+
+    int cur_fetch_mask_bits;
+    int cur_loadstore_mask_bits;
+    int cur_hyper_mask_bits;
 
     /* Fields from here on are preserved across CPU reset. */
     QEMUTimer *stimer; /* Internal timer for S-mode interrupt */
@@ -438,6 +438,10 @@ struct RISCVCPUConfig {
     bool ext_smaia;
     bool ext_ssaia;
     bool ext_sscofpmf;
+    bool ext_smjpm;
+    bool ext_smjpmbare16;
+    bool ext_ssjpm;
+    bool ext_zjpm;
     bool rvv_ta_all_1s;
     bool rvv_ma_all_1s;
 
@@ -601,15 +605,14 @@ FIELD(TB_FLAGS, VSTART_EQ_ZERO, 15, 1)
 /* The combination of MXL/SXL/UXL that applies to the current cpu mode. */
 FIELD(TB_FLAGS, XL, 16, 2)
 /* If PointerMasking should be applied */
-FIELD(TB_FLAGS, PM_MASK_ENABLED, 18, 1)
-FIELD(TB_FLAGS, PM_BASE_ENABLED, 19, 1)
-FIELD(TB_FLAGS, VTA, 20, 1)
-FIELD(TB_FLAGS, VMA, 21, 1)
+FIELD(TB_FLAGS, PM_ENABLED, 18, 1)
+FIELD(TB_FLAGS, VTA, 19, 1)
+FIELD(TB_FLAGS, VMA, 20, 1)
 /* Native debug itrigger */
-FIELD(TB_FLAGS, ITRIGGER, 22, 1)
+FIELD(TB_FLAGS, ITRIGGER, 21, 1)
 /* Virtual mode enabled */
-FIELD(TB_FLAGS, VIRT_ENABLED, 23, 1)
-FIELD(TB_FLAGS, PRIV, 24, 2)
+FIELD(TB_FLAGS, VIRT_ENABLED, 22, 1)
+FIELD(TB_FLAGS, PRIV, 23, 2)
 
 #ifdef TARGET_RISCV32
 #define riscv_cpu_mxl(env)  ((void)(env), MXL_RV32)
@@ -703,6 +706,7 @@ void cpu_get_tb_cpu_state(CPURISCVState *env, target_ulong *pc,
                           target_ulong *cs_base, uint32_t *pflags);
 
 void riscv_cpu_update_mask(CPURISCVState *env);
+void riscv_cpu_update_mprv_mask(CPURISCVState *env);
 
 RISCVException riscv_csrrw(CPURISCVState *env, int csrno,
                            target_ulong *ret_value,

@@ -60,6 +60,20 @@ int riscv_cpu_mmu_index(CPURISCVState *env, bool ifetch)
 #endif
 }
 
+static target_ulong adjust_pc_address(CPURISCVState *env, target_ulong pc)
+{
+    target_ulong adjust_pc = pc;
+
+    if (env->cur_fetch_mask_bits) {
+        adjust_pc = ((target_long)adjust_pc << env->cur_fetch_mask_bits) >>
+                    env->cur_fetch_mask_bits;
+    } else if (env->xl == MXL_RV32) {
+        adjust_pc &= UINT32_MAX;
+    }
+
+    return adjust_pc;
+}
+
 void cpu_get_tb_cpu_state(CPURISCVState *env, target_ulong *pc,
                           target_ulong *cs_base, uint32_t *pflags)
 {
@@ -68,7 +82,7 @@ void cpu_get_tb_cpu_state(CPURISCVState *env, target_ulong *pc,
     RISCVExtStatus fs, vs;
     uint32_t flags = 0;
 
-    *pc = env->xl == MXL_RV32 ? env->pc & UINT32_MAX : env->pc;
+    *pc = env->xl == adjust_pc_address(env, env->pc);
     *cs_base = 0;
 
     if (cpu->cfg.ext_zve32f) {
@@ -124,59 +138,111 @@ void cpu_get_tb_cpu_state(CPURISCVState *env, target_ulong *pc,
     }
 #endif
 
+    flags = FIELD_DP32(flags, TB_FLAGS, PM_ENABLED,
+                       env->cur_loadstore_mask_bits != 0);
     flags = FIELD_DP32(flags, TB_FLAGS, FS, fs);
     flags = FIELD_DP32(flags, TB_FLAGS, VS, vs);
     flags = FIELD_DP32(flags, TB_FLAGS, XL, env->xl);
-    if (env->cur_pmmask < (env->xl == MXL_RV32 ? UINT32_MAX : UINT64_MAX)) {
-        flags = FIELD_DP32(flags, TB_FLAGS, PM_MASK_ENABLED, 1);
-    }
-    if (env->cur_pmbase != 0) {
-        flags = FIELD_DP32(flags, TB_FLAGS, PM_BASE_ENABLED, 1);
-    }
 
     *pflags = flags;
 }
 
+#ifndef CONFIG_USER_ONLY
+static int riscv_cpu_get_mask_bits(CPURISCVState *env, int mode, bool virt)
+{
+    int vm;
+    const RISCVCPUConfig *cfg = riscv_cpu_cfg(env);
+    bool pm_enabled;
+    target_ulong satp = env->satp;
+
+    /* Pointer masking only applies to RV64 */
+    if (riscv_cpu_mxl(env) == MXL_RV32) {
+        return 0;
+    }
+
+    switch (mode) {
+    case PRV_M:
+        if (get_field(env->mpm, MPM_MXPMEN)) {
+            if (cfg->ext_smjpmbare16) {
+                return 16;
+            }
+        }
+        return 0;
+    case PRV_S:
+        if (virt && !env->virt_enabled) { /* affected by MPRV or Hypervior Load/Store */
+            pm_enabled = get_field(env->vspm, VSPM_VSXPMEN);
+            satp = env->vsatp;
+        } else {
+            pm_enabled = get_field(env->spm, SPM_SXPMEN);
+            satp = env->satp;
+        }
+        pm_enabled = pm_enabled && !get_field(env->mstatus, MSTATUS64_SXL);
+        break;
+    case PRV_U:
+        if (virt && !env->virt_enabled) { /* affected by MPRV or Hypervior Load/Store */
+            satp = env->vsatp;
+        } else {
+            satp = env->satp;
+        }
+
+        pm_enabled = get_field(env->upm, UPM_UXPMEN) &&
+                     !get_field(env->mstatus, MSTATUS64_UXL);
+
+        break;
+    default:
+        g_assert_not_reached();
+    }
+
+    if (!pm_enabled) {
+        return 0;
+    }
+
+    vm = get_field(satp, SATP64_MODE);
+
+    switch (vm) {
+    case VM_1_10_SV39:
+        return 16;
+    case VM_1_10_SV48:
+        return 16;
+    case VM_1_10_SV57:
+        return 7;
+    case VM_1_10_MBARE:
+        return cfg->ext_smjpmbare16 ? 16 : 0;
+    default:
+      g_assert_not_reached();
+    }
+}
+#endif
+
+void riscv_cpu_update_mprv_mask(CPURISCVState *env)
+{
+#ifndef CONFIG_USER_ONLY
+    int mode = env->priv;
+    bool virt = env->virt_enabled;
+    if (mode == PRV_M && get_field(env->mstatus, MSTATUS_MPRV)) {
+        mode = get_field(env->mstatus, MSTATUS_MPP);
+        virt = get_field(env->mstatus, MSTATUS_MPV);
+    }
+
+    env->cur_loadstore_mask_bits = riscv_cpu_get_mask_bits(env, mode, virt);
+#else
+    env->cur_loadstore_mask_bits = 0;
+#endif
+
+}
+
 void riscv_cpu_update_mask(CPURISCVState *env)
 {
-    target_ulong mask = -1, base = 0;
-    /*
-     * TODO: Current RVJ spec does not specify
-     * how the extension interacts with XLEN.
-     */
 #ifndef CONFIG_USER_ONLY
-    if (riscv_has_ext(env, RVJ)) {
-        switch (env->priv) {
-        case PRV_M:
-            if (env->mmte & M_PM_ENABLE) {
-                mask = env->mpmmask;
-                base = env->mpmbase;
-            }
-            break;
-        case PRV_S:
-            if (env->mmte & S_PM_ENABLE) {
-                mask = env->spmmask;
-                base = env->spmbase;
-            }
-            break;
-        case PRV_U:
-            if (env->mmte & U_PM_ENABLE) {
-                mask = env->upmmask;
-                base = env->upmbase;
-            }
-            break;
-        default:
-            g_assert_not_reached();
-        }
-    }
+    env->cur_fetch_mask_bits = riscv_cpu_get_mask_bits(env, env->priv,
+                                                       env->virt_enabled);
+
+    env->cur_hyper_mask_bits = riscv_cpu_get_mask_bits(env, env->priv, true);
+#else
+    env->cur_fetch_mask_bits = 0;
+    env->cur_hyper_mask_bits = 0;
 #endif
-    if (env->xl == MXL_RV32) {
-        env->cur_pmmask = mask & UINT32_MAX;
-        env->cur_pmbase = base & UINT32_MAX;
-    } else {
-        env->cur_pmmask = mask;
-        env->cur_pmbase = base;
-    }
+    riscv_cpu_update_mprv_mask(env);
 }
 
 #ifndef CONFIG_USER_ONLY
@@ -526,6 +592,9 @@ void riscv_cpu_swap_hypervisor_regs(CPURISCVState *env)
 
         env->vsatp = env->satp;
         env->satp = env->satp_hs;
+
+        env->vspm = env->spm;
+        env->spm = env->spm_hs;
     } else {
         /* Current V=0 and we are about to change to V=1 */
         env->mstatus_hs = env->mstatus & mstatus_mask;
@@ -549,6 +618,9 @@ void riscv_cpu_swap_hypervisor_regs(CPURISCVState *env)
 
         env->satp_hs = env->satp;
         env->satp = env->vsatp;
+
+        env->spm_hs = env->spm;
+        env->spm = env->vspm;
     }
 }
 
@@ -665,8 +737,9 @@ void riscv_cpu_set_mode(CPURISCVState *env, target_ulong newpriv)
     }
     /* tlb_flush is unnecessary as mode is contained in mmu_idx */
     env->priv = newpriv;
-    env->xl = cpu_recompute_xl(env);
     riscv_cpu_update_mask(env);
+    env->xl = cpu_recompute_xl(env);
+    riscv_cpu_update_mprv_mask(env);
 
     /*
      * Clear the load reservation - otherwise a reservation placed in one
