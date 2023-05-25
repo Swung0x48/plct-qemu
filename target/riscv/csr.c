@@ -3649,7 +3649,6 @@ static RISCVException write_spm(CPURISCVState *env, int csrno,
                       val, "vs expected 0x", wpri_val);
     }
 
-    /* if pm.current==0 we can't modify current PM CSRs */
     if (check_pm_current_disabled(env, csrno)) {
         return RISCV_EXCP_NONE;
     }
@@ -3686,7 +3685,6 @@ static RISCVException write_vspm(CPURISCVState *env, int csrno,
                       val, "vs expected 0x", wpri_val);
     }
 
-    /* if pm.current==0 we can't modify current PM CSRs */
     if (check_pm_current_disabled(env, csrno)) {
         return RISCV_EXCP_NONE;
     }

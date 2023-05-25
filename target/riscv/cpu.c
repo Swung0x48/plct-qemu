@@ -1196,9 +1196,8 @@ void riscv_cpu_validate_set_extensions(RISCVCPU *cpu, Error **errp)
         cpu->cfg.ext_zksh = true;
     }
 
-    if ((cpu->cfg.ext_zjpm || cpu->cfg.ext_smjpm || cpu->cfg.ext_ssjpm) &&
-        !cpu->cfg.ext_icsr) {
-        error_setg(errp, "Zjpm/Smjpm/Ssjpm extensions require Zicsr");
+    if (cpu->cfg.ext_zjpm && !cpu->cfg.ext_icsr) {
+        error_setg(errp, "Zjpm extensions requires Zicsr");
         return;
     }
 
