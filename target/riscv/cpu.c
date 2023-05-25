@@ -116,10 +116,14 @@ static const struct isa_ext_data isa_edata_arr[] = {
     ISA_EXT_DATA_ENTRY(zve64d, PRIV_VERSION_1_10_0, ext_zve64d),
     ISA_EXT_DATA_ENTRY(zvfh, PRIV_VERSION_1_12_0, ext_zvfh),
     ISA_EXT_DATA_ENTRY(zvfhmin, PRIV_VERSION_1_12_0, ext_zvfhmin),
+    ISA_EXT_DATA_ENTRY(zjpm, PRIV_VERSION_1_12_0, ext_zjpm),
     ISA_EXT_DATA_ENTRY(zhinx, PRIV_VERSION_1_12_0, ext_zhinx),
     ISA_EXT_DATA_ENTRY(zhinxmin, PRIV_VERSION_1_12_0, ext_zhinxmin),
     ISA_EXT_DATA_ENTRY(smaia, PRIV_VERSION_1_12_0, ext_smaia),
+    ISA_EXT_DATA_ENTRY(smjpm, PRIV_VERSION_1_12_0, ext_smjpm),
+    ISA_EXT_DATA_ENTRY(smjpmbare16, PRIV_VERSION_1_12_0, ext_smjpmbare16),
     ISA_EXT_DATA_ENTRY(ssaia, PRIV_VERSION_1_12_0, ext_ssaia),
+    ISA_EXT_DATA_ENTRY(ssjpm, PRIV_VERSION_1_12_0, ext_ssjpm),
     ISA_EXT_DATA_ENTRY(sscofpmf, PRIV_VERSION_1_12_0, ext_sscofpmf),
     ISA_EXT_DATA_ENTRY(sstc, PRIV_VERSION_1_12_0, ext_sstc),
     ISA_EXT_DATA_ENTRY(svadu, PRIV_VERSION_1_12_0, ext_svadu),
@@ -1192,6 +1196,19 @@ void riscv_cpu_validate_set_extensions(RISCVCPU *cpu, Error **errp)
         cpu->cfg.ext_zksh = true;
     }
 
+    if ((cpu->cfg.ext_zjpm || cpu->cfg.ext_smjpm || cpu->cfg.ext_ssjpm) &&
+        !cpu->cfg.ext_icsr) {
+        error_setg(errp, "Zjpm/Smjpm/Ssjpm extensions require Zicsr");
+        return;
+    }
+
+    if (!cpu->cfg.mmu && (cpu->cfg.ext_zjpm || cpu->cfg.ext_smjpm ||
+                          cpu->cfg.ext_ssjpm || cpu->cfg.ext_smjpmbare16)) {
+        error_setg(errp, "Zjpm/Smjpm/Ssjpm/Ssjpmbare16 extensions require "
+                         "mmu");
+        return;
+    }
+
     /*
      * Disable isa extensions based on priv spec after we
      * validated and set everything we need.
@@ -1665,6 +1682,11 @@ static Property riscv_cpu_extensions[] = {
 
     DEFINE_PROP_BOOL("x-zvfh", RISCVCPU, cfg.ext_zvfh, false),
     DEFINE_PROP_BOOL("x-zvfhmin", RISCVCPU, cfg.ext_zvfhmin, false),
+
+    DEFINE_PROP_BOOL("x-smjpm", RISCVCPU, cfg.ext_smjpm, false),
+    DEFINE_PROP_BOOL("x-smjpmbare16", RISCVCPU, cfg.ext_smjpmbare16, false),
+    DEFINE_PROP_BOOL("x-ssjpm", RISCVCPU, cfg.ext_ssjpm, false),
+    DEFINE_PROP_BOOL("x-zjpm", RISCVCPU, cfg.ext_zjpm, false),
 
     DEFINE_PROP_END_OF_LIST(),
 };
