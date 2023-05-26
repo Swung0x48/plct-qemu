@@ -908,3 +908,9 @@ sm4ks       .. 11010 ..... ..... 000 ..... 0110011 @k_aes
 # *** RV32 Zicond Standard Extension ***
 czero_eqz   0000111  ..... ..... 101 ..... 0110011 @r
 czero_nez   0000111  ..... ..... 111 ..... 0110011 @r
+
+# *** RV32 Zacas Standard Extension ***
+amocas_w    00101 . . ..... ..... 010 ..... 0101111 @atom_st
+amocas_d    00101 . . ..... ..... 011 ..... 0101111 @atom_st
+# *** RV64 Zacas Standard Extension ***
+amocas_q    00101 . . ..... ..... 100 ..... 0101111 @atom_st
