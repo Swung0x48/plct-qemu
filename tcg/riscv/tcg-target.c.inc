@@ -2221,8 +2221,8 @@ static void tcg_target_init(TCGContext *s)
 {
     tcg_target_detect_isa();
 
-    tcg_target_available_regs[TCG_TYPE_I32] = 0xffffffff;
-    tcg_target_available_regs[TCG_TYPE_I64] = 0xffffffff;
+    tcg_target_available_regs[TCG_TYPE_I32] = ALL_GENERAL_REGS;
+    tcg_target_available_regs[TCG_TYPE_I64] = ALL_GENERAL_REGS;
 
     if (have_v) {
         if (vlen >= 64)
