@@ -127,6 +127,11 @@ static bool have_zba;
 static bool have_zicond;
 #endif
 
+/* No need to guard against 'have_v' macro,
+ * because 'have_v' will be determined when querying vlen. */
+bool have_v = false;
+int vlen = 0;
+
 static TCGReg tcg_target_call_oarg_reg(TCGCallReturnKind kind, int slot)
 {
     tcg_debug_assert(kind == TCG_CALL_RET_NORMAL);
