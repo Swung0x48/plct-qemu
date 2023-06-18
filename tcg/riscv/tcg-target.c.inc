@@ -2185,6 +2185,36 @@ static void tcg_target_detect_isa(void)
 
     sigaction(SIGILL, &sa_old, NULL);
 #endif
+
+    /* Probe for V extension and query vlen value: csrrs %0, vlenb, zero.
+     * gcc refuses to encode 0xc22(vlenb csr) to simm12, which seems
+     * to be a bug. (It screwed up bound checking, only accepting
+     * simm12 <= 0x7ff, where it should be <= 0xfff, which wrongly refused
+     * totally valid value 0xc22)
+     * Thus the inline asm cannot be written using .insn format.
+     * (Should be ".insn i 0x73, 0x2, %0, zero, 0xc22" : "=r"(vlen)::"memory"),
+     * But we assume Zicsr is present, so it should be good anyway.
+     * No need to guard against 'have_v' macro here, because this instruction
+     * is required to query vlen from CSR anyway.
+     */
+    struct sigaction sa_old, sa_new;
+    memset(&sa_new, 0, sizeof(sa_new));
+    sa_new.sa_flags = SA_SIGINFO;
+    sa_new.sa_sigaction = sigill_handler;
+    sigaction(SIGILL, &sa_new, &sa_old);
+
+    got_sigill = 0;
+    //asm volatile(".insn i 0x73, 0x2, %0, zero, 0xc22" :
+    //              "=r"(vlen) : : "memory");
+    asm("csrrs %0, vlenb, x0" : "=r"(vlen));
+    have_v = !got_sigill;
+    if (have_v)
+        vlen *= 8;
+    else
+        vlen = 0;
+
+    sigaction(SIGILL, &sa_old, NULL);
+}
 }
 
 static void tcg_target_init(TCGContext *s)
@@ -2193,6 +2223,15 @@ static void tcg_target_init(TCGContext *s)
 
     tcg_target_available_regs[TCG_TYPE_I32] = 0xffffffff;
     tcg_target_available_regs[TCG_TYPE_I64] = 0xffffffff;
+
+    if (have_v) {
+        if (vlen >= 64)
+            tcg_target_available_regs[TCG_TYPE_V64] = ALL_VECTOR_REGS;
+        if (vlen >= 128)
+            tcg_target_available_regs[TCG_TYPE_V128] = ALL_VECTOR_REGS;
+        if (vlen >= 256)
+            tcg_target_available_regs[TCG_TYPE_V256] = ALL_VECTOR_REGS;
+    }
 
     tcg_target_call_clobber_regs = -1u;
     tcg_regset_reset_reg(tcg_target_call_clobber_regs, TCG_REG_S0);
