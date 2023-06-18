@@ -2514,7 +2514,6 @@ static inline void tcg_out_vec_op(TCGContext *s, TCGOpcode opc,
 
 static void tcg_target_detect_isa(void)
 {
-#if !defined(have_zba) || !defined(have_zbb) || !defined(have_zicond)
     /*
      * TODO: It is expected that this will be determinable via
      * linux riscv_hwprobe syscall, not yet merged.
@@ -2527,7 +2526,7 @@ static void tcg_target_detect_isa(void)
     sa_new.sa_flags = SA_SIGINFO;
     sa_new.sa_sigaction = sigill_handler;
     sigaction(SIGILL, &sa_new, &sa_old);
-
+#if !defined(have_zba) || !defined(have_zbb) || !defined(have_zicond)
 #ifndef have_zba
     /* Probe for Zba: add.uw zero,zero,zero. */
     got_sigill = 0;
@@ -2549,7 +2548,6 @@ static void tcg_target_detect_isa(void)
     have_zicond = !got_sigill;
 #endif
 
-    sigaction(SIGILL, &sa_old, NULL);
 #endif // !defined(have_zba) || !defined(have_zbb) || !defined(have_zicond)
 
     /* Probe for V extension and query vlen value: csrrs %0, vlenb, zero.
@@ -2563,11 +2561,6 @@ static void tcg_target_detect_isa(void)
      * No need to guard against 'have_v' macro here, because this instruction
      * is required to query vlen from CSR anyway.
      */
-    struct sigaction sa_old, sa_new;
-    memset(&sa_new, 0, sizeof(sa_new));
-    sa_new.sa_flags = SA_SIGINFO;
-    sa_new.sa_sigaction = sigill_handler;
-    sigaction(SIGILL, &sa_new, &sa_old);
 
     got_sigill = 0;
     //asm volatile(".insn i 0x73, 0x2, %0, zero, 0xc22" :
@@ -2580,7 +2573,6 @@ static void tcg_target_detect_isa(void)
         vlen = 0;
 
     sigaction(SIGILL, &sa_old, NULL);
-}
 }
 
 static void tcg_target_init(TCGContext *s)
