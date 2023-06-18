@@ -144,8 +144,13 @@ static TCGReg tcg_target_call_oarg_reg(TCGCallReturnKind kind, int slot)
 #define TCG_CT_CONST_N12   0x400
 #define TCG_CT_CONST_M12   0x800
 #define TCG_CT_CONST_J12  0x1000
+#define TCG_CT_CONST_U4   0x2000
 
 #define ALL_GENERAL_REGS   MAKE_64BIT_MASK(0, 32)
+#define ALL_VECTOR_REGS   MAKE_64BIT_MASK(32, 32)
+#define ALL_DVECTOR_REG_GROUPS 0x5555555500000000
+#define ALL_QVECTOR_REG_GROUPS 0x1111111100000000
+
 
 #define sextreg  sextract64
 
@@ -185,6 +190,14 @@ static bool tcg_target_const_match(int64_t val, TCGType type, int ct)
      * Used to map ANDN back to ANDI, etc.
      */
     if ((ct & TCG_CT_CONST_J12) && ~val >= -0x800 && ~val <= 0x7ff) {
+        return 1;
+    }
+    /*
+     * 4 bit immediate: [0x0, 0xf].
+     * Used to populate imm[4:0] field in OPIVI class instruction.
+     * (which belongs to 'V' extension)
+     */
+    if ((ct & TCG_CT_CONST_U4) && ((val & 0xf) == val)) {
         return 1;
     }
     return 0;
