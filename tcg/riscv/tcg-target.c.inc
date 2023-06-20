@@ -214,6 +214,9 @@ static TCGReg tcg_target_call_oarg_reg(TCGCallReturnKind kind, int slot)
 
 #define ALL_GENERAL_REGS   MAKE_64BIT_MASK(0, 32)
 #define ALL_VECTOR_REGS   MAKE_64BIT_MASK(32, 32)
+
+/* Exclude v0 for the sake of masking */
+#define VECTOR_REGS_WO_V0 MAKE_64BIT_MASK(33, 31)
 #define ALL_DVECTOR_REG_GROUPS 0x5555555500000000
 #define ALL_QVECTOR_REG_GROUPS 0x1111111100000000
 
@@ -380,14 +383,16 @@ typedef enum {
     OPC_VSE16_V = 0x5027,
     OPC_VSE32_V = 0x6027,
     OPC_VSE64_V = 0x7027,
-    OPC_VMV_V_I = 0x5e0000c0057,
     OPC_VADD_VX = 0x100057,
     OPC_VADD_VV = 0x57,
+    OPC_VADD_VI = 0x3057,
     OPC_VSUB_VV = 0x8000057,
+    OPC_VRSUB_VX = 0xc004057,
     OPC_VAND_VV = 0x24000057,
     OPC_VOR_VV = 0x28000057,
     OPC_VXOR_VV = 0x2c000057,
     OPC_VAND_VX = 0x24004057,
+    OPC_VMV_V_I = 0x5e003057,
     OPC_VMV_V_V = 0x5e000057,
     OPC_VMV_V_X = 0x5e004057,
     OPC_VMSEQ_VV = 0x60000057,
@@ -524,6 +529,7 @@ static int32_t encode_vtype(Vta vta, Vma vma, Vsew vsew, Vlmul vlmul) {
     return (vma & 0x1) << 7 | (vta & 0x1) << 6 | (vsew & 0x7) << 3 | (vlmul & 0x7);
 }
 
+/* Map from [32, 63] to [0, 31] */
 static TCGReg encode_vreg(TCGReg vreg) {
     return vreg & 0x1f;
 }
@@ -538,6 +544,7 @@ static void tcg_out_opc_reg(TCGContext *s, RISCVInsn opc,
     tcg_out32(s, encode_r(opc, rd, rs1, rs2));
 }
 
+/* vm=0 (vm false) means vector masking ENABLED! */
 static void tcg_out_opc_reg_vec(TCGContext *s, RISCVInsn opc,
                               TCGReg d, TCGReg s1, TCGReg s2, bool vm) {
     int32_t insn = encode_r(opc, d, s1, s2);
@@ -552,12 +559,19 @@ static void tcg_out_opc_vv(TCGContext *s, RISCVInsn opc,
                         encode_vreg(vs1), encode_vreg(vs2), vm);
 }
 
-//static void tcg_out_opc_vx(TCGContext *s, RISCVInsn opc,
-//                               TCGReg vd, TCGReg rs1, TCGReg vs2, bool vm)
-//{
-//    tcg_out_opc_reg_vec(s, opc, encode_vreg(vd),
-//                        rs1, encode_vreg(vs2), vm);
-//}
+static void tcg_out_opc_vx(TCGContext *s, RISCVInsn opc,
+                               TCGReg vd, TCGReg rs1, TCGReg vs2, bool vm)
+{
+    tcg_out_opc_reg_vec(s, opc, encode_vreg(vd),
+                        rs1, encode_vreg(vs2), vm);
+}
+
+static void tcg_out_opc_vi(TCGContext *s, RISCVInsn opc,
+                               TCGReg vd, TCGReg vs1, TCGArg imm, bool vm)
+{
+    tcg_out_opc_reg_vec(s, opc, encode_vreg(vd),
+                        encode_vreg(vs1), imm, vm);
+}
 
 static void tcg_out_opc_v_v(TCGContext *s, RISCVInsn opc,
                                TCGReg vd, TCGReg vs1, bool vm) {
@@ -568,6 +582,12 @@ static void tcg_out_opc_v_v(TCGContext *s, RISCVInsn opc,
 static void tcg_out_opc_v_x(TCGContext *s, RISCVInsn opc,
                                 TCGReg vd, TCGReg rs1, bool vm) {
     tcg_out_opc_reg_vec(s, opc, encode_vreg(vd), rs1,
+                        encode_vreg(TCG_REG_V0), vm);
+}
+
+__attribute__((unused)) static void tcg_out_opc_v_i(TCGContext *s, RISCVInsn opc,
+                                TCGReg vd, TCGArg imm, bool vm) {
+    tcg_out_opc_reg_vec(s, opc, encode_vreg(vd), imm,
                         encode_vreg(TCG_REG_V0), vm);
 }
 
@@ -2263,14 +2283,14 @@ static TCGConstraintSetIndex tcg_target_op_def(TCGOpcode op)
     case INDEX_op_or_vec:
     case INDEX_op_xor_vec:
     case INDEX_op_cmp_vec:
-        return C_O1_I2(v, v, v);
+        return C_O1_I2(V, V, V);
     case INDEX_op_dup_vec:
-        return C_O1_I1(v, vr);
+        return C_O1_I1(V, Vr);
     case INDEX_op_ld_vec:
     case INDEX_op_dupm_vec:
-        return C_O1_I1(v, r);
+        return C_O1_I1(V, r);
     case INDEX_op_st_vec:
-        return C_O0_I2(v, r);
+        return C_O0_I2(V, r);
     default:
         g_assert_not_reached();
     }
@@ -2381,7 +2401,6 @@ void tcg_expand_vec_op(TCGOpcode o, TCGType t, unsigned e, TCGArg a0, ...)
 static inline bool tcg_out_dup_vec(TCGContext *s, TCGType type, unsigned vece,
                                    TCGReg dst, TCGReg src)
 {
-
     tcg_target_set_vec_config(s, type, vece, true);
     tcg_out_opc_v_x(s, OPC_VMV_V_X, dst, src, true);
     return true;
@@ -2400,15 +2419,10 @@ static inline void tcg_out_dupi_vec(TCGContext *s, TCGType type, unsigned vece,
 {
     tcg_target_set_vec_config(s, type, vece, true);
     if (arg == 0) {
-        tcg_out_opc_vv(s, OPC_VXOR_VV, dst, dst, dst, true);
+        tcg_out_opc_v_x(s, OPC_VMV_V_X, dst, TCG_REG_ZERO, true);
         return;
     }
 
-    if (arg == -1) {
-        // effectively set all the bits in dst
-        tcg_out_opc_vv(s, OPC_VMSEQ_VV, dst, dst, dst, true);
-        return;
-    }
     tcg_out_movi(s, TCG_TYPE_I64, TCG_REG_TMP0, arg);
     tcg_out_dup_vec(s, type, vece, dst, TCG_REG_TMP0);
 }
@@ -2425,7 +2439,7 @@ static inline void tcg_out_cmp_vec(TCGContext *s, TCGType type,
             opc = OPC_VMSNE_VV;
             break;
         case TCG_COND_GT:
-            opc = true;
+            swap = true;
             /* FALLTHRU */
         case TCG_COND_LT:
             opc = OPC_VMSLT_VV;
@@ -2451,10 +2465,18 @@ static inline void tcg_out_cmp_vec(TCGContext *s, TCGType type,
         default:
             g_assert_not_reached();
     }
-    if (!swap)
-        tcg_out_opc_vv(s, opc, vd, vs1, vs2, true);
+    /* We need to swap again later, so swap just cancelled out. 
+     * Saving mask encoding info in v0
+     */
+    if (swap)
+        tcg_out_opc_vv(s, opc, TCG_REG_V0, vs1, vs2, true);
     else
-        tcg_out_opc_vv(s, opc, vd, vs2, vs1, true);
+        tcg_out_opc_vv(s, opc, TCG_REG_V0, vs2, vs1, true);
+
+    /* Clear out vd, then use masked add and then neg to get -1 */
+    tcg_out_dupi_vec(s, type, prev_vece, vd, 0);
+    tcg_out_opc_vi(s, OPC_VADD_VI, vd, vd, 1, false);
+    tcg_out_opc_vx(s, OPC_VRSUB_VX, vd, TCG_REG_ZERO, vd, false);
 }
 
 static inline void tcg_out_vec_op(TCGContext *s, TCGOpcode opc,
@@ -2486,7 +2508,7 @@ static inline void tcg_out_vec_op(TCGContext *s, TCGOpcode opc,
             tcg_out_opc_vv(s, OPC_VADD_VV, a0, a1, a2, true);
             break;
         case INDEX_op_sub_vec:
-            /* Note vsub.vv do vd[i] = vs2[i] - vs1[i]
+            /* Note vsub.vv does vd[i] = vs2[i] - vs1[i]
              * while sub_vec v0, v1, v2 do v0 = v1 - v2.
              */
             tcg_out_opc_vv(s, OPC_VSUB_VV, a0, a2, a1, true);
