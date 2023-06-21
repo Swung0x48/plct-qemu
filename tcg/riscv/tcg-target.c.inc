@@ -548,7 +548,7 @@ static void tcg_out_opc_reg(TCGContext *s, RISCVInsn opc,
 
 /* vm=0 (vm false) means vector masking ENABLED! */
 static void tcg_out_opc_reg_vec(TCGContext *s, RISCVInsn opc,
-                              TCGReg d, TCGReg s1, TCGReg s2, bool vm)
+                                TCGReg d, TCGReg s1, TCGReg s2, bool vm)
 {
     int32_t insn = encode_r(opc, d, s1, s2);
     insn |= (vm << 25);
@@ -556,42 +556,43 @@ static void tcg_out_opc_reg_vec(TCGContext *s, RISCVInsn opc,
 }
 
 static void tcg_out_opc_vv(TCGContext *s, RISCVInsn opc,
-                               TCGReg vd, TCGReg vs1, TCGReg vs2, bool vm)
+                           TCGReg vd, TCGReg vs1, TCGReg vs2, bool vm)
 {
     tcg_out_opc_reg_vec(s, opc, encode_vreg(vd),
                         encode_vreg(vs1), encode_vreg(vs2), vm);
 }
 
 static void tcg_out_opc_vx(TCGContext *s, RISCVInsn opc,
-                               TCGReg vd, TCGReg rs1, TCGReg vs2, bool vm)
+                           TCGReg vd, TCGReg rs1, TCGReg vs2, bool vm)
 {
     tcg_out_opc_reg_vec(s, opc, encode_vreg(vd),
                         rs1, encode_vreg(vs2), vm);
 }
 
 static void tcg_out_opc_vi(TCGContext *s, RISCVInsn opc,
-                               TCGReg vd, TCGReg vs1, TCGArg imm, bool vm)
+                           TCGReg vd, TCGReg vs1, TCGArg imm, bool vm)
 {
     tcg_out_opc_reg_vec(s, opc, encode_vreg(vd),
                         encode_vreg(vs1), imm, vm);
 }
 
 static void tcg_out_opc_v_v(TCGContext *s, RISCVInsn opc,
-                               TCGReg vd, TCGReg vs1, bool vm)
+                            TCGReg vd, TCGReg vs1, bool vm)
 {
     tcg_out_opc_reg_vec(s, opc, encode_vreg(vd), encode_vreg(vs1),
                         encode_vreg(TCG_REG_V0), vm);
 }
 
 static void tcg_out_opc_v_x(TCGContext *s, RISCVInsn opc,
-                                TCGReg vd, TCGReg rs1, bool vm)
+                            TCGReg vd, TCGReg rs1, bool vm)
 {
     tcg_out_opc_reg_vec(s, opc, encode_vreg(vd), rs1,
                         encode_vreg(TCG_REG_V0), vm);
 }
 
-__attribute__((unused)) static void tcg_out_opc_v_i(TCGContext *s, RISCVInsn opc,
-                                TCGReg vd, TCGArg imm, bool vm)
+__attribute__((unused))
+static void tcg_out_opc_v_i(TCGContext *s, RISCVInsn opc,
+                            TCGReg vd, TCGArg imm, bool vm)
 {
     tcg_out_opc_reg_vec(s, opc, encode_vreg(vd), imm,
                         encode_vreg(TCG_REG_V0), vm);
@@ -610,7 +611,7 @@ static void tcg_out_opc_store(TCGContext *s, RISCVInsn opc,
 }
 
 static void tcg_out_opc_ldst_vec(TCGContext *s, RISCVInsn opc,
-                                  TCGReg rs1, TCGReg vs3, bool vm)
+                                 TCGReg rs1, TCGReg vs3, bool vm)
 {
     int32_t insn = encode_s_vec(opc, rs1, encode_vreg(vs3));
     insn |= (vm << 25);
