@@ -525,12 +525,14 @@ typedef enum Vlmul {
     VLMUL_MF2 = 7,
 } Vlmul;
 
-static int32_t encode_vtype(Vta vta, Vma vma, Vsew vsew, Vlmul vlmul) {
+static int32_t encode_vtype(Vta vta, Vma vma, Vsew vsew, Vlmul vlmul)
+{
     return (vma & 0x1) << 7 | (vta & 0x1) << 6 | (vsew & 0x7) << 3 | (vlmul & 0x7);
 }
 
 /* Map from [32, 63] to [0, 31] */
-static TCGReg encode_vreg(TCGReg vreg) {
+static TCGReg encode_vreg(TCGReg vreg)
+{
     return vreg & 0x1f;
 }
 
@@ -546,7 +548,8 @@ static void tcg_out_opc_reg(TCGContext *s, RISCVInsn opc,
 
 /* vm=0 (vm false) means vector masking ENABLED! */
 static void tcg_out_opc_reg_vec(TCGContext *s, RISCVInsn opc,
-                              TCGReg d, TCGReg s1, TCGReg s2, bool vm) {
+                              TCGReg d, TCGReg s1, TCGReg s2, bool vm)
+{
     int32_t insn = encode_r(opc, d, s1, s2);
     insn |= (vm << 25);
     tcg_out32(s, insn);
@@ -574,19 +577,22 @@ static void tcg_out_opc_vi(TCGContext *s, RISCVInsn opc,
 }
 
 static void tcg_out_opc_v_v(TCGContext *s, RISCVInsn opc,
-                               TCGReg vd, TCGReg vs1, bool vm) {
+                               TCGReg vd, TCGReg vs1, bool vm)
+{
     tcg_out_opc_reg_vec(s, opc, encode_vreg(vd), encode_vreg(vs1),
                         encode_vreg(TCG_REG_V0), vm);
 }
 
 static void tcg_out_opc_v_x(TCGContext *s, RISCVInsn opc,
-                                TCGReg vd, TCGReg rs1, bool vm) {
+                                TCGReg vd, TCGReg rs1, bool vm)
+{
     tcg_out_opc_reg_vec(s, opc, encode_vreg(vd), rs1,
                         encode_vreg(TCG_REG_V0), vm);
 }
 
 __attribute__((unused)) static void tcg_out_opc_v_i(TCGContext *s, RISCVInsn opc,
-                                TCGReg vd, TCGArg imm, bool vm) {
+                                TCGReg vd, TCGArg imm, bool vm)
+{
     tcg_out_opc_reg_vec(s, opc, encode_vreg(vd), imm,
                         encode_vreg(TCG_REG_V0), vm);
 }
@@ -637,7 +643,8 @@ static void tcg_out_nop_fill(tcg_insn_unit *p, int count)
     }
 }
 
-static void tcg_out_vsetvl(TCGContext *s, TCGReg rd, uint32_t avl, Vta vta, Vma vma, Vsew vsew, Vlmul vlmul) {
+static void tcg_out_vsetvl(TCGContext *s, TCGReg rd, uint32_t avl, Vta vta, Vma vma, Vsew vsew, Vlmul vlmul)
+{
     int32_t imm = encode_vtype(vta, vma, vsew, vlmul) << 20;
     if (avl < 32) {
         imm |= ((avl & 0x1f) << 15);
@@ -650,7 +657,8 @@ static void tcg_out_vsetvl(TCGContext *s, TCGReg rd, uint32_t avl, Vta vta, Vma 
 
 static TCGType prev_type = -1;
 static unsigned prev_vece = -1;
-static bool tcg_target_set_vec_config(TCGContext *s, TCGType type, unsigned vece, bool force) {
+static bool tcg_target_set_vec_config(TCGContext *s, TCGType type, unsigned vece, bool force)
+{
    if (!force && prev_type == type && prev_vece == vece)
        return true;
 
@@ -2428,7 +2436,8 @@ static inline void tcg_out_dupi_vec(TCGContext *s, TCGType type, unsigned vece,
 }
 
 static inline void tcg_out_cmp_vec(TCGContext *s, TCGType type,
-                                   TCGReg vd, TCGReg vs1, TCGReg vs2, TCGCond cond) {
+                                   TCGReg vd, TCGReg vs1, TCGReg vs2, TCGCond cond)
+{
     RISCVInsn opc;
     bool swap = false;
     switch (cond) {
