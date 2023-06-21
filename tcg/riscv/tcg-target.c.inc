@@ -2501,8 +2501,9 @@ static inline void tcg_out_vec_op(TCGContext *s, TCGOpcode opc,
 
     if (opc != INDEX_op_ld_vec ||
         opc != INDEX_op_st_vec ||
-        opc != INDEX_op_dupm_vec)
+        opc != INDEX_op_dupm_vec) {
         tcg_target_set_vec_config(s, type, vece, false);
+    }
     switch (opc) {
         case INDEX_op_ld_vec:
             tcg_out_ld(s, type, a0, a1, a2);
